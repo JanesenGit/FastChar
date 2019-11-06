@@ -1,5 +1,7 @@
 package com.fastchar.utils;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -596,8 +598,7 @@ public class FastStringUtils {
 
 
     /**
-     * 匹配url
-     *
+     * 是否匹配
      * @param pattern    可使用通配符* 例如：/druid/*
      * @param target 目标路径
      * @return
@@ -615,11 +616,11 @@ public class FastStringUtils {
         if (isEmpty(prefix)) {
             prefix = "";
         }
-        if (atomicInteger.get() > 999999) {
+        if (atomicInteger.get() > 999) {
             atomicInteger.set(1);
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS");//精确到毫秒
-        return prefix + sdf.format(new Date()) + atomicInteger.incrementAndGet();
+        return prefix + sdf.format(new Date()) + String.format("%03d", atomicInteger.incrementAndGet());
     }
 
 
@@ -638,5 +639,14 @@ public class FastStringUtils {
 
     public static String wrap(String str, String wrapWith) {
         return !isEmpty(str) && !isEmpty(wrapWith) ? wrapWith.concat(str).concat(wrapWith) : str;
+    }
+
+    public static int truthLength(String content) {
+        try {
+            return new String(content.getBytes("GBK"), StandardCharsets.ISO_8859_1).length();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return content.length();
     }
 }

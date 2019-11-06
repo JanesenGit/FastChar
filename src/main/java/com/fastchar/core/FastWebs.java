@@ -2,6 +2,7 @@ package com.fastchar.core;
 
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.interfaces.IFastWeb;
+import com.fastchar.interfaces.IFastWebRun;
 import com.fastchar.utils.FastClassUtils;
 
 import java.lang.reflect.Modifier;
@@ -58,6 +59,16 @@ final class FastWebs {
             IFastWeb iFastWeb = FastClassUtils.newInstance(web);
             if (iFastWeb != null) {
                 iFastWeb.onInit(engine);
+            }
+        }
+    }
+
+    void runWeb(FastEngine engine) throws Exception {
+        sortWeb();
+        for (Class<? extends IFastWeb> web : webs) {
+            IFastWeb iFastWeb = FastClassUtils.newInstance(web);
+            if ((iFastWeb instanceof IFastWebRun)) {
+                ((IFastWebRun) iFastWeb).onRun(engine);
             }
         }
     }

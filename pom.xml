@@ -6,7 +6,7 @@
 
     <groupId>com.fastchar</groupId>
     <artifactId>fastchar</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.7</version>
     <build>
         <plugins>
             <plugin>
@@ -20,6 +20,10 @@
                     <compilerArguments>
                         <bootclasspath>${java.home}/lib/rt.jar:${java.home}/lib/jce.jar</bootclasspath>
                     </compilerArguments>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+
                 </configuration>
             </plugin>
         </plugins>
@@ -90,6 +94,13 @@
                                 <phase>package</phase>
                                 <goals>
                                     <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar</goal>
                                 </goals>
                             </execution>
                         </executions>

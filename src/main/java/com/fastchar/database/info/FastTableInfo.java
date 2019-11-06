@@ -10,6 +10,7 @@ import com.fastchar.utils.FastStringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("unchecked")
 public class FastTableInfo<T> extends FastBaseInfo {
 
     private static final long serialVersionUID = -2159853999174029952L;
@@ -45,8 +46,8 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return (T) this;
     }
 
-    public List<FastColumnInfo<?>> getColumns() {
-        return columns;
+    public <E extends FastColumnInfo> List<E> getColumns() {
+        return (List<E>) columns;
     }
 
     public T setColumns(List<FastColumnInfo<?>> columns) {
@@ -54,13 +55,13 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return (T) this;
     }
 
-    public FastColumnInfo<?> getColumnInfo(String name) {
+    public <E extends FastColumnInfo> E getColumnInfo(String name) {
         if (FastStringUtils.isEmpty(name)) {
             return null;
         }
         for (FastColumnInfo<?> column : this.columns) {
             if (column.getName().equals(name)) {
-                return column;
+                return (E) column;
             }
         }
         return null;
@@ -88,14 +89,14 @@ public class FastTableInfo<T> extends FastBaseInfo {
      * 获得主键
      * @return
      */
-    public List<FastColumnInfo<?>> getPrimaries() {
+    public <E extends FastColumnInfo> List<E> getPrimaries() {
         List<FastColumnInfo<?>> primaries = new ArrayList<>();
         for (FastColumnInfo<?> column : this.columns) {
             if (column.isPrimary()) {
                 primaries.add(column);
             }
         }
-        return primaries;
+        return (List<E>) primaries;
     }
 
 

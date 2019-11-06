@@ -20,7 +20,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
 
     public FastJdbcDataSourceProvider() {
         if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "tomcat jdbc pool"));
+            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "Tomcat jdbc pool"));
         }
     }
 
@@ -73,7 +73,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
             if (datasource != null) {
                 datasource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "tomcat jdbc pool"));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "Tomcat jdbc pool"));
                 }
             }
         } finally {

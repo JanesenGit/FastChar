@@ -2,7 +2,6 @@ package com.fastchar.core;
 
 import com.fastchar.exception.FastFileException;
 
-import com.fastchar.interfaces.IFastFileUrl;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastMD5Utils;
@@ -140,6 +139,10 @@ public class FastFile<T> {
         return this.attachDirectory != null && this.fileName != null ? new File(this.attachDirectory, this.fileName) : null;
     }
 
+    public boolean exists() {
+        return getFile().exists();
+    }
+
     public <E extends FastFile> E moveFile(File targetDirectory) throws FastFileException, IOException {
         return moveFile(targetDirectory.getAbsolutePath());
     }
@@ -192,8 +195,8 @@ public class FastFile<T> {
 
 
     public String getUrl() throws Exception {
-        IFastFileUrl iFastFileUrl = FastChar.getOverrides().singleInstance(IFastFileUrl.class);
-        return iFastFileUrl.getFileUrl(this);
+        String replace = getFile().getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
+        return FastStringUtils.strip(replace, "/");
     }
 
 

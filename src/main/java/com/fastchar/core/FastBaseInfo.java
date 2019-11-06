@@ -14,8 +14,8 @@ import java.util.List;
 /**
  * 便捷的信息存储类
  */
-@SuppressWarnings("unchecked")
 public class FastBaseInfo extends LinkedHashMap<String, Object> {
+    private static final long serialVersionUID = -8188484441789855067L;
     private transient int lineNumber = 1;
     private transient List<Field> fields;
     private transient String tagName;
@@ -31,6 +31,13 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
                     if (Modifier.isTransient(field.getModifiers())) {
                         continue;
                     }
+                    if (Modifier.isFinal(field.getModifiers())) {
+                        continue;
+                    }
+                    if (Modifier.isStatic(field.getModifiers())) {
+                        continue;
+                    }
+
                     fields.add(field);
                 }
                 if (FastBaseInfo.class.isAssignableFrom(tempClass.getSuperclass())) {
@@ -64,7 +71,13 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
     public void set(String attr, Object value) {
         try {
             for (Field field : fields) {
+                if (Modifier.isTransient(field.getModifiers())) {
+                    continue;
+                }
                 if (Modifier.isFinal(field.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
                 if (field.getName().equals(attr)) {
@@ -87,6 +100,12 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
                 if (Modifier.isTransient(field.getModifiers())) {
                     continue;
                 }
+                if (Modifier.isStatic(field.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isFinal(field.getModifiers())) {
+                    continue;
+                }
                 field.setAccessible(true);
                 Object value = field.get(this);
                 if (value != null) {
@@ -105,6 +124,12 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
         try {
             for (Field field : fields) {
                 if (Modifier.isTransient(field.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isStatic(field.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isFinal(field.getModifiers())) {
                     continue;
                 }
                 if (this.containsKey(field.getName())) {
@@ -148,7 +173,11 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
     }
 
     public String getString(String attr) {
-        return String.valueOf(get(attr));
+        return getString(attr, null);
+    }
+
+    public String getString(String attr,String defaultValue) {
+        return FastStringUtils.defaultValue(get(attr), defaultValue);
     }
 
     public boolean getBoolean(String attr) {

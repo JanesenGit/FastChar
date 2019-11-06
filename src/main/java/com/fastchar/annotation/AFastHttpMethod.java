@@ -6,9 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 类代理器注解，标注后，FastChar扫码器会自动注册 被标注此注解的类 到类代理器中
+ * FastAction注解，可指定路由的Http方法
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
-public @interface AFastOverride {
+@Target({ElementType.TYPE,ElementType.METHOD})
+public @interface AFastHttpMethod {
+    String[] value() default "";
 }
+

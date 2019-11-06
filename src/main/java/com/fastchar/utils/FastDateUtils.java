@@ -134,4 +134,46 @@ public class FastDateUtils {
         return c;
     }
 
+
+    public static String smartDateString(Date dateTime, String timePattern) {
+        if (dateTime == null) {
+            return "";
+        }
+        SimpleDateFormat sdf2 = new SimpleDateFormat(timePattern);
+        int subDay = diffDay(dateTime, new Date());
+        switch (subDay) {
+            case 0:
+                return "今天" + sdf2.format(dateTime);
+            case 1:
+                return "昨天" + sdf2.format(dateTime);
+            case 2:
+                return "前天" + sdf2.format(dateTime);
+        }
+        return format(dateTime, "yyyy-MM-dd ") + sdf2.format(dateTime);
+    }
+
+    public static int diffDay(Date first, Date two) {
+        try {
+            return Math.abs((int) (first.getTime() - two.getTime()) / (60 * 60 * 1000 * 24));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static int diffYear(Date first, Date two) {
+        try {
+            Calendar firstCal = Calendar.getInstance();
+            firstCal.setTime(first);
+
+            Calendar twoCal = Calendar.getInstance();
+            twoCal.setTime(two);
+            return Math.abs(firstCal.get(Calendar.YEAR) - twoCal.get(Calendar.YEAR));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+
 }

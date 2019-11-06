@@ -2,11 +2,14 @@ package com.fastchar.database;
 
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
+import com.fastchar.core.FastHandler;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.sql.FastSql;
 import com.fastchar.exception.FastSqlException;
+import com.fastchar.interfaces.IFastColumnSecurity;
 import com.fastchar.utils.FastClassUtils;
+import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +34,18 @@ public class FastData<T extends FastEntity> {
         return FastChar.getDatabases().get(target.getDatabase()).getType();
     }
 
+    protected void convertValue(FastEntity entity) {
+        List<FastColumnInfo> columns = entity.getTable().getColumns();
+        for (FastColumnInfo column : columns) {
+            if (FastStringUtils.isNotEmpty(column.getEncrypt())) {
+                String decryptValue = FastChar.getOverrides()
+                        .singleInstance(IFastColumnSecurity.class)
+                        .decrypt(column, entity.getString(column.getName()));
+                entity.put(column.getName(), decryptValue);
+            }
+        }
+
+    }
 
     public T selectById(Object... ids) {
         try {
@@ -45,6 +60,7 @@ public class FastData<T extends FastEntity> {
                     return null;
                 }
                 newInstance.putAll(fastEntity);
+                convertValue(newInstance);
                 newInstance.convertValue();
                 fastEntity.clear();
                 return newInstance;
@@ -66,6 +82,7 @@ public class FastData<T extends FastEntity> {
                     continue;
                 }
                 newInstance.putAll(fastEntity);
+                convertValue(newInstance);
                 newInstance.convertValue();
                 fastEntity.clear();
                 list.add(newInstance);
@@ -87,6 +104,7 @@ public class FastData<T extends FastEntity> {
                     return null;
                 }
                 newInstance.putAll(fastEntity);
+                convertValue(newInstance);
                 newInstance.convertValue();
                 fastEntity.clear();
                 return newInstance;
@@ -107,6 +125,7 @@ public class FastData<T extends FastEntity> {
                     return null;
                 }
                 newInstance.putAll(fastEntity);
+                convertValue(newInstance);
                 newInstance.convertValue();
                 fastEntity.clear();
                 return newInstance;
@@ -131,6 +150,7 @@ public class FastData<T extends FastEntity> {
             fastPage.setTotalPage(result.getTotalPage());
             fastPage.setTotalRow(result.getTotalRow());
             fastPage.setPageSize(result.getPageSize());
+            fastPage.setSqlInfo(result.getSqlInfo());
 
             List<T> list = new ArrayList<>();
             for (FastEntity<?> fastEntity : result.getList()) {
@@ -139,6 +159,7 @@ public class FastData<T extends FastEntity> {
                     continue;
                 }
                 newInstance.putAll(fastEntity);
+                convertValue(newInstance);
                 newInstance.convertValue();
                 fastEntity.clear();
                 list.add(newInstance);
@@ -236,6 +257,22 @@ public class FastData<T extends FastEntity> {
             throw new FastSqlException(FastChar.getLocal().getInfo("Entity_Error4"));
         }
         if (!target.save(checks)) {
+            return target.update(checks);
+        }
+        return true;
+    }
+
+    public boolean push(FastHandler handler,String... checks) {
+        if (checks.length == 0) {
+            throw new FastSqlException(FastChar.getLocal().getInfo("Entity_Error4"));
+        }
+        if (handler != null) {
+            handler.setCode(0);
+        }
+        if (!target.save(checks)) {
+            if (handler != null) {
+                handler.setCode(1);
+            }
             return target.update(checks);
         }
         return true;

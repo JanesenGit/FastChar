@@ -1,10 +1,12 @@
 package com.fastchar.database;
 
 import com.fastchar.core.FastEntity;
+import com.fastchar.database.info.FastSqlInfo;
 
 import java.util.List;
 
 public class FastPage<T extends FastEntity> {
+    private transient FastSqlInfo sqlInfo;
     private int page;
     private int totalPage;
     private int totalRow;
@@ -49,6 +51,15 @@ public class FastPage<T extends FastEntity> {
 
     public void setList(List<T> list) {
         this.list = list;
+    }
+
+    public FastSqlInfo getSqlInfo() {
+        return sqlInfo;
+    }
+
+    public FastPage<T> setSqlInfo(FastSqlInfo sqlInfo) {
+        this.sqlInfo = sqlInfo;
+        return this;
     }
 
     public void release() {

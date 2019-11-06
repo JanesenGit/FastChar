@@ -148,10 +148,18 @@ public class FastDb {
             fastPage.setPageSize(pageSize);
             fastPage.setTotalPage(countRow % pageSize == 0 ? countRow / pageSize : countRow / pageSize + 1);
         } else {
-            fastPage.setPage(-1);
+            fastPage.setTotalPage(1);
+            fastPage.setPage(1);
         }
         String pageSql = FastSql.getInstance(type).buildPageSql(sqlStr, page, pageSize);
+        FastSqlInfo fastSqlInfo = FastSqlInfo.newInstance().setSql(sqlStr).setParams(params);
+        fastSqlInfo.fromProperty();
+        fastPage.setSqlInfo(fastSqlInfo);
         fastPage.setList(select(pageSql, params));
+        if (page < 0) {
+            fastPage.setTotalRow(fastPage.getList().size());
+            fastPage.setPageSize(fastPage.getTotalRow());
+        }
         return fastPage;
     }
 
@@ -383,17 +391,26 @@ public class FastDb {
         }
     }
 
+    /**
+     * 批量执行sql
+     *
+     * @param sqlArray sql数组
+     * @return 执行结果
+     */
+    public int[] batch(String[] sqlArray, int batchSize) throws Exception {
+        return batch(Arrays.asList(sqlArray), batchSize);
+    }
 
     /**
      * 批量执行sql
      *
-     * @param sqlStrs sql数组
+     * @param sqlList sql数组
      * @return 执行结果
      */
-    public int[] batch(List<String> sqlStrs, int batchSize) throws Exception {
+    public int[] batch(List<String> sqlList, int batchSize) throws Exception {
         inTime = System.currentTimeMillis();
         if (getDatabaseInfo().isCache() && isUseCache()) {
-            for (String sqlStr : sqlStrs) {
+            for (String sqlStr : sqlList) {
                 List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 for (String table : allTables) {
@@ -416,7 +433,7 @@ public class FastDb {
                 return new int[0];
             }
             statement = connection.createStatement();
-            for (String sql : sqlStrs) {
+            for (String sql : sqlList) {
                 statement.addBatch(sql);
                 if (++count % batchSize == 0) {
                     int[] executeBatch = statement.executeBatch();
@@ -435,7 +452,7 @@ public class FastDb {
             return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
         } finally {
             close(connection, statement);
-            for (String sql : sqlStrs) {
+            for (String sql : sqlList) {
                 log(sql, null);
             }
         }
@@ -507,14 +524,14 @@ public class FastDb {
     }
 
 
-    public int[] batchSaveEntity(List<? extends FastEntity> entities, int batchSize) throws Exception {
+    public int[] batchSaveEntity(List<? extends FastEntity> entities, int batchSize, String... checks) throws Exception {
         if (entities.size() == 0) {
             return new int[0];
         }
         LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
         for (FastEntity entity : entities) {
             entity.setDefaultValue();
-            FastSqlInfo sqlInfo = entity.toInsertSql();
+            FastSqlInfo sqlInfo = entity.toInsertSql(checks);
             if (sqlInfo == null) {
                 continue;
             }
@@ -700,7 +717,7 @@ public class FastDb {
                 }
             }
 
-            float useTotal = FastNumberUtils.formatToFloat((System.currentTimeMillis() - inTime) / 1000.0, 4);
+            float useTotal = FastNumberUtils.formatToFloat((System.currentTimeMillis() - inTime) / 1000.0, 6);
             printMap.put("Total", useTotal + " seconds");
             int maxKeyLength = 0;
             for (String key : printMap.keySet()) {

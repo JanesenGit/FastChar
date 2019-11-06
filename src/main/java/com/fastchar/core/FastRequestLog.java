@@ -23,7 +23,7 @@ public final class FastRequestLog {
     private static final String AfterInterceptorChar = ":<";
 
 
-    static void log(FastAction action) {
+    public static void log(FastAction action) {
         try {
             if (FastChar.getConstant().isDebug() && action.isLog()) {
                 if (action.getFastRoute() == null || action.getFastOut() == null) {
@@ -36,7 +36,7 @@ public final class FastRequestLog {
 
                 Date inTime = action.getFastRoute().inTime;
                 Date outTime = action.getFastOut().getOutTime();
-                float userTotal = FastNumberUtils.formatToFloat((outTime.getTime() - inTime.getTime()) / 1000.0, 4);
+                float userTotal = FastNumberUtils.formatToFloat((outTime.getTime() - inTime.getTime()) / 1000.0, 6);
 
                 if (FastChar.getConstant().isLogFilterResponseTime()) {
                     if (userTotal < FastChar.getConstant().getMaxResponseTime()) {
@@ -84,6 +84,11 @@ public final class FastRequestLog {
                 }
 
                 printRequestMap.put("HttpMethod", action.getRequestMethod());
+                if (action.getFastRoute().crossAllowDomains.size() > 0) {
+                    printRequestMap.put("CrossDomain-Allows", FastStringUtils.join(action.getFastRoute().crossAllowDomains, ";"));
+                    printRequestMap.put("CrossDomain-Headers", FastStringUtils.join(FastChar.getConstant().getCrossHeaders(), ","));
+                }
+
                 if (FastChar.getConstant().isLogHeaders()) {
                     StringBuilder stringBuilder = new StringBuilder();
                     Enumeration<String> headerNames = action.getRequest().getHeaderNames();
@@ -105,6 +110,9 @@ public final class FastRequestLog {
                     printRequestMap.put("Params", mapToString(paramToMap));
                 }
 
+                if (FastChar.getConstant().isLogRemoteAddress()) {
+                    printRequestMap.put("RemoteAddress", action.getRemoveIp());
+                }
                 printRequestMap.put("InTime", simpleDateFormat.format(inTime));
 
 
@@ -118,13 +126,18 @@ public final class FastRequestLog {
                 }
 
                 if (FastChar.getConstant().isLogInterceptorUseTotal()) {
-                    float useTotal = FastNumberUtils.formatToFloat(action.fastRoute.afterInterceptorUseTotal / 1000.0, 4);
+                    float useTotal = FastNumberUtils.formatToFloat(action.fastRoute.afterInterceptorUseTotal / 1000.0, 6);
                     printResponseMap.put(AfterInterceptorChar + "@AfterInterceptor-UseTotal", useTotal + " seconds");
                 }
 
                 for (int i = 0; i < requestStackTrace.getOutStacks().size(); i++) {
                     printResponseMap.put("Out-" + i, requestStackTrace.getOutStacks().get(i).toString());
                 }
+
+                if (isErrorStatus(fastOut.getStatus()) || isWarnStatus(fastOut.getStatus())) {
+                    printResponseMap.put("Out-Content", String.valueOf(fastOut.getData()));
+                }
+
                 printResponseMap.put("ContentType", fastOut.toContentType());
                 printResponseMap.put("Status", String.valueOf(fastOut.getStatus()));
 
@@ -293,6 +306,7 @@ public final class FastRequestLog {
             afterInterceptorStacks = new ArrayList<>();
             actionStacks = new ArrayList<>();
             outStacks = new ArrayList<>();
+            boolean hasActionOut = false;
             if (action.getFastRoute().getMethod() != null) {
                 action.getFastRoute().stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
                 for (StackTraceElement stackTraceElement : action.getFastRoute().stackTraceElements) {
@@ -321,6 +335,9 @@ public final class FastRequestLog {
                         if (!outStacks.contains(stackTraceElement)) {
                             outStacks.add(stackTraceElement);
                         }
+                        if (action.getFastOut().getClass() == targetClass) {
+                            hasActionOut = true;
+                        }
                     }
                 }
                 if (actionStacks.size() == 0) {
@@ -331,7 +348,7 @@ public final class FastRequestLog {
                     actionStacks.add(stackTraceElement);
                 }
             }
-            if (action.getFastOut() != null) {
+            if (action.getFastOut() != null && !hasActionOut) {
                 try {
                     FastMethodRead methodRead = new FastMethodRead();
                     List<FastMethodRead.MethodLine> responses = methodRead.getMethodLineNumber(action.getFastOut().getClass(), "response");

@@ -4,8 +4,6 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastFile;
 import com.fastchar.exception.FastFileException;
 
-import com.fastchar.multipart.*;
-
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpUtils;
@@ -15,7 +13,7 @@ import java.util.*;
 
 public class FastMultipartRequest {
     private static final int DEFAULT_MAX_POST_SIZE = 1048576;
-    protected Hashtable parameters;
+    private Hashtable parameters;
     protected Hashtable files;
 
     public FastMultipartRequest(HttpServletRequest request, String saveDirectory) throws FastFileException, IOException {
@@ -112,7 +110,6 @@ public class FastMultipartRequest {
                         }
                     }
                 }
-
             }
         }
     }
@@ -209,6 +206,7 @@ public class FastMultipartRequest {
         }
         return null;
     }
+
     public FastFile[] getFiles(String name) {
         try {
             Vector values = (Vector) this.files.get(name);

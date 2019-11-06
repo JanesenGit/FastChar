@@ -3,6 +3,7 @@ package com.fastchar.out;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastDispatcher;
+import com.fastchar.core.FastRequestLog;
 
 /**
  * 转发请求
@@ -13,8 +14,15 @@ public class FastOutForward extends FastOut<FastOutForward> {
     @Override
     public void response(FastAction action) throws Exception {
         this.setDescription("forward to url '" + data + "'");
+        String url = String.valueOf(data);
+        if (url.split("\\?")[0].lastIndexOf(".") > 0) {
+            action.getRequest().getRequestDispatcher(url)
+                    .forward(action.getRequest(), action.getResponse());
+            FastRequestLog.log(action);
+            return;
+        }
         new FastDispatcher(action.getRequest(), action.getResponse())
-                .setContentUrl(String.valueOf(data))
+                .setContentUrl(url)
                 .setForwarder(action)
                 .invoke();
     }

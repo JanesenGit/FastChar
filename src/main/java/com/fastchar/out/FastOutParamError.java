@@ -22,3 +22,5 @@ public class FastOutParamError extends FastOut<FastOutParamError> {
         return this;
     }
 }
+
+

@@ -249,7 +249,7 @@ public final class FastScanner {
             if (jar.getExtract() != null) {
                 extract = jar.getExtract();
             }
-            if (extract) {
+            if (extract && FastChar.getConstant().isLogExtract()) {
                 FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error1", jar.getName()));
             }
 
@@ -269,7 +269,9 @@ public final class FastScanner {
                 for (String exclude : excludes) {
                     if (FastStringUtils.matches(exclude, jarEntryName)) {
                         isExclude = true;
-                        FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error3", jarEntryName));
+                        if (FastChar.getConstant().isLogExtract()) {
+                            FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error3", jarEntryName));
+                        }
                         break;
                     }
                 }
@@ -283,12 +285,18 @@ public final class FastScanner {
                             InputStream inputStream = jarFile.getInputStream(jarEntry);
                             saveJarEntry(inputStream, jarEntry, FastChar.getPath().getWebRootPath(), version);
                             isWebSource = true;
+                            if (FastChar.getConstant().isLogExtract()) {
+                                FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error2", jarEntryName));
+                            }
                             break;
                         }
                     }
                     if (!isWebSource) {
                         InputStream inputStream = jarFile.getInputStream(jarEntry);
                         saveJarEntry(inputStream, jarEntry, FastChar.getPath().getClassRootPath(), version);
+                        if (FastChar.getConstant().isLogExtract()) {
+                            FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error2", jarEntryName));
+                        }
                     }
                 } else {
                     if (jarEntryName.endsWith(".class")) {

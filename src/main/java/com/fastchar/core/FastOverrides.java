@@ -20,8 +20,8 @@ import com.fastchar.extend.redis.FastRedisClusterProvider;
 import com.fastchar.extend.redis.FastRedisNormalProvider;
 import com.fastchar.interfaces.IFastLocal;
 import com.fastchar.local.FastCharLocal_CN;
+import com.fastchar.provider.FastColumnSecurity;
 import com.fastchar.provider.FastFileRename;
-import com.fastchar.provider.FastFileUrl;
 import com.fastchar.provider.FastSecurity;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastClassUtils;
@@ -46,8 +46,8 @@ public final class FastOverrides {
         add(FastOracle.class);
 
         add(FastSecurity.class);
+        add(FastColumnSecurity.class);
         add(FastFileRename.class);
-        add(FastFileUrl.class);
 
         add(FastJdbcDataSourceProvider.class);
         add(FastC3p0DataSourceProvider.class);

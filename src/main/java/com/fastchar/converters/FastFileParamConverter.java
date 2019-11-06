@@ -3,6 +3,7 @@ package com.fastchar.converters;
 import com.fastchar.asm.FastParameter;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastFile;
+import com.fastchar.core.FastHandler;
 import com.fastchar.interfaces.IFastParamConverter;
 
 import java.io.File;
@@ -17,27 +18,27 @@ import java.util.List;
 @SuppressWarnings("unchecked")
 public class FastFileParamConverter implements IFastParamConverter {
     @Override
-    public Object convertValue(FastAction action, FastParameter parameter, int[] marker) throws Exception {
+    public Object convertValue(FastAction action, FastParameter parameter, FastHandler handler) throws Exception {
         Object value = null;
         if (parameter.getType() == File.class) {
             FastFile paramFile = action.getParamFile(parameter.getName());
             if (paramFile != null) {
                 value = paramFile.getFile();
             }
-            marker[0] = 1;
+            handler.setCode(1);
         } else if (parameter.getType() == FastFile.class) {
             value = action.getParamFile(parameter.getName());
-            marker[0] = 1;
+            handler.setCode(1);
         } else if (parameter.getType() == File[].class) {
             List<File> files = new ArrayList<>();
             for (FastFile fastFile : action.getParamListFile()) {
                 files.add(fastFile.getFile());
             }
             value = files.toArray(new File[]{});
-            marker[0] = 1;
+            handler.setCode(1);
         } else if (parameter.getType() == FastFile[].class) {
             value = action.getParamListFile().toArray(new FastFile[]{});
-            marker[0] = 1;
+            handler.setCode(1);
         } else if (Collection.class.isAssignableFrom(parameter.getType())) {
             if (parameter.getParameterizedType() instanceof ParameterizedType) {
                 ParameterizedType parameterizedType = (ParameterizedType) parameter.getParameterizedType();
@@ -50,7 +51,7 @@ public class FastFileParamConverter implements IFastParamConverter {
                         }
                         value = collection;
                     }
-                    marker[0] = 1;
+                    handler.setCode(1);
                 }else if (parameterizedType.getActualTypeArguments()[0] == FastFile.class) {
                     Collection collection = FastTypeHelper.getCollectionInstance(parameter.getType());
                     if (collection != null) {
@@ -58,7 +59,7 @@ public class FastFileParamConverter implements IFastParamConverter {
                         collection.addAll(paramListFile);
                         value = collection;
                     }
-                    marker[0] = 1;
+                    handler.setCode(1);
                 }
             }
         }

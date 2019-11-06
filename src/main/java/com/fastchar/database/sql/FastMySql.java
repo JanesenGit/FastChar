@@ -52,16 +52,18 @@ public class FastMySql extends FastSql {
         if (values.size() == 0) {
             return null;
         }
+        List<String> checkColumns = new ArrayList<>();
         for (String key : checks) {
             FastColumnInfo column = entity.getColumn(key);
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 values.add(columnValue);
+                checkColumns.add(key);
             }
         }
 
         FastSqlInfo sqlInfo = newSqlInfo();
-        if (checks.length == 0) {
+        if (checkColumns.size() == 0) {
             String sqlStr = "insert into " + entity.getTableName()
                     + " (" + FastStringUtils.join(columns, ",") + ") values" +
                     " (" + FastStringUtils.join(placeholders, ",") + ") ";
@@ -70,9 +72,9 @@ public class FastMySql extends FastSql {
             StringBuilder sqlStr = new StringBuilder("insert into " + entity.getTableName()
                     + " (" + FastStringUtils.join(columns, ",") + ") select " +
                     FastStringUtils.join(placeholders, ",") + " from dual where not exists " +
-                    " (select " + FastStringUtils.join(checks, ",") + " from " + entity.getTableName() + " where 1=1 ");
+                    " (select " + FastStringUtils.join(checkColumns, ",") + " from " + entity.getTableName() + " where 1=1 ");
 
-            for (String check : checks) {
+            for (String check : checkColumns) {
                 sqlStr.append(" and ").append(check).append(" = ? ");
             }
             sqlStr.append(")");

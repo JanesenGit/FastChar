@@ -48,15 +48,15 @@ public class FastConverters {
 
 
     public Object convertParam(FastAction action, FastParameter parameter) throws Exception {
-        int[] marker = new int[1];
         Object value = null;
         for (Class<? extends IFastParamConverter> paramConverter : paramConverters) {
             IFastParamConverter iFastParamConverter = FastChar.getOverrides().singleInstance(paramConverter);
             if (iFastParamConverter == null) {
                 continue;
             }
-            value = iFastParamConverter.convertValue(action, parameter, marker);
-            if (marker[0] == 1) {
+            FastHandler handler = new FastHandler();
+            value = iFastParamConverter.convertValue(action, parameter, handler);
+            if (handler.getCode() == 1) {
                 break;
             }
         }

@@ -4,6 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.FastDb;
 import com.fastchar.database.FastScriptRunner;
+import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
@@ -96,7 +97,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                         int scale = data.getScale(i);
 
                         if (displaySize >= 715827882) {
-                            type = "longtext";
+                            type = "ntext";
                         } else if (displaySize >= 21845) {
                             type = "text";
                         }
@@ -197,7 +198,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             if (primaryKey.size() > 0) {
                 columnSql.add(" primary key (" + FastStringUtils.join(primaryKey, ",") + ")");
             }
-            String sql = String.format(" if not exists (select * from sysobjects where name = '%s' ) create table  %s ( %s );", tableInfo.getName(), tableInfo.getName(), FastStringUtils.join(columnSql, ","));
+            String sql = String.format(" if not exists (select * from sysobjects where name = '%s' ) create table  %s ( %s )  comment = '%s' ;", tableInfo.getName(), tableInfo.getName(), FastStringUtils.join(columnSql, ","),tableInfo.getComment());
 
             fastDb.setLog(true).setDatabase(databaseInfo.getName()).run(sql);
             if (databaseInfo.getDefaultData().containsKey(tableInfo.getName())) {
@@ -408,12 +409,12 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         }
 
         if (FastStringUtils.isNotEmpty(columnInfo.getValue())) {
-            if (isNumberType(getType(columnInfo))) {
+            if (FastType.isNumberType(getType(columnInfo))) {
                 stringBuilder.append(" default ");
                 if (FastNumberUtils.isRealNumber(columnInfo.getValue())) {
                     stringBuilder.append(columnInfo.getValue());
                 }
-            } else if (isStringType(getType(columnInfo))) {
+            } else if (FastType.isStringType(getType(columnInfo))) {
                 stringBuilder.append(" default ");
                 stringBuilder.append("'").append(columnInfo.getValue()).append("'");
             }
@@ -426,7 +427,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     private String getLength(FastColumnInfo columnInfo) {
         String type = getType(columnInfo);
         String length = columnInfo.getLength();
-        if (isIntType(type) || isFloatType(type)) {
+        if (FastType.isNumberType(type)) {
             return null;
         } else if (type.equalsIgnoreCase("varchar")) {
             if (FastStringUtils.isEmpty(length)) {
@@ -435,78 +436,16 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             if (columnInfo.isPrimary()) {
                 return "250";
             }
-        } else if (isDateType(type)) {
+        } else if (FastType.isSqlDateType(type)
+                || FastType.isSqlTimeType(type)
+                || FastType.isTimestampType(type)) {
             return null;
         }
         return length;
     }
 
     private String getType(FastColumnInfo columnInfo) {
-        if (columnInfo.getType().equalsIgnoreCase("longtext")) {
-            return "ntext";
-        }else if (columnInfo.getType().equalsIgnoreCase("double")) {
-            return "decimal";
-        }
-        return columnInfo.getType();
-    }
-
-
-    public boolean isDateType(String type) {
-        if (type.equals("date")
-                || type.equals("time")
-                || type.equals("year")
-                || type.equals("datetime")
-                || type.equals("timestamp")) {
-            return true;
-        }
-        return false;
-    }
-
-
-    public boolean isNumberType(String type) {
-        return isIntType(type) || isFloatType(type);
-    }
-
-    public boolean isIntType(String type) {
-        if (type.equals("int")
-                || type.equals("bigint")
-                || type.equals("tinyint")
-                || type.equals("smallint")
-                || type.equals("mediumint")
-                || type.equals("double")
-                || type.equals("float")
-                || type.equals("decimal")) {
-
-            return true;
-        }
-        return false;
-    }
-
-    public boolean isFloatType(String type) {
-        if (type.equals("double")
-                || type.equals("float")
-                || type.equals("decimal")) {
-
-            return true;
-        }
-        return false;
-    }
-
-
-    public boolean isStringType(String type) {
-        return type.contains("varchar")
-                || type.contains("text")
-                || type.contains("fulltext")
-                || type.contains("char")
-                || type.contains("mediumtext")
-                || type.contains("longtext");
-    }
-
-    public boolean isBlobType(String type) {
-        return type.contains("tinyblob")
-                || type.contains("blob")
-                || type.contains("mediumblob")
-                || type.contains("longblob");
+        return FastType.convertType("sql_server", columnInfo.getType());
     }
 
 

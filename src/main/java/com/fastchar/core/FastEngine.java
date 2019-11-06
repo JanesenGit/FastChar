@@ -93,6 +93,9 @@ public final class FastEngine {
         scanner.notifyAccepter();
         observable.notifyObservers("onScannerFinish");
         FastDispatcher.initDispatcher();
+        if (!getConstant().isTestEnvironment()) {
+            webs.runWeb(this);
+        }
     }
 
 
@@ -272,6 +275,16 @@ public final class FastEngine {
         return FastChar.getOverrides().singleInstance(targetClass);
     }
 
+    /**
+     * 快速获取插件的配置类
+     * @param onlyCode 配置的唯一编号
+     * @param targetClass 插件配置类
+     * @param <T> 继承IFastConfig的泛型类
+     * @return &lt;T extends IFastConfig&gt;
+     */
+    public <T extends IFastConfig> T getConfig(String onlyCode,Class<T> targetClass) {
+        return FastChar.getOverrides().singleInstance(onlyCode, targetClass);
+    }
 
     /**
      * 获取数据加密工具类

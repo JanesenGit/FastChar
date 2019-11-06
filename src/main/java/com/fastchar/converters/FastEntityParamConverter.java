@@ -3,6 +3,7 @@ package com.fastchar.converters;
 import com.fastchar.asm.FastParameter;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastEntity;
+import com.fastchar.core.FastHandler;
 import com.fastchar.interfaces.IFastParamConverter;
 
 import java.lang.reflect.ParameterizedType;
@@ -15,14 +16,14 @@ import java.util.Collection;
 @SuppressWarnings("unchecked")
 public class FastEntityParamConverter implements IFastParamConverter {
     @Override
-    public Object convertValue(FastAction action, FastParameter parameter, int[] marker) throws Exception {
+    public Object convertValue(FastAction action, FastParameter parameter, FastHandler handler) throws Exception {
         Object value = null;
         if (FastEntity.class.isAssignableFrom(parameter.getType())) {
             value = action.getParamToEntity(parameter.getName(), (Class<? extends FastEntity>) parameter.getType());
-            marker[0] = 1;
+            handler.setCode(1);
         } else if (FastEntity[].class.isAssignableFrom(parameter.getType())) {
             value = action.getParamToEntityArray(parameter.getName(),(Class<? extends FastEntity>) parameter.getType().getComponentType());
-            marker[0] = 1;
+            handler.setCode(1);
         }else if (Collection.class.isAssignableFrom(parameter.getType())) {
             if (parameter.getParameterizedType() instanceof ParameterizedType) {
                 ParameterizedType parameterizedType = (ParameterizedType) parameter.getParameterizedType();
@@ -34,7 +35,7 @@ public class FastEntityParamConverter implements IFastParamConverter {
                         collection.addAll(Arrays.asList(paramToEntityArray));
                         value = collection;
                     }
-                    marker[0] = 1;
+                    handler.setCode(1);
                 }
             }
         }

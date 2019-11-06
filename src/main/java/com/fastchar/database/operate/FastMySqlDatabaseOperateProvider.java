@@ -4,6 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.FastDb;
 import com.fastchar.database.FastScriptRunner;
+import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
@@ -121,7 +122,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                         columnInfo.fromProperty();
                     }
                 } finally {
-                    fastDb.close(statement,columnsRs);
+                    fastDb.close(statement, columnsRs);
                 }
 
                 tableInfo.fromProperty();
@@ -190,7 +191,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             if (primaryKey.size() > 0) {
                 columnSql.add(" primary key (" + FastStringUtils.join(primaryKey, ",") + ")");
             }
-            String sql = String.format(" create table if not exists %s ( %s );", tableInfo.getName(), FastStringUtils.join(columnSql, ","));
+            String sql = String.format(" create table if not exists %s ( %s ) comment = '%s' ;", tableInfo.getName(), FastStringUtils.join(columnSql, ","), tableInfo.getComment());
 
             fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(sql);
             if (databaseInfo.getDefaultData().containsKey(tableInfo.getName())) {
@@ -202,7 +203,6 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                 File file = new File(tableInfo.getData());
                 if (file.exists() && file.getName().toLowerCase().endsWith(".sql")) {
                     FastScriptRunner scriptRunner = new FastScriptRunner(fastDb.setLog(true).setDatabase(databaseInfo.getName()).getConnection());
-                    scriptRunner.setSendFullScript(true);
                     scriptRunner.setLogWriter(null);
                     scriptRunner.runScript(new FileReader(file));
                     scriptRunner.closeConnection();
@@ -364,7 +364,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         if (FastStringUtils.isNotEmpty(length)) {
             stringBuilder.append(" (").append(length).append(") ");
         }
-        if (isStringType(getType(columnInfo))) {
+        if (FastType.isStringType(getType(columnInfo))) {
             stringBuilder.append(" character set ").append(FastStringUtils.defaultValue(columnInfo.getCharset(),
                     "utf8mb4"));
         }
@@ -377,12 +377,12 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         stringBuilder.append(FastStringUtils.defaultValue(columnInfo.getNullable(), " null "));
 
         if (FastStringUtils.isNotEmpty(columnInfo.getValue())) {
-            if (isNumberType(getType(columnInfo))) {
+            if (FastType.isNumberType(getType(columnInfo))) {
                 stringBuilder.append(" default ");
                 if (FastNumberUtils.isRealNumber(columnInfo.getValue())) {
                     stringBuilder.append(columnInfo.getValue());
                 }
-            } else if (isStringType(getType(columnInfo))) {
+            } else if (FastType.isStringType(getType(columnInfo))) {
                 stringBuilder.append(" default ");
                 stringBuilder.append("'").append(columnInfo.getValue()).append("'");
             }
@@ -399,88 +399,31 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
     private String getLength(FastColumnInfo columnInfo) {
         String type = getType(columnInfo);
         String length = columnInfo.getLength();
-        if (isIntType(type)) {
+        if (FastType.isIntType(type)) {
             if (FastStringUtils.isEmpty(length)) {
                 return "11";
             }
-        } else if (isFloatType(type)) {
+        } else if (FastType.isFloatType(type) || FastType.isDoubleType(type)) {
             if (FastStringUtils.isEmpty(length)) {
                 return "11,2";
             }
-        } else if (type.equalsIgnoreCase("varchar")) {
+        } else if (FastType.isBigStringType(type)) {
+            return null;
+        } else if (FastType.isStringType(type)) {
             if (FastStringUtils.isEmpty(length)) {
                 return "500";
             }
             if (columnInfo.isPrimary()) {
                 return "250";
             }
-        } else if (isDateType(type)) {
+        } else if (FastType.isSqlDateType(type) || FastType.isSqlTimeType(type) || FastType.isTimestampType(type)) {
             return null;
         }
         return length;
     }
 
     private String getType(FastColumnInfo columnInfo) {
-        return columnInfo.getType();
-    }
-
-
-    public boolean isDateType(String type) {
-        if (type.equals("date")
-                || type.equals("time")
-                || type.equals("year")
-                || type.equals("datetime")
-                || type.equals("timestamp")) {
-            return true;
-        }
-        return false;
-    }
-
-
-    public boolean isNumberType(String type) {
-        return isIntType(type) || isFloatType(type);
-    }
-
-    public boolean isIntType(String type) {
-        if (type.equals("int")
-                || type.equals("bigint")
-                || type.equals("tinyint")
-                || type.equals("smallint")
-                || type.equals("mediumint")
-                || type.equals("double")
-                || type.equals("float")
-                || type.equals("decimal")) {
-
-            return true;
-        }
-        return false;
-    }
-
-    public boolean isFloatType(String type) {
-        if (type.equals("double")
-                || type.equals("float")
-                || type.equals("decimal")) {
-
-            return true;
-        }
-        return false;
-    }
-
-
-    public boolean isStringType(String type) {
-        return type.contains("varchar")
-                || type.contains("text")
-                || type.contains("fulltext")
-                || type.contains("char")
-                || type.contains("mediumtext")
-                || type.contains("longtext");
-    }
-
-    public boolean isBlobType(String type) {
-        return type.contains("tinyblob")
-                || type.contains("blob")
-                || type.contains("mediumblob")
-                || type.contains("longblob");
+        return FastType.convertType("mysql", columnInfo.getType());
     }
 
 
@@ -489,7 +432,11 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             return "";
         }
 
-        if (isDateType(type) || isNumberType(type) || isBlobType(type)) {
+        if (FastType.isSqlDateType(type)
+                || FastType.isSqlTimeType(type)
+                || FastType.isTimestampType(type)
+                || FastType.isNumberType(type)
+                || FastType.isByteArrayType(type)) {
             return "";
         }
         return "(155)";

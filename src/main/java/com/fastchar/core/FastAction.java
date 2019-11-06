@@ -275,7 +275,7 @@ public abstract class FastAction {
      */
     public String getParam(String paramName, boolean notNull) {
         if (notNull) {
-            check("@null:" + FastChar.getLocal().getInfo("Param_Error1"));
+            check(0, "@null:" + FastChar.getLocal().getInfo("Param_Error1"));
         }
         for (FastRequestParam param : params) {
             if (param.getName().equals(paramName)) {
@@ -320,7 +320,7 @@ public abstract class FastAction {
         }
 
         if (notNull) {
-            check("@null:" + FastChar.getLocal().getInfo("Param_Error1"));
+            check(0, "@null:" + FastChar.getLocal().getInfo("Param_Error1"));
         }
         String[] strings = arrays.toArray(new String[]{});
         if (validParam(paramName, strings)) {
@@ -992,7 +992,7 @@ public abstract class FastAction {
      * @return Date
      */
     public Date getParamToDate(String paramName, String dateFormat) {
-        return getParamToDate(paramName, FastChar.getConstant().getDateFormat(), null);
+        return getParamToDate(paramName,dateFormat, null);
     }
 
     /**
@@ -1148,7 +1148,7 @@ public abstract class FastAction {
     public List<Map<String, Object>> getParamToMapList(String prefix, boolean notNull) {
         fastCheck.setHold(true);
         List<Map<String, Object>> mapList = new ArrayList<>();
-        SortedSet<String> mapNames = new TreeSet<>();
+        Set<String> mapNames = new LinkedHashSet<>();
         Set<String> paramNames = getParamNames();
         for (String paramName : paramNames) {
             if (paramName.startsWith(prefix)) {
@@ -1832,7 +1832,9 @@ public abstract class FastAction {
      * @return HttpSession
      */
     public final HttpSession getSession() {
-        return request.getSession();
+        HttpSession session = request.getSession();
+        session.setMaxInactiveInterval(FastChar.getConstant().getSessionMaxInterval());
+        return session;
     }
 
     /**
@@ -1854,6 +1856,7 @@ public abstract class FastAction {
         getSession().setAttribute(attr, value);
     }
 
+
     /**
      * 删除session
      * @param attr 属性名
@@ -1872,6 +1875,19 @@ public abstract class FastAction {
         request.setAttribute(attr, value);
         return this;
     }
+
+    /**
+     * 设置Request属性值
+     * @param attrs 属性map集合
+     * @return 当前对象
+     */
+    public FastAction setRequestAttr(Map<String, Object> attrs) {
+        for (String s : attrs.keySet()) {
+            setRequestAttr(s, attrs.get(s));
+        }
+        return this;
+    }
+
 
     /**
      * 删除Request属性
@@ -2236,6 +2252,9 @@ public abstract class FastAction {
                 ip = ip.substring(0, ip.indexOf(","));
             }
         }
+        if (ip.equalsIgnoreCase("0:0:0:0:0:0:0:1")) {
+            return "localhost";
+        }
         return ip;
     }
 
@@ -2255,6 +2274,16 @@ public abstract class FastAction {
      */
     public FastAction check(String validator) {
         return fastCheck.check(validator);
+    }
+
+    /**
+     * 添加参数验证，会触发IFastValidator验证码器，只对getParam*相关方法有效
+     * @param validator 验证标识
+     * @param index 插入指定位置
+     * @return 当前对象
+     */
+    public FastAction check(int index,String validator) {
+        return fastCheck.check(index, validator);
     }
 
 }

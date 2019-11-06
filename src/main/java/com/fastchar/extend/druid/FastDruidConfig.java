@@ -223,16 +223,8 @@ public class FastDruidConfig implements IFastConfig {
     public FastDruidConfig setFilters(String filters) {
         if (filters != null && filters.startsWith("!")) {
             filters = filters.substring(1);
-
-            if (filters.contains("stat")) {
-                ServletRegistration.Dynamic druidStatView = FastChar.getServletContext().addServlet("DruidStatView", StatViewServlet.class);
-                druidStatView.addMapping("/druid/*");
-            }
-
             this.clearFilters();
         }
-
-
         this.addFilters(filters);
         return this;
     }
@@ -240,6 +232,13 @@ public class FastDruidConfig implements IFastConfig {
     public void addFilters(String filters) {
         try {
             if (filters != null && filters.length() != 0) {
+
+                if (FastChar.getServletContext() != null) {
+                    ServletRegistration.Dynamic druidStatView = FastChar.getServletContext().addServlet("DruidStatView", StatViewServlet.class);
+                    druidStatView.addMapping("/druid/*");
+                    FastChar.getActions().addExcludeUrls("/druid/*");
+                }
+
                 String[] filterArray = filters.split("\\,");
                 String[] var3 = filterArray;
                 int var4 = filterArray.length;

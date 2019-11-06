@@ -2,6 +2,7 @@ package com.fastchar.interfaces;
 
 import com.fastchar.asm.FastParameter;
 import com.fastchar.core.FastAction;
+import com.fastchar.core.FastHandler;
 
 import java.lang.reflect.Type;
 
@@ -14,10 +15,10 @@ public interface IFastParamConverter {
      * 转换参数
      * @param action FastAction对象
      * @param parameter 参数信息描述
-     * @param marker 转换结果标注，marker[0]=0 转换成功
+     * @param handler 句柄
      * @return 参数值
      * @throws Exception 异常
      */
-    Object convertValue(FastAction action, FastParameter parameter, int[] marker) throws Exception;
+    Object convertValue(FastAction action, FastParameter parameter, FastHandler handler) throws Exception;
 
 }

@@ -10,7 +10,6 @@ import com.fastchar.exception.FastReturnException;
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.out.FastOut;
-import com.fastchar.out.FastOutFile;
 import com.fastchar.out.FastOutForward;
 import com.fastchar.utils.FastStringUtils;
 
@@ -29,6 +28,7 @@ public final class FastRoute {
     boolean responseInvoked;
     private  boolean afterInvoked;
     boolean actionLog = true;
+    Set<String> crossAllowDomains = new HashSet<>();
     int priority;
     int firstMethodLineNumber;
     int lastMethodLineNumber;
@@ -41,6 +41,8 @@ public final class FastRoute {
     List<Class<? extends IFastRootInterceptor>> rootInterceptor = new ArrayList<>();
     List<RouteInterceptor> doBeforeInterceptor = new ArrayList<>();
     List<RouteInterceptor> doAfterInterceptor = new ArrayList<>();
+
+    Set<String> httpMethods = new HashSet<>();
 
     transient FastAction fastAction;
     private transient int doBeforeIndex = -1;
@@ -62,13 +64,30 @@ public final class FastRoute {
         fastRoute.priority = this.priority;
         fastRoute.actionClass = this.actionClass;
         fastRoute.route = this.route;
+        fastRoute.crossAllowDomains = this.crossAllowDomains;
         fastRoute.returnOut = this.returnOut;
         fastRoute.doBeforeInterceptor = new ArrayList<>(this.doBeforeInterceptor);
         fastRoute.doAfterInterceptor = new ArrayList<>(this.doAfterInterceptor);
         fastRoute.firstMethodLineNumber = this.firstMethodLineNumber;
         fastRoute.lastMethodLineNumber = this.lastMethodLineNumber;
         fastRoute.responseCache = this.responseCache;
+        fastRoute.httpMethods = this.httpMethods;
         return fastRoute;
+    }
+
+    boolean checkMethod(String method) {
+        boolean hasMethods = false;
+        for (String httpMethod : this.httpMethods) {
+            httpMethod = httpMethod.replace(" ", "");
+            if (FastStringUtils.isEmpty(httpMethod)) {
+                continue;
+            }
+            hasMethods = true;
+            if (httpMethod.equalsIgnoreCase(method)) {
+                return true;
+            }
+        }
+        return !hasMethods;
     }
 
     void release() {
@@ -122,6 +141,7 @@ public final class FastRoute {
         Collections.sort(doBeforeInterceptor, comparator);
         Collections.sort(doAfterInterceptor, comparator);
     }
+
 
     public void invoke() {
         try {
@@ -181,20 +201,18 @@ public final class FastRoute {
             if (responseInvoked) {
                 return;
             }
-            if (methodParams != null) {
-                Object invoke = method.invoke(fastAction, methodParams.toArray());
-                if (invoke != null && fastAction.fastOut == null) {
-                    if (invoke instanceof FastOut) {
-                        fastAction.response((FastOut) invoke);
-                    } else if (this.returnOut != null) {
-                        FastOut fastOut = FastChar.getOverrides().newInstance(this.returnOut);
-                        if (fastOut != null) {
-                            fastOut.setData(invoke);
-                            fastAction.response(fastOut);
-                        }
-                    } else if (invoke instanceof File) {
-                        fastAction.responseFile((File) invoke);
+            Object invoke = method.invoke(fastAction, methodParams.toArray());
+            if (invoke != null && fastAction.fastOut == null) {
+                if (invoke instanceof FastOut) {
+                    fastAction.response((FastOut) invoke);
+                } else if (this.returnOut != null) {
+                    FastOut fastOut = FastChar.getOverrides().newInstance(this.returnOut);
+                    if (fastOut != null) {
+                        fastOut.setData(invoke);
+                        fastAction.response(fastOut);
                     }
+                } else if (invoke instanceof File) {
+                    fastAction.responseFile((File) invoke);
                 }
             }
         } catch (Throwable e) {
@@ -329,6 +347,7 @@ public final class FastRoute {
             afterInvoked = true;
             afterInterceptorUseTotal = System.currentTimeMillis() - afterInterceptorTime;
             outBase.setOutTime(new Date());
+            fastAction.getResponse().setHeader("Powered-By", "FastChar");
             outBase.response(fastAction);
             //转发请求 取消日志打印
             if (!FastOutForward.class.isAssignableFrom(outBase.getClass())) {

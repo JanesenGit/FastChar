@@ -7,6 +7,7 @@ import org.apache.velocity.VelocityContext;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.PrintWriter;
 import java.util.Enumeration;
 import java.util.Map;
@@ -34,6 +35,12 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
         HttpServletRequest request = action.getRequest();
         response.setContentType(toContentType());
         response.setCharacterEncoding(getCharset());
+
+        File templateFile = new File(FastChar.getPath().getWebRootPath(), String.valueOf(data));
+        if (!templateFile.exists()) {
+            action.response502(FastChar.getLocal().getInfo("Velocity_Error1", data));
+            return;
+        }
 
         Template template = FastChar.getTemplates().getVelocity().getTemplate(String.valueOf(data));
 

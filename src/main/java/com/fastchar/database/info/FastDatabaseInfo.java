@@ -134,8 +134,8 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return this;
     }
 
-    public List<FastTableInfo<?>> getTables() {
-        return tables;
+    public <T extends FastTableInfo> List<T> getTables() {
+        return (List<T>) tables;
     }
 
     public FastDatabaseInfo setTables(List<FastTableInfo<?>> tables) {

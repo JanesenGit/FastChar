@@ -45,11 +45,9 @@ public class FastEnumUtils {
         return (T) defaultValue;
     }
 
-
     public static <T extends Enum> T[] getEnumValues(Class<T> targetClass) {
-        return (T[]) targetClass.getEnumConstants();
+        return targetClass.getEnumConstants();
     }
-
 
     public static <T extends Enum> T[] getEnumValues(Class<T> targetClass, String... keys) {
         List<T> enumList = new ArrayList<>();
@@ -63,6 +61,20 @@ public class FastEnumUtils {
             }
         }
         return enumList.toArray((T[]) Array.newInstance(targetClass, enumList.size()));
+    }
+
+    public static Integer[] getEnumOrdinals(Class<? extends  Enum> targetClass, String... keys) {
+        List<Integer> enumList = new ArrayList<>();
+        Enum[] enumConstants = targetClass.getEnumConstants();
+        for (Enum enumConstant : enumConstants) {
+            for (String key : keys) {
+                if (enumConstant.name().contains(key)) {
+                    enumList.add(enumConstant.ordinal());
+                    break;
+                }
+            }
+        }
+        return enumList.toArray(new Integer[]{});
     }
 
 }

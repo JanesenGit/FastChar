@@ -4,6 +4,7 @@ import com.fastchar.core.FastBaseInfo;
 import com.fastchar.core.FastChar;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -28,22 +29,6 @@ public class FastSqlInfo extends FastBaseInfo {
         return params.toArray(new Object[]{});
     }
 
-    public String getSql() {
-        return sql;
-    }
-
-    public void setSql(String sql) {
-        this.sql = sql;
-    }
-
-    public List<Object> getParams() {
-        return params;
-    }
-
-    public void setParams(List<Object> params) {
-        this.params = params;
-    }
-
     public String getType() {
         return type;
     }
@@ -52,6 +37,30 @@ public class FastSqlInfo extends FastBaseInfo {
         this.type = type;
         return this;
     }
+
+    public String getSql() {
+        return sql;
+    }
+
+    public FastSqlInfo setSql(String sql) {
+        this.sql = sql;
+        return this;
+    }
+
+    public List<Object> getParams() {
+        return params;
+    }
+
+    public FastSqlInfo setParams(List<Object> params) {
+        this.params = params;
+        return this;
+    }
+
+    public FastSqlInfo setParams(Object... params) {
+        this.params = Arrays.asList(params);
+        return this;
+    }
+
 
     public List<FastSqlInfo> getChildren() {
         return children;

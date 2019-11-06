@@ -191,5 +191,29 @@ public class FastClassUtils {
         }
         return (Class) params[index];
     }
+
+    public static void deepCopy(Object fromSource, Object toSource) {
+        try {
+            for (Field field : fromSource.getClass().getDeclaredFields()) {
+                field.setAccessible(true);
+                Object o = field.get(fromSource);
+                if (o != null) {
+                    Field declaredField = FastClassUtils.getDeclaredField(toSource.getClass(), field.getName());
+                    if (declaredField != null) {
+                        if (Modifier.isStatic(declaredField.getModifiers())) {
+                            continue;
+                        }
+                        if (Modifier.isFinal(declaredField.getModifiers())) {
+                            continue;
+                        }
+                        declaredField.setAccessible(true);
+                        declaredField.set(toSource, o);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
 

@@ -60,7 +60,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     //Action相关错误
     private final String Action_Error1 = "Action的路由不可为空！";
     private final String Action_Error2 = "路由{0}已存在！";
-    private final String Action_Error3 = "路由{0}已被{1}重写！";
+    private final String Action_Error3 = "路由{0}已被重写！";
     private final String Action_Error4 = "路由 {0} 的前缀 {1} 是WebRoot下的文件夹！不可与WebRoot下的文件夹重复！";
 
     //Entity相关错误
@@ -90,6 +90,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     //redis相关错误
     private final String Redis_Error1 = "Redis的服务器地址不可为空！";
     private final String Redis_Error2 = "主Redis名称[masterName]不可为空！";
+    private final String Redis_Error3 = "已启用Redis高级缓存！";
 
 
     //数据源相关消息
@@ -100,5 +101,9 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     //cglib相关错误
     private final String CGLib_Error1 = "被代理的类不可以为空！";
     private final String CGLib_Error2 = "代理拦截器不可为空！";
+
+
+    private final String Velocity_Error1 = "文件不存在于WebRoot目录下！{0}";
+
 
 }

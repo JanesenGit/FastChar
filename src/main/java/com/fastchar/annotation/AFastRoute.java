@@ -19,7 +19,19 @@ public @interface AFastRoute {
 
     /**
      * 是否以追加到当前路由地址的头部 默认：false
-     * @return 布尔值
+     * @return boolean
      */
     boolean head() default false;
+
+    /**
+     * 是否允许跨域 默认：false
+     * @return boolean
+     */
+    boolean cross() default false;
+
+    /**
+     * 设置允许跨域的域名
+     * @return 域名数组
+     */
+    String[] crossDomains() default {};
 }

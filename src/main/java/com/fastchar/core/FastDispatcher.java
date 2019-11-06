@@ -19,7 +19,6 @@ import com.fastchar.utils.FastStringUtils;
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.io.PrintWriter;
 import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.Method;
@@ -36,11 +35,6 @@ public final class FastDispatcher {
     static void initDispatcher() {
         FastEngine.instance().getInterceptors().sortRootInterceptor();
         resolved.clear();
-        int count = 1;
-        for (FastRoute value : FAST_ROUTE_MAP.values()) {
-            count += value.doBeforeInterceptor.size();
-            count += value.doAfterInterceptor.size();
-        }
     }
 
 
@@ -81,27 +75,6 @@ public final class FastDispatcher {
                 }
             }
         }
-        for (String route : classRoutes) {
-            String checkRoute = FastStringUtils.strip(route, "/");
-            if (FastStringUtils.isEmpty(checkRoute)) {
-                continue;
-            }
-            String head = checkRoute.split("/")[0];
-            if (FastStringUtils.isEmpty(head)) {
-                continue;
-            }
-            File webFile = new File(FastChar.getPath().getWebRootPath(), head);
-            if (webFile.exists() && webFile.isDirectory()) {
-                int line = 1;
-                if (lineNumber.size() > 0) {
-                    line = lineNumber.get(0).getLastLine();
-                }
-                throw new FastActionException(FastChar.getLocal().getInfo("Action_Error4", "'" + route + "'", "'" + head + "'") +
-                        "\n\tat " + new StackTraceElement(targetClass.getName(), "getRoute",
-                        targetClass.getSimpleName() + ".java", line));
-            }
-        }
-
         return classRoutes;
     }
 
@@ -219,9 +192,23 @@ public final class FastDispatcher {
                 fastRoute.lastMethodLineNumber = lines.get(methodCount.get(declaredMethod.getName()) - 1).getLastLine();
                 fastRoute.methodParameter = parameter;
                 fastRoute.route = classMethodRoute;
+                fastRoute.crossAllowDomains = new HashSet<>(FastChar.getConstant().getCrossAllowDomains());
                 if (actionClass.isAnnotationPresent(AFastPriority.class)) {
                     AFastPriority annotation = actionClass.getAnnotation(AFastPriority.class);
                     fastRoute.priority = annotation.value();
+                }
+
+                if (actionClass.isAnnotationPresent(AFastRoute.class)) {
+                    AFastRoute annotation = actionClass.getAnnotation(AFastRoute.class);
+                    fastRoute.crossAllowDomains.addAll(Arrays.asList(annotation.crossDomains()));
+                    if (annotation.cross()) {
+                        fastRoute.crossAllowDomains.add("*");
+                    }
+                }
+
+                if (actionClass.isAnnotationPresent(AFastHttpMethod.class)) {
+                    AFastHttpMethod annotation = actionClass.getAnnotation(AFastHttpMethod.class);
+                    fastRoute.httpMethods.addAll(Arrays.asList(annotation.value()));
                 }
 
                 if (FastMethodUtils.isOverride(declaredMethod)) {
@@ -236,6 +223,19 @@ public final class FastDispatcher {
                 if (declaredMethod.isAnnotationPresent(AFastResponse.class)) {
                     AFastResponse annotation = declaredMethod.getAnnotation(AFastResponse.class);
                     defaultOut = FastOut.convertType(annotation.value());
+                }
+
+                if (declaredMethod.isAnnotationPresent(AFastHttpMethod.class)) {
+                    AFastHttpMethod annotation = declaredMethod.getAnnotation(AFastHttpMethod.class);
+                    fastRoute.httpMethods.addAll(Arrays.asList(annotation.value()));
+                }
+
+                if (declaredMethod.isAnnotationPresent(AFastRoute.class)) {
+                    AFastRoute annotation = declaredMethod.getAnnotation(AFastRoute.class);
+                    fastRoute.crossAllowDomains.addAll(Arrays.asList(annotation.crossDomains()));
+                    if (annotation.cross()) {
+                        fastRoute.crossAllowDomains.add("*");
+                    }
                 }
 
                 if (declaredMethod.isAnnotationPresent(AFastCache.class)) {
@@ -255,7 +255,6 @@ public final class FastDispatcher {
                         }
                     }
                     fastRoute.responseCache = cacheConfig;
-
                 }
 
                 fastRoute.returnOut = defaultOut;
@@ -278,9 +277,11 @@ public final class FastDispatcher {
                         );
                     }
                     if (fastRoute.getPriority() > existFastRoute.getPriority()) {
-                        FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3", "'" + classMethodRoute + "'", newStack)));
+                        FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3",
+                                "'" + classMethodRoute + "'") + "\n\t\tnew at " + newStack + "\n\t\told at " + currStack));
                     } else {
-                        FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3", "'" + classMethodRoute + "'", currStack)));
+                        FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3",
+                                "'" + classMethodRoute + "'") + "\n\t\tnew at " + currStack + "\n\t\told at " + newStack));
                         continue;
                     }
                 }
@@ -400,13 +401,6 @@ public final class FastDispatcher {
         this.contentUrl = FastUrlParser.getContentPath(requestUrl);
         this.rootInterceptor = FastEngine.instance().getInterceptors().getRootInterceptors(contentUrl);
         this.interceptorIndex = -1;
-        if (FastChar.getConstant().isCrossDomain()) {//跨域处理
-            response.setHeader("Access-Control-Allow-Origin", "*");
-            response.setHeader("Access-Control-Allow-Credentials", "true");
-            response.setHeader("Access-Control-Max-Age", "3600");
-            response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
-            response.setHeader("Access-Control-Allow-Headers", FastStringUtils.join(FastChar.getConstant().getCrossHeaders(), ","));
-        }
     }
 
     public FilterChain getFilterChain() {
@@ -448,7 +442,7 @@ public final class FastDispatcher {
     private boolean validateUrl(String contentPath) {
         List<String> excludeUrls = FastChar.getActions().getExcludeUrls();
         for (String excludeUrl : excludeUrls) {
-            if (FastStringUtils.matches(excludeUrl, contentPath)) {
+            if (FastStringUtils.matches(excludeUrl, contentPath) || FastStringUtils.matches(excludeUrl, contentPath + "/")) {
                 return false;
             }
         }
@@ -458,9 +452,39 @@ public final class FastDispatcher {
 
     public void invoke() throws FastWebException {
         try {
+            if (!validateUrl(contentUrl)) {
+                doFilter();
+                return;
+            }
+            List<FastUrl> parse = FastUrlParser.parse(contentUrl);
             if (request.getMethod().equalsIgnoreCase("options")) {
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().info("OPTIONS REQUEST : " + request.getRequestURL());
+                }
+                boolean hasCross = false;
+                boolean hasRoute = false;
+                for (FastUrl fastUrl : parse) {
+                    if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRoute())) {
+                        FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute());
+                        hasCross = initCrossDomain(fastRoute);
+                        hasRoute = true;
+                    } else if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRouteIndex())) {
+                        FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRouteIndex());
+                        hasCross = initCrossDomain(fastRoute);
+                        hasRoute = true;
+                    }
+                }
+                if (!hasCross) {
+                    if (FastChar.getConstant().isDebug()) {
+                        String errorInfo = "CROSS-DOMAIN DISABLED-URL : " + request.getRequestURL() +
+                                "\n\t\tREQUEST-ORIGIN : " + request.getHeader("origin");
+                        FastChar.getLog().error(errorInfo);
+                    }
+                }
+                if (!hasRoute) {
+                    if (FastChar.getConstant().isDebug()) {
+                        FastChar.getLog().error("NOT FOUND : " + request.getRequestURL());
+                    }
                 }
                 response.setStatus(200);
                 PrintWriter writer = response.getWriter();
@@ -477,11 +501,14 @@ public final class FastDispatcher {
             }
 
             Date inTime = new Date();
-            List<FastUrl> parse = FastUrlParser.parse(contentUrl);
             for (int i = 0; i < parse.size(); i++) {
                 FastUrl fastUrl = parse.get(i);
                 if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRoute())) {
                     FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute()).copy();
+                    if (!fastRoute.checkMethod(request.getMethod())) {
+                        response404(inTime);
+                        return;
+                    }
                     fastRoute.inTime = inTime;
                     fastRoute.request = request;
                     fastRoute.response = response;
@@ -491,6 +518,7 @@ public final class FastDispatcher {
                     if (FastChar.getConstant().isDebug()) {
                         fastRoute.stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
                     }
+                    initCrossDomain(fastRoute);
                     fastRoute.invoke();
                     fastRoute.release();
                     return;
@@ -506,16 +534,13 @@ public final class FastDispatcher {
                     if (FastChar.getConstant().isDebug()) {
                         fastRoute.stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
                     }
+                    initCrossDomain(fastRoute);
                     fastRoute.invoke();
                     fastRoute.release();
                     return;
                 }
                 if (i == 0) {
                     if (contentUrl.lastIndexOf(".") > 0) {
-                        doFilter();
-                        return;
-                    }
-                    if (!validateUrl(contentUrl)) {
                         doFilter();
                         return;
                     }
@@ -532,6 +557,36 @@ public final class FastDispatcher {
             }
             throw new FastWebException(e);
         }
+    }
+
+
+    private boolean initCrossDomain(FastRoute route) {
+        boolean cross = false;
+        String origin = getRequest().getHeader("origin");
+        if (FastStringUtils.isEmpty(origin)) {
+            return false;
+        }
+        Set<String> crossAllowDomains = route.crossAllowDomains;
+        String[] split = origin.split(";");
+        for (String address : split) {
+            if (!cross) {
+                for (String crossAllowDomain : crossAllowDomains) {
+                    if (FastStringUtils.matches(crossAllowDomain, address)) {
+                        cross = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (cross) {
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Credentials", "true");
+            response.setHeader("Access-Control-Max-Age", "3600");
+            response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
+            response.setHeader("Access-Control-Allow-Headers", FastStringUtils.join(FastChar.getConstant().getCrossHeaders(), ","));
+        }
+        return cross;
     }
 
     private void response404(Date inTime) {

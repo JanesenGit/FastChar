@@ -105,7 +105,9 @@ public class FastNumberUtils {
      */
     public static Number formatToNumber(final Object value, final Number defaultValue) {
         try {
-            if (value == null || value.toString().length() == 0) return defaultValue;
+            if (value == null || value.toString().trim().length() == 0) {
+                return defaultValue;
+            }
             Number number = new Number() {
                 private static final long serialVersionUID = 1L;
                 String numberStr = "";
@@ -204,7 +206,7 @@ public class FastNumberUtils {
 
     public static double formatToDouble(Object value, int digit) {
         try {
-            return new BigDecimal(String.valueOf(formatToDouble(value))).setScale(digit,
+            return new BigDecimal(Double.toString(formatToDouble(value))).setScale(digit,
                     BigDecimal.ROUND_HALF_UP).doubleValue();
         } catch (Exception e) {
             return 0;
@@ -213,7 +215,7 @@ public class FastNumberUtils {
 
     public static double formatToDouble(Object value, double defaultValue, int digit) {
         try {
-            return new BigDecimal(String.valueOf(formatToDouble(value, defaultValue))).setScale(digit,
+            return new BigDecimal(Double.toString(formatToDouble(value, defaultValue))).setScale(digit,
                     BigDecimal.ROUND_HALF_UP).doubleValue();
         } catch (Exception e) {
             return 0;
@@ -222,7 +224,7 @@ public class FastNumberUtils {
 
     public static float formatToFloat(Object value, int digit) {
         try {
-            return new BigDecimal(String.valueOf(formatToFloat(value))).setScale(digit,
+            return new BigDecimal(Float.toString(formatToFloat(value))).setScale(digit,
                     BigDecimal.ROUND_HALF_UP).floatValue();
         } catch (Exception e) {
             return 0;
@@ -231,7 +233,7 @@ public class FastNumberUtils {
 
     public static float formatToFloat(Object value, float defaultValue, int digit) {
         try {
-            return new BigDecimal(String.valueOf(formatToFloat(value,defaultValue))).setScale(digit,
+            return new BigDecimal(Float.toString(formatToFloat(value,defaultValue))).setScale(digit,
                     BigDecimal.ROUND_HALF_UP).floatValue();
         } catch (Exception e) {
             return 0;
@@ -267,14 +269,12 @@ public class FastNumberUtils {
 
     /**
      * 数字格式化
-     * @param value
-     * @return
      */
     public static String numberFormat(Object value, int digit) {
-        String pattern = "#.";
-        String zStr = "";
+        String pattern = "#0.";
+        StringBuilder zStr = new StringBuilder();
         for (int i = 0; i < digit; i++) {
-            zStr += "0";
+            zStr.append("0");
         }
         DecimalFormat df = new DecimalFormat(pattern + zStr);
         return df.format(value);

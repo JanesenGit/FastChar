@@ -1,7 +1,9 @@
 package com.fastchar.extend.velocity;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.exception.FastTemplateException;
 import com.fastchar.interfaces.IFastTemplate;
+import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
@@ -34,29 +36,6 @@ public class FastVelocityEngine extends VelocityEngine implements IFastTemplate 
     }
 
 
-    public String run(VelocityContext context, String filePath) {
-        try {
-            if (context == null || FastStringUtils.isEmpty(filePath)) {
-                return null;
-            }
-            Map<String, Object> finalContext = FastChar.getTemplates().getFinalContext();
-            for (String key : finalContext.keySet()) {
-                context.put(key, finalContext.get(key));
-            }
-
-
-            Template template = getTemplate(filePath);
-            StringWriter writer = new StringWriter();
-            template.merge(context, writer);
-            String data = writer.toString();
-            writer.close();
-            return data;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     @Override
     public String run(Map<String, Object> params, String template) {
         try {
@@ -70,7 +49,7 @@ public class FastVelocityEngine extends VelocityEngine implements IFastTemplate 
             }
 
             StringWriter writer = new StringWriter();
-            evaluate(context, writer, "", template);
+            evaluate(context, writer, "FastChar", template);
             String data = writer.toString();
             writer.close();
             return data;
@@ -85,11 +64,10 @@ public class FastVelocityEngine extends VelocityEngine implements IFastTemplate 
         if (params == null || template == null || !template.exists()) {
             return null;
         }
-        VelocityContext context = new VelocityContext();
-        params.putAll(FastChar.getTemplates().getFinalContext());
-        for (String key : params.keySet()) {
-            context.put(key, params.get(key));
+        try {
+            return run(params, FastFileUtils.readFileToString(template));
+        } catch (IOException e) {
+            throw new FastTemplateException(e);
         }
-        return run(context, template.getAbsolutePath());
     }
 }

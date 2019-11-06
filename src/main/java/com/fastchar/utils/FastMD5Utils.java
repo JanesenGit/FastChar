@@ -18,7 +18,6 @@ public class FastMD5Utils {
                 'a', 'b', 'c', 'd', 'e', 'f'};
         try {
             if (s != null && !"".equals(s.trim())) {
-                //解决汉字会出现不同的MD5值问题
                 byte[] strTemp = s.getBytes(StandardCharsets.UTF_8);
                 MessageDigest mdTemp = MessageDigest.getInstance("MD5");
                 mdTemp.update(strTemp);

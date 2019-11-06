@@ -86,6 +86,11 @@ public final class FastDatabases {
     }
 
 
+    public boolean hasDatabase() {
+        return databaseInfos.size() > 0;
+    }
+
+
     private String getHost(String url) {
         Matcher matcher = Pattern.compile(MYSQL_REG).matcher(url);
         if (matcher.find()) {

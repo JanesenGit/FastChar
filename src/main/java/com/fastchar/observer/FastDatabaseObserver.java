@@ -56,6 +56,9 @@ public class FastDatabaseObserver {
     public synchronized void refreshDatabase() throws Exception {
         restoreTicket();
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
+            if (!databaseInfo.getBoolean("enable", true)) {
+                continue;
+            }
             for (FastTableInfo<?> table : databaseInfo.getTables()) {
                 table.validate();
                 for (FastColumnInfo<?> column : table.getColumns()) {
@@ -71,6 +74,9 @@ public class FastDatabaseObserver {
                 //本地xml配置同步到数据库中
                 databaseOperate.createDatabase(databaseInfo);
                 for (FastTableInfo<?> table : databaseInfo.getTables()) {
+                    if (!table.getBoolean("enable", true)) {
+                        continue;
+                    }
                     if (!databaseOperate.checkTableExists(databaseInfo, table)) {
                         databaseOperate.createTable(databaseInfo, table);
                     }

@@ -122,6 +122,9 @@ public final class FastChar {
         return FastEngine.instance().getConfig(targetClass);
     }
 
+    public static <T extends IFastConfig> T getConfig(String onlyCode,Class<T> targetClass) {
+        return FastEngine.instance().getConfig(onlyCode, targetClass);
+    }
 
     public static FastProperties getProperties() {
         return FastEngine.instance().getProperties();

@@ -190,6 +190,19 @@ public class FastColumnInfo<T> extends FastBaseInfo {
         return this;
     }
 
+    public boolean isIntType() {
+        return type.equalsIgnoreCase("int");
+    }
+
+    public boolean isFloatType() {
+        return type.equalsIgnoreCase("float")
+                || type.equalsIgnoreCase("decimal")
+                || type.equalsIgnoreCase("money")
+                || type.equalsIgnoreCase("numeric")
+                || type.equalsIgnoreCase("real")
+                || type.equalsIgnoreCase("smallmoney");
+    }
+
 
     /**
      * 校验必须属性值配置

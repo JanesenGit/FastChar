@@ -2,6 +2,7 @@ package com.fastchar.converters;
 
 import com.fastchar.asm.FastParameter;
 import com.fastchar.core.FastAction;
+import com.fastchar.core.FastHandler;
 import com.fastchar.interfaces.IFastParamConverter;
 
 import java.lang.reflect.ParameterizedType;
@@ -15,13 +16,13 @@ import java.util.Collection;
 public class FastEnumParamConverter implements IFastParamConverter {
 
     @Override
-    public Object convertValue(FastAction action, FastParameter parameter, int[] marker) throws Exception {
+    public Object convertValue(FastAction action, FastParameter parameter, FastHandler handler) throws Exception {
         Object value = null;
         if (parameter.getType().isEnum()) {
-            marker[0] = 1;
+            handler.setCode(1);
             value = action.getParamToEnum(parameter.getName(),(Class<? extends Enum>) parameter.getType());
         } else if (Enum[].class.isAssignableFrom(parameter.getType())) {
-            marker[0] = 1;
+            handler.setCode(1);
             value = action.getParamToEnumArray(parameter.getName(),(Class<? extends Enum>) parameter.getType().getComponentType());
         }else if (Collection.class.isAssignableFrom(parameter.getType())) {
             if (parameter.getParameterizedType() instanceof ParameterizedType) {
@@ -34,7 +35,7 @@ public class FastEnumParamConverter implements IFastParamConverter {
                         collection.addAll(Arrays.asList(paramToEnumArray));
                         value = collection;
                     }
-                    marker[0] = 1;
+                    handler.setCode(1);
                 }
             }
         }

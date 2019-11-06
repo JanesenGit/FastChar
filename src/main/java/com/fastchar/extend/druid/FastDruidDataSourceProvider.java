@@ -1,6 +1,7 @@
 package com.fastchar.extend.druid;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.support.http.StatViewServlet;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.annotation.AFastObserver;
 import com.fastchar.annotation.AFastPriority;
@@ -9,6 +10,9 @@ import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.interfaces.IFastDataSource;
 import com.fastchar.utils.FastClassUtils;
 
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRegistration;
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 
@@ -21,7 +25,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
 
     public FastDruidDataSourceProvider() {
         if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "druid"));
+            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "Druid"));
         }
     }
 
@@ -76,7 +80,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "druid"));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "Druid"));
                 }
             }
         } finally {

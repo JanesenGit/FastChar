@@ -2,6 +2,7 @@ package com.fastchar.converters;
 
 import com.fastchar.asm.FastParameter;
 import com.fastchar.core.FastAction;
+import com.fastchar.core.FastHandler;
 import com.fastchar.interfaces.IFastParamConverter;
 
 import java.lang.reflect.ParameterizedType;
@@ -15,14 +16,14 @@ import java.util.Date;
 @SuppressWarnings("unchecked")
 public class FastDateParamConverter implements IFastParamConverter {
     @Override
-    public Object convertValue(FastAction action, FastParameter parameter, int[] marker) throws Exception {
+    public Object convertValue(FastAction action, FastParameter parameter, FastHandler handler) throws Exception {
         Object value = null;
         if (parameter.getType() == Date.class) {
             value = action.getParamToDate(parameter.getName());
-            marker[0] = 1;
+            handler.setCode(1);
         } else if (parameter.getType() == Date[].class) {
             value = action.getParamToDateArray(parameter.getName());
-            marker[0] = 1;
+            handler.setCode(1);
         } else if (Collection.class.isAssignableFrom(parameter.getType())) {
             if (parameter.getParameterizedType() instanceof ParameterizedType) {
                 ParameterizedType parameterizedType = (ParameterizedType) parameter.getParameterizedType();
@@ -33,7 +34,7 @@ public class FastDateParamConverter implements IFastParamConverter {
                         collection.addAll(Arrays.asList(paramToArray));
                         value = collection;
                     }
-                    marker[0] = 1;
+                    handler.setCode(1);
                 }
             }
         }

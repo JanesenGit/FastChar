@@ -10,7 +10,7 @@ public final class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FastCharVersion = "1.0.2";
+    public static final String FastCharVersion = "1.0.7";
 
     /**
      * mysql数据库类型
@@ -38,6 +38,7 @@ public final class FastConstant {
     private boolean testEnvironment;//是否测试环境，一般在main方法中使用
     private boolean crossDomain = false;//是否允许跨域
     private Set<String> crossHeaders = new HashSet<>();//允许跨域的头部配置名
+    private Set<String> crossAllowDomains = new HashSet<>();//允许跨域的域名配置
 
     private boolean debug = true;//调试模式
     private boolean ansi = false;
@@ -46,9 +47,11 @@ public final class FastConstant {
     private boolean logRoute = false;//打印路由地址
     private boolean logOverride = false;//打印覆盖器日志
     private boolean logHeaders = false;//打印请求的header信息
+    private boolean logRemoteAddress = false;//打印远程请求的地址
     private boolean logInterceptorUseTotal = false;//打印拦截器的耗时时间
     private boolean logFilterResponseTime =false;//是否只打印 超时的路由日志
     private boolean logSql = true;//是否打印sql语句日志
+    private boolean logExtract = false;//是否打印解压jar包的文件日志
 
     private String errorPage404;//404页面
     private String errorPage500;//500页面
@@ -63,6 +66,7 @@ public final class FastConstant {
 
     private boolean webStopped;
 
+    private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
 
     /**
      * 是否加密fast-database.xml相关的数据库配置文件
@@ -250,7 +254,7 @@ public final class FastConstant {
     /**
      * 设置上传附件的最大大小
      *
-     * @param attachMaxPostSize 附件最大大小，单位：兆（M）
+     * @param attachMaxPostSize 附件最大大小，单位：字节(b)
      * @return 当前对象
      */
     public FastConstant setAttachMaxPostSize(int attachMaxPostSize) {
@@ -416,6 +420,9 @@ public final class FastConstant {
      */
     public FastConstant setCrossDomain(boolean crossDomain) {
         this.crossDomain = crossDomain;
+        if (crossDomain) {
+            addCrossAllowDomain("*");
+        }
         return this;
     }
 
@@ -597,12 +604,31 @@ public final class FastConstant {
     }
 
     /**
+     * 添加允许跨域的域名
+     * @param domains 域名地址 支持匹配符*
+     * @return 当前对象
+     */
+    public FastConstant addCrossAllowDomain(String... domains) {
+        crossAllowDomains.addAll(Arrays.asList(domains));
+        return this;
+    }
+
+
+    /**
      * 获得允许跨域的头部信息
      *
      * @return Set&lt;String&gt;
      */
     public Set<String> getCrossHeaders() {
         return crossHeaders;
+    }
+
+    /**
+     * 获取允许跨域的域名地址
+     * @return Set&lt;String&gt;
+     */
+    public Set<String> getCrossAllowDomains() {
+        return crossAllowDomains;
     }
 
     /**
@@ -638,6 +664,60 @@ public final class FastConstant {
      */
     public FastConstant setLogSql(boolean logSql) {
         this.logSql = logSql;
+        return this;
+    }
+
+    /**
+     * 获取session失效时间，默认 30分钟
+     * @return 时间（秒）
+     */
+    public int getSessionMaxInterval() {
+        return sessionMaxInterval;
+    }
+
+    /**
+     * 设置session失效时间
+     * @param sessionMaxInterval 时间（秒）
+     * @return 当前对象
+     */
+    public FastConstant setSessionMaxInterval(int sessionMaxInterval) {
+        this.sessionMaxInterval = sessionMaxInterval;
+        return this;
+    }
+
+    /**
+     * 是否打印解压jar包的文件日志
+     * @return 布尔值
+     */
+    public boolean isLogExtract() {
+        return logExtract;
+    }
+
+    /**
+     * 设置是否打印解压jar包的文件日志
+     * @param logExtract 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setLogExtract(boolean logExtract) {
+        this.logExtract = logExtract;
+        return this;
+    }
+
+    /**
+     * 是否打印远程请求的地址
+     * @return 布尔值
+     */
+    public boolean isLogRemoteAddress() {
+        return logRemoteAddress;
+    }
+
+    /**
+     * 设置是否打印远程请求接口的地址
+     * @param logRemoteAddress 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setLogRemoteAddress(boolean logRemoteAddress) {
+        this.logRemoteAddress = logRemoteAddress;
         return this;
     }
 }

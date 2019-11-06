@@ -19,7 +19,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
 
     public FastC3p0DataSourceProvider() {
         if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "c3p0"));
+            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "C3P0"));
         }
     }
 
@@ -74,7 +74,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "c3p0"));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "C3P0"));
                 }
             }
         } finally {

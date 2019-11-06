@@ -13,6 +13,16 @@ final class FastCheck<T> {
     }
 
     private List<String> validators = new ArrayList<>();
+    public T check(int index,String validator) {
+        if (rollback) {
+            rollback = false;
+            validators.clear();
+        }
+        if (!validators.contains(validator)) {
+            validators.add(index, validator);
+        }
+        return target;
+    }
     public T check(String validator) {
         if (rollback) {
             rollback = false;
