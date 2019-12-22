@@ -7,10 +7,10 @@ Java语言开发的WEB+ORM开源免费的MVC框架，设计原理符合一般Web
 
 ```Html
 <dependency>
-<groupId>com.fastchar</groupId>
-<artifactId>fastchar</artifactId>
-<version>1.0</version>
-<!--最新版本请以前往maven搜索FastChar查看-->
+    <groupId>com.fastchar</groupId>
+    <artifactId>fastchar</artifactId>
+    <version>1.0</version>
+    <!--最新版本请以前往maven搜索FastChar查看-->
 </dependency>
 ```
 
@@ -18,12 +18,12 @@ Java语言开发的WEB+ORM开源免费的MVC框架，设计原理符合一般Web
 
 ```Html
 <filter>
-<filter-name>fastchar</filter-name>
-<filter-class>com.fastchar.core.FastFilter</filter-class>
+    <filter-name>fastchar</filter-name>
+    <filter-class>com.fastchar.core.FastFilter</filter-class>
 </filter>
 <filter-mapping>
-<filter-name>fastchar</filter-name>
-<url-pattern>/*</url-pattern>
+    <filter-name>fastchar</filter-name>
+    <url-pattern>/*</url-pattern>
 </filter-mapping>
 ```
 
@@ -31,19 +31,19 @@ Java语言开发的WEB+ORM开源免费的MVC框架，设计原理符合一般Web
 
 ```java
 public class TestAction extends FastAction {
-/**
-* 获得路由地址
-* Get routing address
-* @return
-*/
-@Override
-protected String getRoute() {
-return "/test";
-}
+    /**
+    * 获得路由地址
+    * Get routing address
+    * @return
+    */
+    @Override
+    protected String getRoute() {
+        return "/test";
+    }
 
-public void index() {
-responseText("搭建成功！");
-}
+    public void index() {
+        responseText("搭建成功！");
+    }
 }
 ```
 
