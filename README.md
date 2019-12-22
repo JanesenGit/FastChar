@@ -48,7 +48,7 @@ public class TestAction extends FastAction {
 }
 ```
 
-##手动搭建项目
+## 手动搭建项目
 
 第一步：[下载FastChar的jar包](https://www.fastchar.com/fc_lib/12)，并引用到Web项目中。
 第二步：修改web.xml，将如下代码复制进入
