@@ -87,3 +87,6 @@ public class TestAction extends FastAction {
 
 
 接下来运行项目，访问项目地址即可，例如上述案例中访问的地址：[http://xxxx:8080/xxx/test/](http://xxxx:8080/xxx/test/)
+
+
+框架[在线文档](https://www.fastchar.com/fc_doc)
