@@ -133,4 +133,9 @@ public final class FastChar {
     public static FastProperties getProperties(String fileName) {
         return FastEngine.instance().getProperties(fileName);
     }
+
+
+    public static boolean isMain() {
+        return FastEngine.instance().isMain();
+    }
 }

@@ -8,6 +8,9 @@ import com.fastchar.utils.FastClassUtils;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
+/**
+ * 参数转换器
+ */
 @SuppressWarnings("UnusedReturnValue")
 public class FastConverters {
     private List<Class<? extends IFastParamConverter>> paramConverters = new ArrayList<>();

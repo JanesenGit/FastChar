@@ -20,6 +20,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
     private transient List<Field> fields;
     private transient String tagName;
     private transient String fileName;
+    private transient FastMapWrap mapWrap;
 
     public FastBaseInfo() {
         try {
@@ -62,11 +63,10 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
         }
     }
 
-
     /**
      * 设置属性值
-     * @param attr
-     * @param value
+     * @param attr 属性名
+     * @param value 属性值
      */
     public void set(String attr, Object value) {
         try {
@@ -223,5 +223,10 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
         this.tagName = tagName;
     }
 
-
+    public FastMapWrap getMapWrap() {
+        if (mapWrap == null) {
+            mapWrap = FastMapWrap.newInstance(this);
+        }
+        return mapWrap;
+    }
 }

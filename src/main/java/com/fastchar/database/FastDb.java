@@ -1,6 +1,7 @@
 package com.fastchar.database;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastEngine;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
@@ -8,6 +9,7 @@ import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.sql.FastSql;
 import com.fastchar.interfaces.IFastCache;
 import com.fastchar.utils.FastArrayUtils;
+import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -18,6 +20,7 @@ import java.util.*;
 /**
  * 数据库sql操作
  */
+@SuppressWarnings({"UnusedReturnValue", "unused"})
 public class FastDb {
     private static final ThreadLocal<FastTransaction> TRANSACTION_THREAD_LOCAL = new ThreadLocal<FastTransaction>();
 
@@ -37,6 +40,9 @@ public class FastDb {
     private boolean useCache = true;
     private String database;
     private long inTime;
+    private long firstBuildTime;
+    private long lastBuildTime;
+    private boolean ignoreCase = false;
 
     private FastDatabaseInfo getDatabaseInfo() {
         return FastChar.getDatabases().get(database);
@@ -82,9 +88,9 @@ public class FastDb {
     /**
      * 执行查询（带参数）
      *
-     * @param sqlStr
-     * @param params
-     * @return
+     * @param sqlStr 查询语句
+     * @param params 语句参数
+     * @return FastEntity集合
      */
     public List<FastEntity<?>> select(String sqlStr, Object... params) throws Exception {
         String cacheKey = null;
@@ -121,7 +127,7 @@ public class FastDb {
                 }
             }
             resultSet = preparedStatement.executeQuery();
-            List<FastEntity<?>> listResult = new FastResultSet(resultSet).getListResult();
+            List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(this.ignoreCase).getListResult();
             if (getDatabaseInfo().isCache() && isUseCache()) {
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 iFastCacheProvider.set(cacheTag, cacheKey, listResult);
@@ -134,6 +140,16 @@ public class FastDb {
     }
 
 
+    /**
+     * 查询数据
+     *
+     * @param page     页数
+     * @param pageSize 每页大小
+     * @param sqlStr   查询语句
+     * @param params   语句参数
+     * @return FastEntity 分页数据
+     * @throws Exception 异常信息
+     */
     public FastPage<FastEntity<?>> select(int page, int pageSize, String sqlStr, Object... params) throws Exception {
         inTime = System.currentTimeMillis();
         FastPage<FastEntity<?>> fastPage = new FastPage<>();
@@ -141,7 +157,7 @@ public class FastDb {
         if (page > 0) {
             String countSql = FastSql.getInstance(type).getCountSql(sqlStr, "ct");
 
-            FastEntity countResult = selectFirst(countSql, params);
+            FastEntity<?> countResult = selectFirst(countSql, params);
             int countRow = countResult.getInt("ct");
             fastPage.setTotalRow(countRow);
             fastPage.setPage(page);
@@ -165,11 +181,11 @@ public class FastDb {
 
 
     /**
-     * 执行查询（带参数）
+     * 执行查询，返回第一条数据（带参数）
      *
-     * @param sqlStr
-     * @param params
-     * @return
+     * @param sqlStr 查询语句
+     * @param params 语句参数
+     * @return FastEntity
      */
     public FastEntity<?> selectFirst(String sqlStr, Object... params) throws Exception {
         inTime = System.currentTimeMillis();
@@ -180,7 +196,7 @@ public class FastDb {
             cacheTag = buildCacheTagBySql(sqlStr);
             IFastCache iFastCacheProvider = FastChar.getCache();
             if (iFastCacheProvider.exists(cacheTag, cacheKey)) {
-                FastEntity cache = iFastCacheProvider.get(cacheTag, cacheKey);
+                FastEntity<?> cache = iFastCacheProvider.get(cacheTag, cacheKey);
                 if (cache != null) {
                     cacheLog(sqlStr);
                     return cache;
@@ -207,7 +223,7 @@ public class FastDb {
                 }
             }
             resultSet = preparedStatement.executeQuery();
-            FastEntity firstResult = new FastResultSet(resultSet).getFirstResult();
+            FastEntity<?> firstResult = new FastResultSet(resultSet).setIgnoreCase(this.ignoreCase).getFirstResult();
             if (getDatabaseInfo().isCache() && isUseCache()) {
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 iFastCacheProvider.set(cacheTag, cacheKey, firstResult);
@@ -221,11 +237,11 @@ public class FastDb {
 
 
     /**
-     * 执行查询（带参数）
+     * 执行查询，返回最后一条数据（带参数）
      *
-     * @param sqlStr
-     * @param params
-     * @return
+     * @param sqlStr 查询语句
+     * @param params 语句参数
+     * @return FastEntity
      */
     public FastEntity<?> selectLast(String sqlStr, Object... params) throws Exception {
         inTime = System.currentTimeMillis();
@@ -262,7 +278,7 @@ public class FastDb {
                 }
             }
             resultSet = preparedStatement.executeQuery();
-            FastEntity lastResult = new FastResultSet(resultSet).getLastResult();
+            FastEntity<?> lastResult = new FastResultSet(resultSet).setIgnoreCase(this.ignoreCase).getLastResult();
             if (getDatabaseInfo().isCache() && isUseCache()) {
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 iFastCacheProvider.set(cacheTag, cacheKey, lastResult);
@@ -278,8 +294,8 @@ public class FastDb {
     /**
      * 执行更新sql
      *
-     * @param sqlStr
-     * @param params
+     * @param sqlStr 更新语句
+     * @param params 语句参数
      * @return 更新成功的数量
      */
     public int update(String sqlStr, Object... params) throws Exception {
@@ -325,8 +341,8 @@ public class FastDb {
     /**
      * 执行插入数据
      *
-     * @param sqlStr
-     * @param params
+     * @param sqlStr 添加语句
+     * @param params 语句参数
      * @return 主键
      */
     public int insert(String sqlStr, Object... params) throws Exception {
@@ -374,6 +390,13 @@ public class FastDb {
     }
 
 
+    /**
+     * 执行复杂Sql
+     *
+     * @param sql 语句
+     * @return 是否成功
+     * @throws Exception 异常信息
+     */
     public boolean run(String sql) throws Exception {
         inTime = System.currentTimeMillis();
         Connection connection = null;
@@ -421,8 +444,6 @@ public class FastDb {
                 }
             }
         }
-
-
         Connection connection = null;
         Statement statement = null;
         try {
@@ -436,12 +457,16 @@ public class FastDb {
             for (String sql : sqlList) {
                 statement.addBatch(sql);
                 if (++count % batchSize == 0) {
-                    int[] executeBatch = statement.executeBatch();
-                    Integer[] integers = FastArrayUtils.toObject(executeBatch);
-                    if (integers != null) {
-                        result.addAll(Arrays.asList(integers));
+                    try {
+                        int[] executeBatch = statement.executeBatch();
+                        Integer[] integers = FastArrayUtils.toObject(executeBatch);
+                        if (integers != null) {
+                            result.addAll(Arrays.asList(integers));
+                        }
+                    } catch (Exception ignored) {
+                    } finally {
+                        statement.clearBatch();
                     }
-                    statement.clearBatch();
                 }
             }
             int[] executeBatch = statement.executeBatch();
@@ -452,9 +477,7 @@ public class FastDb {
             return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
         } finally {
             close(connection, statement);
-            for (String sql : sqlList) {
-                log(sql, null);
-            }
+            log(sqlList, null);
         }
     }
 
@@ -502,12 +525,16 @@ public class FastDb {
 
                     preparedStatement.addBatch();
                     if (++count % batchSize == 0) {
-                        int[] executeBatch = preparedStatement.executeBatch();
-                        Integer[] integers = FastArrayUtils.toObject(executeBatch);
-                        if (integers != null) {
-                            result.addAll(Arrays.asList(integers));
+                        try {
+                            int[] executeBatch = preparedStatement.executeBatch();
+                            Integer[] integers = FastArrayUtils.toObject(executeBatch);
+                            if (integers != null) {
+                                result.addAll(Arrays.asList(integers));
+                            }
+                        } catch (Exception ignored) {
+                        } finally {
+                            preparedStatement.clearBatch();
                         }
-                        preparedStatement.clearBatch();
                     }
                 }
             }
@@ -523,87 +550,211 @@ public class FastDb {
         }
     }
 
+    /**
+     * 批量添加FastEntity实体集合
+     *
+     * @param entities  FastEntity实体集合
+     * @param batchSize 单次批量提交的数据大小
+     * @param checks    检测属性值
+     * @return 结果结婚
+     * @throws Exception 异常信息
+     */
+    public int[] batchSaveEntity(List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
+        return batchSaveEntity(false, entities, batchSize, checks);
+    }
 
-    public int[] batchSaveEntity(List<? extends FastEntity> entities, int batchSize, String... checks) throws Exception {
+    /**
+     * 批量添加FastEntity实体集合
+     *
+     * @param staticSql 是否转为静态语句执行
+     * @param entities  FastEntity实体集合
+     * @param batchSize 单次批量提交的数据大小
+     * @param checks    检测属性值
+     * @return 结果集合
+     * @throws Exception 异常信息
+     */
+    public int[] batchSaveEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
         if (entities.size() == 0) {
             return new int[0];
         }
-        LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
-        for (FastEntity entity : entities) {
-            entity.setDefaultValue();
-            FastSqlInfo sqlInfo = entity.toInsertSql(checks);
-            if (sqlInfo == null) {
-                continue;
+        if (staticSql) {
+            firstBuildTime = System.currentTimeMillis();
+            List<String> sqlList = new ArrayList<>();
+            for (FastEntity<?> entity : entities) {
+                FastSqlInfo sqlInfo = entity.toInsertSql(checks);
+                if (sqlInfo == null) {
+                    continue;
+                }
+                sqlList.add(sqlInfo.toStaticSql());
             }
-            if (!batchSqlMap.containsKey(sqlInfo.getSql())) {
-                batchSqlMap.put(sqlInfo.getSql(), new ArrayList<Object[]>());
+            lastBuildTime = System.currentTimeMillis();
+            return this.batch(sqlList, batchSize);
+        } else {
+            firstBuildTime = System.currentTimeMillis();
+            LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
+            for (FastEntity<?> entity : entities) {
+                FastSqlInfo sqlInfo = entity.toInsertSql(checks);
+                if (sqlInfo == null) {
+                    continue;
+                }
+                if (!batchSqlMap.containsKey(sqlInfo.getSql())) {
+                    batchSqlMap.put(sqlInfo.getSql(), new ArrayList<Object[]>());
+                }
+                batchSqlMap.get(sqlInfo.getSql()).add(sqlInfo.toParams());
             }
-            batchSqlMap.get(sqlInfo.getSql()).add(sqlInfo.toParams());
+            lastBuildTime = System.currentTimeMillis();
+            List<Integer> result = new ArrayList<>();
+            for (String sql : batchSqlMap.keySet()) {
+                int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
+                for (int i : batch) {
+                    result.add(i);
+                }
+            }
+            return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
         }
-        List<Integer> result = new ArrayList<>();
-        for (String sql : batchSqlMap.keySet()) {
-            int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
-            for (int i : batch) {
-                result.add(i);
-            }
-        }
-        return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
     }
 
-    public int[] batchUpdateEntity(List<? extends FastEntity> entities, int batchSize) throws Exception {
+    /**
+     * 批量更新FastEntity实体集合
+     *
+     * @param entities  FastEntity实体集合
+     * @param batchSize 单次批量提交的数据大小
+     * @param checks    检测属性值
+     * @return 结果集合
+     * @throws Exception 异常信息
+     */
+    public int[] batchUpdateEntity(List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
+        return batchUpdateEntity(false, entities, batchSize, checks);
+    }
+
+    /**
+     * 批量更新FastEntity实体集合
+     *
+     * @param staticSql 是否转为静态语句执行
+     * @param entities  FastEntity实体集合
+     * @param batchSize 单次批量提交的数据大小
+     * @param checks    检测属性值
+     * @return 结果集合
+     * @throws Exception 异常信息
+     */
+    public int[] batchUpdateEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
         if (entities.size() == 0) {
             return new int[0];
         }
-        LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
-        for (FastEntity entity : entities) {
-            FastSqlInfo sqlInfo = entity.toUpdateSql();
-            if (sqlInfo == null) {
-                continue;
+        if (staticSql) {
+            firstBuildTime = System.currentTimeMillis();
+            List<String> sqlList = new ArrayList<>();
+            for (FastEntity<?> entity : entities) {
+                FastSqlInfo sqlInfo = entity.toUpdateSql(checks);
+                if (sqlInfo == null) {
+                    continue;
+                }
+                sqlList.add(sqlInfo.toStaticSql());
             }
-            if (!batchSqlMap.containsKey(sqlInfo.getSql())) {
-                batchSqlMap.put(sqlInfo.getSql(), new ArrayList<Object[]>());
+            lastBuildTime = System.currentTimeMillis();
+            return this.batch(sqlList, batchSize);
+        } else {
+            firstBuildTime = System.currentTimeMillis();
+            LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
+            for (FastEntity<?> entity : entities) {
+                FastSqlInfo sqlInfo = entity.toUpdateSql(checks);
+                if (sqlInfo == null) {
+                    continue;
+                }
+                if (!batchSqlMap.containsKey(sqlInfo.getSql())) {
+                    batchSqlMap.put(sqlInfo.getSql(), new ArrayList<Object[]>());
+                }
+                batchSqlMap.get(sqlInfo.getSql()).add(sqlInfo.toParams());
             }
-            batchSqlMap.get(sqlInfo.getSql()).add(sqlInfo.toParams());
+            lastBuildTime = System.currentTimeMillis();
+            List<Integer> result = new ArrayList<>();
+            for (String sql : batchSqlMap.keySet()) {
+                int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
+                for (int i : batch) {
+                    result.add(i);
+                }
+            }
+            return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
         }
-        List<Integer> result = new ArrayList<>();
-        for (String sql : batchSqlMap.keySet()) {
-            int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
-            for (int i : batch) {
-                result.add(i);
-            }
-        }
-        return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
     }
 
-    public int[] batchDeleteEntity(List<? extends FastEntity> entities, int batchSize) throws Exception {
+    /**
+     * 批量删除FastEntity实体集合
+     *
+     * @param entities  FastEntity实体集合
+     * @param batchSize 单次批量提交的数据大小
+     * @param checks    检测属性值
+     * @return 结果集合
+     * @throws Exception 异常信息
+     */
+    public int[] batchDeleteEntity(List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
+        return batchDeleteEntity(false, entities, batchSize, checks);
+    }
+
+    /**
+     * 批量删除FastEntity实体集合
+     *
+     * @param staticSql 是否转为静态语句执行
+     * @param entities  FastEntity实体集合
+     * @param batchSize 单次批量提交的数据大小
+     * @param checks    检测属性值
+     * @return 结果集合
+     * @throws Exception 异常信息
+     */
+    public int[] batchDeleteEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
         if (entities.size() == 0) {
             return new int[0];
         }
-        LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
-        for (FastEntity entity : entities) {
-            FastSqlInfo sqlInfo = entity.toDeleteSql();
-            if (sqlInfo == null) {
-                continue;
+        if (staticSql) {
+            firstBuildTime = System.currentTimeMillis();
+            List<String> sqlList = new ArrayList<>();
+            for (FastEntity<?> entity : entities) {
+                FastSqlInfo sqlInfo = entity.toDeleteSql(checks);
+                if (sqlInfo == null) {
+                    continue;
+                }
+                sqlList.add(sqlInfo.toStaticSql());
             }
-            if (!batchSqlMap.containsKey(sqlInfo.getSql())) {
-                batchSqlMap.put(sqlInfo.getSql(), new ArrayList<Object[]>());
+            lastBuildTime = System.currentTimeMillis();
+            return this.batch(sqlList, batchSize);
+        } else {
+            firstBuildTime = System.currentTimeMillis();
+            LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
+            for (FastEntity<?> entity : entities) {
+                FastSqlInfo sqlInfo = entity.toDeleteSql(checks);
+                if (sqlInfo == null) {
+                    continue;
+                }
+                if (!batchSqlMap.containsKey(sqlInfo.getSql())) {
+                    batchSqlMap.put(sqlInfo.getSql(), new ArrayList<Object[]>());
+                }
+                batchSqlMap.get(sqlInfo.getSql()).add(sqlInfo.toParams());
             }
-            batchSqlMap.get(sqlInfo.getSql()).add(sqlInfo.toParams());
+            lastBuildTime = System.currentTimeMillis();
+            List<Integer> result = new ArrayList<>();
+            for (String sql : batchSqlMap.keySet()) {
+                int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
+                for (int i : batch) {
+                    result.add(i);
+                }
+            }
+            return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
         }
-        List<Integer> result = new ArrayList<>();
-        for (String sql : batchSqlMap.keySet()) {
-            int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
-            for (int i : batch) {
-                result.add(i);
-            }
-        }
-        return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
     }
 
+    /**
+     * 批量执行更新的sql语句集合
+     *
+     * @param sqlInfos  sql语句信息
+     * @param batchSize 单次批量提交的数据大小
+     * @return 结果集合
+     * @throws Exception 异常信息
+     */
     public int[] batchUpdate(List<FastSqlInfo> sqlInfos, int batchSize) throws Exception {
         if (sqlInfos.size() == 0) {
             return new int[0];
         }
+        firstBuildTime = System.currentTimeMillis();
         LinkedHashMap<String, List<Object[]>> batchSqlMap = new LinkedHashMap<>();
         for (FastSqlInfo sqlInfo : sqlInfos) {
             if (!batchSqlMap.containsKey(sqlInfo.getSql())) {
@@ -612,6 +763,7 @@ public class FastDb {
             batchSqlMap.get(sqlInfo.getSql()).add(sqlInfo.toParams());
             setLog(sqlInfo.isLog());
         }
+        lastBuildTime = System.currentTimeMillis();
         List<Integer> result = new ArrayList<>();
         for (String sql : batchSqlMap.keySet()) {
             int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
@@ -697,28 +849,55 @@ public class FastDb {
     }
 
 
-    public void log(String sql, Object params) {
+    public void log(Object sql, Object params) {
         if (FastChar.getConstant().isLogSql() && isLog()) {
-            if (FastStringUtils.isEmpty(sql)) {
+            if (FastStringUtils.isEmpty(String.valueOf(sql))) {
                 return;
             }
-            sql = sql.replace("\n", " ");
             LinkedHashMap<String, String> printMap = new LinkedHashMap<>();
-            printMap.put("Sql", sql);
+            if (sql instanceof List) {
+                List<?> list = (List<?>) sql;
+                if (list.size() < 100) {
+                    for (int i = 0; i < list.size(); i++) {
+                        printMap.put("Sql-" + (i + 1), String.valueOf(list.get(i)));
+                    }
+                } else {
+                    printMap.put("Sql-1", String.valueOf(list.get(0)));
+                    printMap.put("Sql-*", "……");
+                    printMap.put("Sql-" + list.size(), String.valueOf(list.get(list.size() - 1)));
+                }
+            } else {
+                sql = String.valueOf(sql).replace("\n", " ");
+                printMap.put("Sql", String.valueOf(sql));
+            }
             if (params != null) {
                 if (params instanceof Object[]) {
-                    printMap.put("Params", Arrays.toString((Object[]) params));
+                    Object[] arrayParams = (Object[]) params;
+                    if (arrayParams.length < 100) {
+                        printMap.put("Params", Arrays.toString(arrayParams));
+                    } else {
+                        printMap.put("Params", arrayParams.length + " data");
+                    }
                 }
                 if (params instanceof List) {
-                    List list = (List) params;
-                    for (int i = 0; i < list.size(); i++) {
-                        printMap.put("Params-" + (i + 1), Arrays.toString((Object[]) list.get(i)));
+                    List<?> list = (List<?>) params;
+                    if (list.size() < 100) {
+                        for (int i = 0; i < list.size(); i++) {
+                            printMap.put("Params-" + (i + 1), Arrays.toString((Object[]) list.get(i)));
+                        }
+                    } else {
+                        printMap.put("Params", list.size() + " data");
                     }
                 }
             }
-
             float useTotal = FastNumberUtils.formatToFloat((System.currentTimeMillis() - inTime) / 1000.0, 6);
-            printMap.put("Total", useTotal + " seconds");
+            float buildTotal = FastNumberUtils.formatToFloat((lastBuildTime - firstBuildTime) / 1000.0, 6);
+            if (buildTotal > 0) {
+                printMap.put("Build-Total", buildTotal + " seconds");
+                printMap.put("Run-Total", useTotal + " seconds");
+            }
+            printMap.put("Total", FastNumberUtils.formatToFloat((useTotal + buildTotal), 6) + " seconds");
+            printMap.put("Time", FastDateUtils.getDateString("yyyy-MM-dd HH:mm:ss:SSS"));
             int maxKeyLength = 0;
             for (String key : printMap.keySet()) {
                 maxKeyLength = Math.max(maxKeyLength, key.length() + 1);
@@ -783,6 +962,15 @@ public class FastDb {
 
     public FastDb setDatabase(String database) {
         this.database = database;
+        return this;
+    }
+
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
+
+    public FastDb setIgnoreCase(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
         return this;
     }
 }

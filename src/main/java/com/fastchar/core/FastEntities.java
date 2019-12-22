@@ -10,6 +10,9 @@ import com.fastchar.utils.FastStringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * FastEntity实体类集合
+ */
 public final class FastEntities {
     private FastMethodRead methodConverter = new FastMethodRead();
     private List<EntityInfo> entityInfos = new ArrayList<>();

@@ -10,7 +10,14 @@ import com.fastchar.utils.FastStringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.LinkedHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * FastChar核心文件操作类
+ *
+ * @param <T>
+ */
 @SuppressWarnings("unchecked")
 public class FastFile<T> {
 
@@ -22,6 +29,7 @@ public class FastFile<T> {
                 .setUploadFileName(originalFileName)
                 .setContentType(contentType);
     }
+
     public static FastFile newInstance(String attachDirectory, String fileName) {
         return FastChar.getOverrides().newInstance(FastFile.class)
                 .setAttachDirectory(attachDirectory).setFileName(fileName);
@@ -36,6 +44,7 @@ public class FastFile<T> {
     private String attachDirectory;
     private String uploadFileName;
     private String contentType;
+    private final ConcurrentHashMap<String, Object> attrs = new ConcurrentHashMap<>();
 
 
     public String getKey() {
@@ -97,10 +106,11 @@ public class FastFile<T> {
 
     /**
      * 获得文件扩展名，包含(.)
+     *
      * @return
      */
     public String getExtensionName() {
-        if(fileName!=null && fileName.length()>0 && fileName.lastIndexOf(".")>-1){
+        if (fileName != null && fileName.length() > 0 && fileName.lastIndexOf(".") > -1) {
             return fileName.substring(fileName.lastIndexOf("."));
         }
         return "";
@@ -108,11 +118,12 @@ public class FastFile<T> {
 
     /**
      * 获取短文件名,不带扩展名
+     *
      * @param fileName
      * @return
      */
-    public static String getShortName(String fileName){
-        if(fileName != null && fileName.length()>0 && fileName.lastIndexOf(".")>-1){
+    public static String getShortName(String fileName) {
+        if (fileName != null && fileName.length() > 0 && fileName.lastIndexOf(".") > -1) {
             return fileName.substring(0, fileName.lastIndexOf("."));
         }
         return fileName;
@@ -122,7 +133,21 @@ public class FastFile<T> {
     public boolean isImageFile() {
         return FastFileUtils.isImageFile(uploadFileName);
     }
-
+    public boolean isTxtFile() {
+        return FastFileUtils.isTxtFile(uploadFileName);
+    }
+    public boolean isExcelFile() {
+        return FastFileUtils.isExcelFile(uploadFileName);
+    }
+    public boolean isWordFile() {
+        return FastFileUtils.isWordFile(uploadFileName);
+    }
+    public boolean isPDFFile() {
+        return FastFileUtils.isPDFFile(uploadFileName);
+    }
+    public boolean isPPTFile() {
+        return FastFileUtils.isPPTFile(uploadFileName);
+    }
     public boolean isMP4File() {
         return FastFileUtils.isMP4File(uploadFileName);
     }
@@ -167,13 +192,13 @@ public class FastFile<T> {
         return renameTo(targetFile, false);
     }
 
-    public <E extends FastFile> E renameTo(File targetFile,boolean force) throws FastFileException, IOException {
+    public <E extends FastFile> E renameTo(File targetFile, boolean force) throws FastFileException, IOException {
         if (!targetFile.getParentFile().exists()) {
             if (!targetFile.getParentFile().mkdirs()) {
                 throw new FastFileException(FastChar.getLocal().getInfo("File_Error1", "'" + targetFile.getParent() + "'"));
             }
         }
-        FastFileUtils.moveFile(getFile(), targetFile,force);
+        FastFileUtils.moveFile(getFile(), targetFile, force);
         return (E) FastFile.newInstance(paramName, targetFile.getParent(), targetFile.getName(), uploadFileName, contentType);
 
     }
@@ -200,4 +225,15 @@ public class FastFile<T> {
     }
 
 
+    public void setAttr(String name, Object value) {
+        this.attrs.put(name, value);
+    }
+
+    public boolean existAttr(String name) {
+        return this.attrs.contains(name);
+    }
+
+    public Object getAttr(String name) {
+        return this.attrs.get(name);
+    }
 }

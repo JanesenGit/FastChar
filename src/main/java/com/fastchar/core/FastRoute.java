@@ -112,6 +112,9 @@ public final class FastRoute {
             doAfterInterceptor.clear();
         }
         doAfterInterceptor = null;
+        if (stackTraceElements != null) {
+            stackTraceElements.clear();
+        }
         stackTraceElements = null;
         if (fastAction != null) {
             fastAction.release();
@@ -292,7 +295,9 @@ public final class FastRoute {
     private void responseException(Throwable throwable) {
         throwable.printStackTrace();
         if (fastAction != null) {
-            stackTraceElements.addAll(Arrays.asList(throwable.getStackTrace()));
+            if (FastChar.getConstant().isDebug()) {
+                stackTraceElements.addAll(Arrays.asList(throwable.getStackTrace()));
+            }
             fastAction.response500(throwable);
         }
     }
@@ -347,7 +352,7 @@ public final class FastRoute {
             afterInvoked = true;
             afterInterceptorUseTotal = System.currentTimeMillis() - afterInterceptorTime;
             outBase.setOutTime(new Date());
-            fastAction.getResponse().setHeader("Powered-By", "FastChar");
+            fastAction.getResponse().setHeader("Powered-By", "FastChar " + FastConstant.FastCharVersion);
             outBase.response(fastAction);
             //转发请求 取消日志打印
             if (!FastOutForward.class.isAssignableFrom(outBase.getClass())) {
@@ -395,14 +400,14 @@ public final class FastRoute {
     }
 
 
-    public void addBeforeInterceptor(RouteInterceptor routeInterceptor) {
+    void addBeforeInterceptor(RouteInterceptor routeInterceptor) {
         if (isBeforeInterceptor(routeInterceptor.interceptorClass.getName())) {
             return;
         }
         doBeforeInterceptor.add(routeInterceptor);
     }
 
-    public void addAfterInterceptor(RouteInterceptor routeInterceptor) {
+    void addAfterInterceptor(RouteInterceptor routeInterceptor) {
         if (isAfterInterceptor(routeInterceptor.interceptorClass.getName())) {
             return;
         }
@@ -410,7 +415,7 @@ public final class FastRoute {
     }
 
 
-    public boolean isRootInterceptor(String className) {
+    boolean isRootInterceptor(String className) {
         for (Class<? extends IFastRootInterceptor> aClass : rootInterceptor) {
             if (aClass.getName().equals(className)) {
                 return true;
@@ -419,7 +424,7 @@ public final class FastRoute {
         return false;
     }
 
-    public boolean isBeforeInterceptor(String className) {
+    boolean isBeforeInterceptor(String className) {
         for (RouteInterceptor routeInterceptor : doBeforeInterceptor) {
             if (routeInterceptor.interceptorClass.getName().equals(className)) {
                 return true;
@@ -428,7 +433,7 @@ public final class FastRoute {
         return false;
     }
 
-    public boolean isAfterInterceptor(String className) {
+    boolean isAfterInterceptor(String className) {
         for (RouteInterceptor routeInterceptor : doAfterInterceptor) {
             if (routeInterceptor.interceptorClass.getName().equals(className)) {
                 return true;
@@ -445,5 +450,6 @@ public final class FastRoute {
         int lastMethodLineNumber;
         Class<? extends IFastInterceptor> interceptorClass;
     }
+
 }
 

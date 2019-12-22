@@ -32,14 +32,15 @@ public class FastDatabaseObserver {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                }else{
+                } else {
                     if (FastChar.getConstant().isDebug()) {
                         FastChar.getLog().error("文件" + file.getAbsolutePath() + "创建失败！");
                     }
                 }
             }
             modifyTicket = FastFileUtils.readLines(file);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         if (modifyTicket == null) {
             modifyTicket = new ArrayList<>();
         }
@@ -47,9 +48,10 @@ public class FastDatabaseObserver {
 
     private void saveTicket() {
         try {
-            File file = new File(FastChar.getPath().getClassRootPath(),".fast_database");
+            File file = new File(FastChar.getPath().getClassRootPath(), ".fast_database");
             FastFileUtils.writeLines(file, modifyTicket);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
 
@@ -59,7 +61,8 @@ public class FastDatabaseObserver {
             if (!databaseInfo.getBoolean("enable", true)) {
                 continue;
             }
-            for (FastTableInfo<?> table : databaseInfo.getTables()) {
+            List<FastTableInfo<?>> tables = new ArrayList<>(databaseInfo.getTables());
+            for (FastTableInfo<?> table : tables) {
                 table.validate();
                 for (FastColumnInfo<?> column : table.getColumns()) {
                     column.validate();
@@ -70,17 +73,20 @@ public class FastDatabaseObserver {
             if (databaseOperate == null) {
                 continue;
             }
+
             if (FastChar.getConstant().isSyncDatabaseXml()) {
-                //本地xml配置同步到数据库中
-                databaseOperate.createDatabase(databaseInfo);
                 for (FastTableInfo<?> table : databaseInfo.getTables()) {
                     if (!table.getBoolean("enable", true)) {
                         continue;
                     }
                     if (!databaseOperate.checkTableExists(databaseInfo, table)) {
                         databaseOperate.createTable(databaseInfo, table);
+                        removeTicket(databaseInfo.getName(), table.getName());
                     }
                     for (FastColumnInfo<?> column : table.getColumns()) {
+                        if (!column.getBoolean("enable", true)) {
+                            continue;
+                        }
                         if (databaseOperate.checkColumnExists(databaseInfo, table, column)) {
                             if (checkIsModified(databaseInfo.getName(), table.getName(), column)) {
                                 databaseOperate.alterColumn(databaseInfo, table, column);
@@ -98,15 +104,17 @@ public class FastDatabaseObserver {
         if (FastChar.getDatabases().getAll().size() > 0) {
             FastChar.getObservable().notifyObservers("onDatabaseFinish");
         }
+        for (FastDatabaseInfo fastDatabaseInfo : FastChar.getDatabases().getAll()) {
+            fastDatabaseInfo.tableToMap();
+        }
     }
 
 
-    /**
-     * 检测当前column是否被修改过
-     * @return
-     */
-    private boolean checkIsModified(String databaseName,String tableName, FastColumnInfo columnInfo) {
-        String key = FastChar.getSecurity().MD5_Encrypt(databaseName + "@" + tableName + "@" + columnInfo.getName());
+    private boolean checkIsModified(String databaseName, String tableName, FastColumnInfo<?> columnInfo) {
+        String key = FastChar.getSecurity().MD5_Encrypt(databaseName)
+                + "@" + FastChar.getSecurity().MD5_Encrypt(tableName)
+                + "@" + FastChar.getSecurity().MD5_Encrypt(columnInfo.getName());
+
         String value = FastChar.getSecurity().MD5_Encrypt(columnInfo.toString());
         boolean hasModified = true;
         boolean hasAdded = false;
@@ -130,6 +138,19 @@ public class FastDatabaseObserver {
             return false;
         }
         return hasModified;
+    }
+
+
+    private void removeTicket(String databaseName, String tableName) {
+        String key = FastChar.getSecurity().MD5_Encrypt(databaseName)
+                + "@" + FastChar.getSecurity().MD5_Encrypt(tableName);
+        List<String> waitRemove = new ArrayList<>();
+        for (String string : modifyTicket) {
+            if (string.startsWith(key)) {
+                waitRemove.add(string);
+            }
+        }
+        modifyTicket.removeAll(waitRemove);
     }
 
 

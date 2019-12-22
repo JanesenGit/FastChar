@@ -58,8 +58,9 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
             String attrName = attrs.nextElement();
             context.put(attrName, request.getSession().getAttribute(attrName));
         }
-        PrintWriter writer = response.getWriter();
-        template.merge(context, writer);
-        writer.flush();
+        try (PrintWriter writer = response.getWriter()){
+            template.merge(context, writer);
+            writer.flush();
+        }
     }
 }

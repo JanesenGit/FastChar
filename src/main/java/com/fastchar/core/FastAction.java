@@ -46,6 +46,7 @@ public abstract class FastAction {
     FastCheck<FastAction> fastCheck = new FastCheck<FastAction>(this);
 
     private volatile boolean log = true;
+    private volatile boolean logResponse = false;
     private volatile int status = 200;
 
 
@@ -69,6 +70,14 @@ public abstract class FastAction {
         lock = new ReentrantLock();
         ReentrantLock previousLock = lockMap.putIfAbsent(key, lock);
         return previousLock == null ? lock : previousLock;
+    }
+
+    /**
+     * 删除一个对象锁
+     * @param key 唯一key
+     */
+    protected void removeLock(String key) {
+        lockMap.remove(key);
     }
 
     /**
@@ -1306,7 +1315,7 @@ public abstract class FastAction {
      * @param fastFile 文件
      * @return 当前对象
      */
-    public <T extends FastFile> FastAction addParamFile(T fastFile) {
+    public <T extends FastFile<?>> FastAction addParamFile(T fastFile) {
         HttpServletRequest request = getRequest();
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
@@ -1328,7 +1337,7 @@ public abstract class FastAction {
      * 获得上传的附件
      * @return FastFile
      */
-    public <T extends FastFile> T getParamFile() {
+    public <T extends FastFile<?>> T getParamFile() {
         List<FastFile<?>> paramToListFile = getParamListFile();
         if (paramToListFile.size() > 0) {
             return (T) paramToListFile.get(0);
@@ -1341,7 +1350,7 @@ public abstract class FastAction {
      * @param paramName 参数名
      * @return FastFile
      */
-    public <T extends FastFile> T getParamFile(String paramName) {
+    public <T extends FastFile<?>> T getParamFile(String paramName) {
         HttpServletRequest request = getRequest();
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
@@ -1355,7 +1364,7 @@ public abstract class FastAction {
      * @param paramName 参数名
      * @return FastFile[]
      */
-    public <T extends FastFile> T[] getParamFiles(String paramName) {
+    public <T extends FastFile<?>> T[] getParamFiles(String paramName) {
         HttpServletRequest request = getRequest();
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
@@ -1371,7 +1380,7 @@ public abstract class FastAction {
      * @return FastFile
      * @throws FastFileException 抛出文件异常
      */
-    public <T extends FastFile> T getParamFile(String paramName, String moveToDirectory) throws FastFileException, IOException {
+    public <T extends FastFile<?>> T getParamFile(String paramName, String moveToDirectory) throws FastFileException, IOException {
         FastFile paramToFile = getParamFile(paramName);
         if (paramToFile != null) {
             return (T) paramToFile.moveFile(moveToDirectory);
@@ -1386,7 +1395,7 @@ public abstract class FastAction {
      * @return FastFile
      * @throws FastFileException 抛出文件异常
      */
-    public <T extends FastFile> T[] getParamFiles(String paramName, String moveToDirectory) throws FastFileException, IOException {
+    public <T extends FastFile<?>> T[] getParamFiles(String paramName, String moveToDirectory) throws FastFileException, IOException {
         FastFile<?>[] paramToFiles= getParamFiles(paramName);
         for (FastFile<?> paramToFile : paramToFiles) {
             paramToFile = paramToFile.moveFile(moveToDirectory);
@@ -1399,7 +1408,7 @@ public abstract class FastAction {
      * 获得上传的附件集合
      * @return List&lt;FastFile&lt;?&gt;&gt;
      */
-    public <T extends FastFile> List<T> getParamListFile() {
+    public <T extends FastFile<?>> List<T> getParamListFile() {
         HttpServletRequest request = getRequest();
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
@@ -1479,6 +1488,14 @@ public abstract class FastAction {
     }
 
     /**
+     * 响应Http状态码
+     * @param status 状态码
+     */
+    public void responseStatus(int status) {
+        response(FastChar.getOverrides().newInstance(FastOutStatus.class).setData(status));
+    }
+
+    /**
      * 响应404界面
      * @param message 404的消息提醒
      */
@@ -1517,6 +1534,15 @@ public abstract class FastAction {
     public void responseJson(Object data) {
         response(FastChar.getOverrides().newInstance(FastOutJson.class).setData(data).setStatus(this.status));
     }
+
+    /**
+     * 响应json数据
+     * @param jsonFile json文件
+     */
+    public void responseJson(File jsonFile) {
+        response(FastChar.getOverrides().newInstance(FastOutJson.class).setData(jsonFile).setStatus(this.status));
+    }
+
 
     /**
      * 响应指定格式的json数据，格式为：{code: *,success: *,message:*,data:*}
@@ -2201,6 +2227,24 @@ public abstract class FastAction {
      */
     public FastAction setLog(boolean log) {
         this.log = log;
+        return this;
+    }
+
+    /**
+     * 是否打印响应日志
+     * @return 布尔值
+     */
+    public boolean isLogResponse() {
+        return logResponse;
+    }
+
+    /**
+     * 设置是否打印响应日志
+     * @param logResponse 布尔值
+     * @return 当前对象
+     */
+    public FastAction setLogResponse(boolean logResponse) {
+        this.logResponse = logResponse;
         return this;
     }
 

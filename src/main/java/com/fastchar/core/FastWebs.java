@@ -6,13 +6,11 @@ import com.fastchar.interfaces.IFastWebRun;
 import com.fastchar.utils.FastClassUtils;
 
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 final class FastWebs {
     private List<Class<? extends IFastWeb>> webs = new ArrayList<>();
+    private Set<String> inited = new HashSet<>();
 
     FastWebs addFastWeb(Class<? extends IFastWeb> webClass) {
         if (!FastClassUtils.checkNewInstance(webClass)) {
@@ -56,7 +54,11 @@ final class FastWebs {
     void initWeb(FastEngine engine) throws Exception {
         sortWeb();
         for (Class<? extends IFastWeb> web : webs) {
-            IFastWeb iFastWeb = FastClassUtils.newInstance(web);
+            if (inited.contains(web.getName())) {
+                continue;
+            }
+            inited.add(web.getName());
+            IFastWeb iFastWeb = FastChar.getOverrides().singleInstance(web);
             if (iFastWeb != null) {
                 iFastWeb.onInit(engine);
             }
@@ -66,7 +68,7 @@ final class FastWebs {
     void runWeb(FastEngine engine) throws Exception {
         sortWeb();
         for (Class<? extends IFastWeb> web : webs) {
-            IFastWeb iFastWeb = FastClassUtils.newInstance(web);
+            IFastWeb iFastWeb = FastChar.getOverrides().singleInstance(web);
             if ((iFastWeb instanceof IFastWebRun)) {
                 ((IFastWebRun) iFastWeb).onRun(engine);
             }
@@ -75,7 +77,7 @@ final class FastWebs {
 
     void destroyWeb(FastEngine engine) throws Exception {
         for (Class<? extends IFastWeb> web : webs) {
-            IFastWeb iFastWeb = FastClassUtils.newInstance(web);
+            IFastWeb iFastWeb = FastChar.getOverrides().singleInstance(web);
             if (iFastWeb != null) {
                 iFastWeb.onDestroy(engine);
             }

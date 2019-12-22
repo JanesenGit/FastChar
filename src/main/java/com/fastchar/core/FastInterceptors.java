@@ -52,6 +52,7 @@ public final class FastInterceptors {
         return false;
     }
 
+
     public FastInterceptors addBefore(Class<? extends IFastInterceptor> interceptor,
                                       String... urlPattern) {
         return addBefore(interceptor, 0,urlPattern);

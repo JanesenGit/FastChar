@@ -9,6 +9,7 @@ import com.fastchar.utils.FastStringUtils;
 
 import javax.sql.DataSource;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FastDatabaseInfo extends FastBaseInfo {
     private static final long serialVersionUID = 7200502359495751886L;
@@ -27,6 +28,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
     private String cache;
 
     private List<FastTableInfo<?>> tables = new ArrayList<>();
+    private Map<String, FastTableInfo<?>> mapTables = null;
 
     public String getName() {
         return name;
@@ -134,7 +136,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return this;
     }
 
-    public <T extends FastTableInfo> List<T> getTables() {
+    public <T extends FastTableInfo<?>> List<T> getTables() {
         return (List<T>) tables;
     }
 
@@ -174,6 +176,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return type.equals("oracle");
     }
 
+
     public DataSource getDataSource() {
         String databaseCode = FastChar.getSecurity().MD5_Encrypt("DataSource" + getName());
         return FastChar.getOverrides().singleInstance(databaseCode,
@@ -188,10 +191,11 @@ public class FastDatabaseInfo extends FastBaseInfo {
     }
 
 
-
-
-    public FastTableInfo getTableInfo(String name) {
-        for (FastTableInfo table : this.tables) {
+    public FastTableInfo<?> getTableInfo(String name) {
+        if (mapTables != null) {
+            return mapTables.get(name);
+        }
+        for (FastTableInfo<?> table : this.tables) {
             if (table.getName().equals(name)) {
                 return table;
             }
@@ -282,4 +286,13 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return fastDatabaseInfo;
 
     }
+
+    public void tableToMap() {
+        mapTables = new ConcurrentHashMap<>();
+        for (FastTableInfo<?> table : this.tables) {
+            table.columnToMap();
+            this.mapTables.put(table.getName(), table);
+        }
+    }
+
 }

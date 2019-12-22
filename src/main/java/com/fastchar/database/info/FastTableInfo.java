@@ -8,7 +8,10 @@ import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unchecked")
 public class FastTableInfo<T> extends FastBaseInfo {
@@ -27,6 +30,8 @@ public class FastTableInfo<T> extends FastBaseInfo {
     private String comment = "";
     private String data;
     private List<FastColumnInfo<?>> columns = new ArrayList<>();
+    private Map<String, FastColumnInfo<?>> mapColumns = null;
+    private Map<String, FastColumnInfo<?>> primaryColumns = null;
 
     public String getName() {
         return name;
@@ -46,7 +51,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return (T) this;
     }
 
-    public <E extends FastColumnInfo> List<E> getColumns() {
+    public <E extends FastColumnInfo<?>> List<E> getColumns() {
         return (List<E>) columns;
     }
 
@@ -55,9 +60,12 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return (T) this;
     }
 
-    public <E extends FastColumnInfo> E getColumnInfo(String name) {
+    public <E extends FastColumnInfo<?>> E getColumnInfo(String name) {
         if (FastStringUtils.isEmpty(name)) {
             return null;
+        }
+        if (mapColumns != null) {
+            return (E) mapColumns.get(name);
         }
         for (FastColumnInfo<?> column : this.columns) {
             if (column.getName().equals(name)) {
@@ -85,11 +93,10 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return this;
     }
 
-    /**
-     * 获得主键
-     * @return
-     */
-    public <E extends FastColumnInfo> List<E> getPrimaries() {
+    public <E extends FastColumnInfo<?>> List<E> getPrimaries() {
+        if (primaryColumns != null) {
+            return (List<E>) new ArrayList<>(primaryColumns.values());
+        }
         List<FastColumnInfo<?>> primaries = new ArrayList<>();
         for (FastColumnInfo<?> column : this.columns) {
             if (column.isPrimary()) {
@@ -100,14 +107,11 @@ public class FastTableInfo<T> extends FastBaseInfo {
     }
 
 
-    /**
-     * 检测列是否存在
-     *
-     * @param name
-     * @return
-     */
     public boolean checkColumn(String name) {
-        for (FastColumnInfo column : this.columns) {
+        if (mapColumns != null) {
+            return mapColumns.containsKey(name);
+        }
+        for (FastColumnInfo<?> column : this.columns) {
             if (column.getName().equals(name)) {
                 return true;
             }
@@ -116,9 +120,6 @@ public class FastTableInfo<T> extends FastBaseInfo {
     }
 
 
-    /**
-     * 校验必须属性值配置
-     */
     public void validate() throws FastDatabaseException {
         if (FastStringUtils.isEmpty(name)) {
             throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Table_Error1")
@@ -127,12 +128,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
     }
 
 
-    /**
-     * 合并
-     *
-     * @param info
-     */
-    public FastTableInfo merge(FastTableInfo<?> info) {
+    public FastTableInfo<?> merge(FastTableInfo<?> info) {
         for (String key : info.keySet()) {
             if (key.equals("columns")) {
                 continue;
@@ -145,8 +141,8 @@ public class FastTableInfo<T> extends FastBaseInfo {
         if (info.getLineNumber() != 0) {
             setLineNumber(info.getLineNumber());
         }
-        for (FastColumnInfo column : info.getColumns()) {
-            FastColumnInfo existColumn = this.getColumnInfo(column.getName());
+        for (FastColumnInfo<?> column : info.getColumns()) {
+            FastColumnInfo<?> existColumn = this.getColumnInfo(column.getName());
             if (existColumn != null) {
                 existColumn.merge(column);
             } else {
@@ -156,7 +152,8 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return this;
     }
 
-    public FastTableInfo copy() {
+
+    public FastTableInfo<?> copy() {
         FastTableInfo<?> fastTableInfo = newInstance();
         for (String key : keySet()) {
             if (key.equals("columns")) {
@@ -167,9 +164,21 @@ public class FastTableInfo<T> extends FastBaseInfo {
         fastTableInfo.setFileName(this.getFileName());
         fastTableInfo.setLineNumber(this.getLineNumber());
         fastTableInfo.setTagName(this.getTagName());
-        for (FastColumnInfo column : getColumns()) {
+        for (FastColumnInfo<?> column : getColumns()) {
             fastTableInfo.getColumns().add(column.copy());
         }
         return fastTableInfo;
+    }
+
+
+    public void columnToMap() {
+        mapColumns = new ConcurrentHashMap<>();
+        primaryColumns = new ConcurrentHashMap<>();
+        for (FastColumnInfo<?> column : this.columns) {
+            mapColumns.put(column.getName(), column);
+            if (column.isPrimary()) {
+                primaryColumns.put(column.getName(), column);
+            }
+        }
     }
 }

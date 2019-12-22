@@ -60,9 +60,10 @@ public class FastOutError extends FastOut<FastOutError> {
                 response.setContentType(toContentType());
                 response.setCharacterEncoding(getCharset());
 
-                PrintWriter writer = response.getWriter();
-                writer.write(toHtml(action));
-                writer.flush();
+                try (PrintWriter writer = response.getWriter()) {
+                    writer.write(toHtml(action));
+                    writer.flush();
+                }
             } else {
                 response.sendRedirect(FastChar.wrapperUrl(getErrorPage()));
             }

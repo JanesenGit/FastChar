@@ -46,9 +46,10 @@ public class FastOutThymeleaf extends FastOut<FastOutThymeleaf> {
             context.setVariable(attrName, request.getSession().getAttribute(attrName));
         }
 
-        PrintWriter writer = response.getWriter();
-        FastChar.getTemplates().getThymeleaf().process(String.valueOf(data),
-                context, writer);
-        writer.flush();
+        try (PrintWriter writer = response.getWriter()){
+            FastChar.getTemplates().getThymeleaf().process(String.valueOf(data),
+                    context, writer);
+            writer.flush();
+        }
     }
 }

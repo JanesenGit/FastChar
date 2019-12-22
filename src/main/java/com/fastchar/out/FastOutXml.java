@@ -22,8 +22,9 @@ public class FastOutXml extends FastOut<FastOutXml> {
         response.setContentType(toContentType());
         response.setCharacterEncoding(getCharset());
 
-        PrintWriter writer = response.getWriter();
-        writer.write(String.valueOf(data));
-        writer.flush();
+        try (PrintWriter writer = response.getWriter()){
+            writer.write(String.valueOf(data));
+            writer.flush();
+        }
     }
 }

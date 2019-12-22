@@ -11,6 +11,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+/**
+ * FastChar核心拦截器
+ */
 @SuppressWarnings("unchecked")
 public final class FastFilter implements Filter {
     @Override

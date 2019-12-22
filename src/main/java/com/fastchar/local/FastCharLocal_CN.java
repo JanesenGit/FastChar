@@ -27,8 +27,8 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
 
     //scanner相关错误
-    private final String Scanner_Error1 = "正在解压{0}中！";
-    private final String Scanner_Error2 = "解压{0}成功!";
+    private final String Scanner_Error1 = "加载{0}中……";
+    private final String Scanner_Error2 = "加载{0}成功!";
     private final String Scanner_Error3 = "跳过{0}";
 
     //数据库相关错误
@@ -59,7 +59,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
     //Action相关错误
     private final String Action_Error1 = "Action的路由不可为空！";
-    private final String Action_Error2 = "路由{0}已存在！";
+    private final String Action_Error2 = "路由{0}不唯一！";
     private final String Action_Error3 = "路由{0}已被重写！";
     private final String Action_Error4 = "路由 {0} 的前缀 {1} 是WebRoot下的文件夹！不可与WebRoot下的文件夹重复！";
 

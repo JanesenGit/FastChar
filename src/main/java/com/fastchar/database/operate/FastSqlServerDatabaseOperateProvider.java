@@ -37,7 +37,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
 
     private Set<String> tables = null;
     private Map<String, Set<String>> tableColumns = new HashMap<>();
-    private FastDb fastDb = new FastDb().setLog(false).setUseCache(false);
+    private FastDb fastDb = new FastDb().setLog(false).setIgnoreCase(true).setUseCache(false);
 
     @Override
     public void fetchDatabaseInfo(FastDatabaseInfo databaseInfo) throws Exception {
@@ -68,7 +68,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                 ResultSet keyRs = dmd.getPrimaryKeys(null, null, tableInfo.getName());
                 while (keyRs.next()) {
                     String column_name = keyRs.getString("COLUMN_NAME");
-                    FastColumnInfo columnInfo = tableInfo.getColumnInfo(column_name);
+                    FastColumnInfo<?> columnInfo = tableInfo.getColumnInfo(column_name);
                     if (columnInfo == null) {
                         columnInfo = FastColumnInfo.newInstance();
                         columnInfo.setName(column_name);
@@ -102,7 +102,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                             type = "text";
                         }
 
-                        FastColumnInfo columnInfo = tableInfo.getColumnInfo(columnName);
+                        FastColumnInfo<?> columnInfo = tableInfo.getColumnInfo(columnName);
                         if (columnInfo == null) {
                             columnInfo = FastColumnInfo.newInstance();
                             columnInfo.setName(columnName);
@@ -346,7 +346,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     private boolean checkColumnIndex(String databaseName, String indexName) {
         try {
             String checkIndexSql = String.format("select count(1) as countIndex  from sysindexes where name = '%s'", indexName);
-            FastEntity fastEntity = fastDb.setLog(false).setDatabase(databaseName).selectFirst(checkIndexSql);
+            FastEntity<?> fastEntity = fastDb.setLog(false).setDatabase(databaseName).selectFirst(checkIndexSql);
             if (fastEntity != null) {
                 return fastEntity.getInt("countIndex") > 0;
             }
@@ -360,7 +360,9 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         try {
             String checkKeysSql = String.format("select column_name,constraint_name  from information_schema.key_column_usage where table_name = '%s'" +
                     "  and table_catalog='%s'", tableName, databaseName);
-            return fastDb.setLog(false).setDatabase(databaseName).select(checkKeysSql);
+            return fastDb.setLog(false).setDatabase(databaseName)
+                    .setIgnoreCase(true)
+                    .select(checkKeysSql);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -368,7 +370,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     }
 
 
-    private String convertIndex(FastColumnInfo columnInfo) {
+    private String convertIndex(FastColumnInfo<?> columnInfo) {
         String index = columnInfo.getIndex();
         if (FastStringUtils.isNotEmpty(index)) {
             String[] indexArray = new String[]{"nonclustered", "clustered"};
@@ -383,11 +385,11 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         }
         return "none";
     }
-    private String buildColumnSql(FastColumnInfo columnInfo) {
+    private String buildColumnSql(FastColumnInfo<?> columnInfo) {
         return buildColumnSql(columnInfo, false);
     }
 
-    private String buildColumnSql(FastColumnInfo columnInfo,boolean isModify) {
+    private String buildColumnSql(FastColumnInfo<?> columnInfo,boolean isModify) {
         StringBuilder stringBuilder = new StringBuilder(columnInfo.getName());
         stringBuilder.append(" ");
         stringBuilder.append(getType(columnInfo));
@@ -424,7 +426,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     }
 
 
-    private String getLength(FastColumnInfo columnInfo) {
+    private String getLength(FastColumnInfo<?> columnInfo) {
         String type = getType(columnInfo);
         String length = columnInfo.getLength();
         if (FastType.isNumberType(type)) {
@@ -444,7 +446,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         return length;
     }
 
-    private String getType(FastColumnInfo columnInfo) {
+    private String getType(FastColumnInfo<?> columnInfo) {
         return FastType.convertType("sql_server", columnInfo.getType());
     }
 

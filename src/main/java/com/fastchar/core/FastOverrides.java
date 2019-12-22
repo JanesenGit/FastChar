@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings({"unchecked", "UnusedReturnValue"})
 public final class FastOverrides {
     private final List<ClassInfo> classes = new ArrayList<>();
-    private final ConcurrentHashMap<String, List<String>> classMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String,Set<String>> classMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Object> instanceMap = new ConcurrentHashMap<>();
 
 
@@ -125,12 +125,13 @@ public final class FastOverrides {
                 }
             }
         }
-        List<String> strings = classMap.get(targetClass.getName());
+        Set<String> strings = classMap.get(targetClass.getName());
         if (strings != null) {
             for (String string : strings) {
                 instanceMap.remove(string);
             }
         }
+        classMap.remove(targetClass.getName());
         ClassInfo classInfo = getClassInfo(targetClass);
         if (classInfo != null) {
             classes.remove(classInfo);
@@ -155,7 +156,7 @@ public final class FastOverrides {
     public <T> T singleInstance(boolean check, String onlyCode, Class<T> targetClass, Object... constructorParams) {
         targetClass = findClass(targetClass, constructorParams);
         if (!classMap.containsKey(targetClass.getName())) {
-            classMap.put(targetClass.getName(), new ArrayList<String>());
+            classMap.put(targetClass.getName(), new HashSet<String>());
         }
         if (FastStringUtils.isEmpty(onlyCode)) {
             onlyCode= FastMD5Utils.MD5(targetClass.getName() + Arrays.toString(constructorParams));
@@ -298,7 +299,7 @@ public final class FastOverrides {
     }
 
 
-    private class ClassInfo {
+    private static class ClassInfo {
         private int priority;
         private Class<?> targetClass;
     }

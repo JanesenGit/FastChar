@@ -18,7 +18,7 @@ import java.util.List;
  * FastEntity的数据库操作
  */
 @SuppressWarnings("unchecked")
-public class FastData<T extends FastEntity> {
+public class FastData<T extends FastEntity<?>> {
 
     protected FastEntity<?> target;
 
@@ -34,9 +34,9 @@ public class FastData<T extends FastEntity> {
         return FastChar.getDatabases().get(target.getDatabase()).getType();
     }
 
-    protected void convertValue(FastEntity entity) {
-        List<FastColumnInfo> columns = entity.getTable().getColumns();
-        for (FastColumnInfo column : columns) {
+    protected void convertValue(FastEntity<?> entity) {
+        List<FastColumnInfo<?>> columns = entity.getTable().getColumns();
+        for (FastColumnInfo<?> column : columns) {
             if (FastStringUtils.isNotEmpty(column.getEncrypt())) {
                 String decryptValue = FastChar.getOverrides()
                         .singleInstance(IFastColumnSecurity.class)
@@ -220,7 +220,7 @@ public class FastData<T extends FastEntity> {
                     .insert(sqlInfo.getSql(), sqlInfo.toParams());
             boolean result = insert > 0;
             if (result) {
-                for (FastColumnInfo primary : target.getPrimaries()) {
+                for (FastColumnInfo<?> primary : target.getPrimaries()) {
                     if (primary.isAutoincrement()) {
                         target.put(primary.getName(), insert);
                     }

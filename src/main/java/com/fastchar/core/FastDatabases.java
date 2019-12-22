@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * 数据库操作
+ */
 public final class FastDatabases {
     private static final ThreadLocal<String> LOCKER_DATABASE_NAME = new ThreadLocal<String>();
 

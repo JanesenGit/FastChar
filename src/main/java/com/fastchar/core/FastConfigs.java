@@ -7,6 +7,9 @@ import com.fastchar.extend.ehcache.FastEhCache3Config;
 import com.fastchar.extend.jdbc.FastJdbcConfig;
 import com.fastchar.extend.redis.FastRedisConfig;
 
+/**
+ * FastChar默认提供的配置类集合，与FastChar.getConfig功能一致
+ */
 public final class FastConfigs {
 
     FastConfigs() {

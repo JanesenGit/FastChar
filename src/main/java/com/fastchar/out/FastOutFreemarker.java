@@ -44,10 +44,10 @@ public class FastOutFreemarker extends FastOut<FastOutFreemarker> {
 
 
         Template template = FastChar.getTemplates().getFreemarker().getTemplate(String.valueOf(data));
-        PrintWriter writer = response.getWriter();
-        template.process(data, writer);
-        writer.flush();
-
+        try (PrintWriter writer = response.getWriter()){
+            template.process(data, writer);
+            writer.flush();
+        }
     }
 
 }

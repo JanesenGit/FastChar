@@ -5,7 +5,6 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
-import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.interfaces.IFastColumnSecurity;
 import com.fastchar.utils.FastArrayUtils;
@@ -33,8 +32,8 @@ public abstract class FastSql {
 
         List<String> columns = new ArrayList<>();
         List<String> valueColumns = new ArrayList<>();
-        List<FastColumnInfo> tableColumns = entity.getTable().getColumns();
-        for (FastColumnInfo column : tableColumns) {
+        List<FastColumnInfo<?>> tableColumns = entity.getTable().getColumns();
+        for (FastColumnInfo<?> column : tableColumns) {
             if (column.isPrimary()) {
                 continue;
             }
@@ -45,7 +44,7 @@ public abstract class FastSql {
         StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("insert into ").append(entity.getTableName()).append(" (").append(FastStringUtils.join(columns, ",")).append(") ").append(" select ").append(FastStringUtils.join(valueColumns, ",")).append(" from ").append(entity.getTableName()).append(" where ").append(" 1=1 ");
 
-        for (FastColumnInfo primary : entity.getPrimaries()) {
+        for (FastColumnInfo<?> primary : entity.getPrimaries()) {
             if (entity.isEmpty(primary.getName())) {
                 throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
             }
@@ -69,14 +68,14 @@ public abstract class FastSql {
 
         List<String> checkColumns = new ArrayList<>();
         for (String key : checks) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 checkColumns.add(key);
             }
         }
 
         if (checkColumns.size() == 0) {
-            for (FastColumnInfo primary : entity.getPrimaries()) {
+            for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
                 }
@@ -85,7 +84,7 @@ public abstract class FastSql {
             }
         } else {
             for (String check : checkColumns) {
-                FastColumnInfo column = entity.getColumn(check);
+                FastColumnInfo<?> column = entity.getColumn(check);
                 if (column != null) {
                     sqlBuilder.append(" and ").append(check).append(" = ? ");
                     values.add(getColumnValue(entity, column));
@@ -109,7 +108,7 @@ public abstract class FastSql {
         }
         StringBuilder sqlBuilder = new StringBuilder("delete from " + entity.getTableName() + " where 1=1 ");
         int count = 0;
-        for (FastColumnInfo primary : entity.getPrimaries()) {
+        for (FastColumnInfo<?> primary : entity.getPrimaries()) {
             sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
             count++;
             if (count >= ids.length) {
@@ -127,15 +126,17 @@ public abstract class FastSql {
         if (entity == null) {
             return null;
         }
-        FastEntity fastEntity = FastChar.getOverrides().newInstance(entity.getClass());
-        fastEntity.setDefaultValue();
+        FastEntity<?> fastEntity = FastChar.getOverrides().newInstance(entity.getClass());
+        entity.markDefault();
+        entity.setDefaultValue();
+        entity.unmarkDefault();
         fastEntity.putAll(entity);
 
         List<String> columns = new ArrayList<>();
         List<Object> values = new ArrayList<>();
         TreeSet<String> treeKeys = new TreeSet<>(entity.getModified());
         for (String key : treeKeys) {
-            FastColumnInfo columnInfo = entity.getColumn(key);
+            FastColumnInfo<?> columnInfo = entity.getColumn(key);
             if (columnInfo != null) {
                 if (columnInfo.isPrimary()) {
                     continue;
@@ -157,14 +158,14 @@ public abstract class FastSql {
 
         List<String> checkColumns = new ArrayList<>();
         for (String key : checks) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 checkColumns.add(key);
             }
         }
 
         if (checkColumns.size() == 0) {
-            for (FastColumnInfo primary : entity.getPrimaries()) {
+            for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
                 }
@@ -173,7 +174,7 @@ public abstract class FastSql {
             }
         } else {
             for (String check : checkColumns) {
-                FastColumnInfo column = entity.getColumn(check);
+                FastColumnInfo<?> column = entity.getColumn(check);
                 if (column != null) {
                     sqlBuilder.append(" and ").append(check).append(" = ? ");
                     values.add(getColumnValue(entity, column));
@@ -200,7 +201,7 @@ public abstract class FastSql {
         List<Object> values = new ArrayList<>();
         TreeSet<String> treeKeys = new TreeSet<>(entity.getModified());
         for (String key : treeKeys) {
-            FastColumnInfo columnInfo = entity.getColumn(key);
+            FastColumnInfo<?> columnInfo = entity.getColumn(key);
             if (columnInfo != null && !columnInfo.isPrimary()) {
                 columns.add(key + " = ? ");
                 values.add(getColumnValue(entity, columnInfo));
@@ -214,7 +215,7 @@ public abstract class FastSql {
                 + " set " + FastStringUtils.join(columns, ",")
                 + " where 1=1 ");
         int count = 0;
-        for (FastColumnInfo primary : entity.getPrimaries()) {
+        for (FastColumnInfo<?> primary : entity.getPrimaries()) {
             sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
             values.add(ids[count]);
             count++;
@@ -236,7 +237,7 @@ public abstract class FastSql {
         }
         StringBuilder sqlBuilder = new StringBuilder("select * from " + entity.getTableName() + " where 1=1 ");
         int count = 0;
-        for (FastColumnInfo primary : entity.getPrimaries()) {
+        for (FastColumnInfo<?> primary : entity.getPrimaries()) {
             sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
             count++;
             if (count >= ids.length) {
@@ -270,7 +271,7 @@ public abstract class FastSql {
 
         List<String> checkColumns = new ArrayList<>();
         for (String key : checks) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 checkColumns.add(key);
             }
@@ -279,7 +280,7 @@ public abstract class FastSql {
 
         if (checkColumns.size() > 0) {
             for (String check : checkColumns) {
-                FastColumnInfo column = entity.getColumn(check);
+                FastColumnInfo<?> column = entity.getColumn(check);
                 if (column != null) {
                     sqlBuilder.append(" and ").append(check).append(" = ? ");
                     values.add(getColumnValue(entity, column));
@@ -287,7 +288,7 @@ public abstract class FastSql {
             }
         }else{
             for (String check : entity.allKeys()) {
-                FastColumnInfo column = entity.getColumn(check);
+                FastColumnInfo<?> column = entity.getColumn(check);
                 if (column != null) {
                     sqlBuilder.append(" and ").append(check).append(" = ? ");
                     values.add(getColumnValue(entity, column));
@@ -323,7 +324,7 @@ public abstract class FastSql {
         return FastChar.getOverrides().newInstance(FastSqlInfo.class).setType(this.type);
     }
 
-    protected Object getColumnValue(FastEntity<?> entity, FastColumnInfo columnInfo) {
+    protected Object getColumnValue(FastEntity<?> entity, FastColumnInfo<?> columnInfo) {
         Object value = entity.get(columnInfo.getName());
         if (value == null) {
             return null;
@@ -524,7 +525,7 @@ public abstract class FastSql {
                 }
 
                 attr = attr.replace("__", ".");
-                FastColumnInfo column;
+                FastColumnInfo<?> column;
                 if (attr.contains(".")) {
                     column = entity.getColumn(attr.split("\\.")[1]);
                 } else {
@@ -633,4 +634,6 @@ public abstract class FastSql {
     public String getType() {
         return type;
     }
+
+
 }

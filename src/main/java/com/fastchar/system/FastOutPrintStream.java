@@ -157,9 +157,91 @@ public class FastOutPrintStream extends PrintStream {
         super(file, csn);
     }
 
+    @Override
+    public void println(boolean x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(char x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(int x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(long x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(float x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(double x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(char[] x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(String x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println(Object x) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println(x);
+    }
+
+    @Override
+    public void println() {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
+        super.println();
+    }
 
     @Override
     public void print(String s) {
+        if (!FastChar.getConstant().isSystemOutPrint()) {
+            return;
+        }
         synchronized (PrintLock) {
             super.print(s);
         }

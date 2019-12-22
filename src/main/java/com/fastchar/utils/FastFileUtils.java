@@ -49,6 +49,27 @@ public class FastFileUtils {
         return isTargetFile(fileName, ".avi");
     }
 
+    public static boolean isTxtFile(String fileName) {
+        return isTargetFile(fileName, ".txt");
+    }
+
+    public static boolean isExcelFile(String fileName) {
+        return isTargetFile(fileName, ".xlsx", ".xls");
+    }
+
+    public static boolean isWordFile(String fileName) {
+        return isTargetFile(fileName, ".docx", ".doc");
+    }
+
+    public static boolean isPPTFile(String fileName) {
+        return isTargetFile(fileName, ".pptx", ".ppt");
+    }
+
+    public static boolean isPDFFile(String fileName) {
+        return isTargetFile(fileName, ".pdf");
+    }
+
+
     public static boolean isTargetFile(String fileName, String... extensions) {
         String regex = ".+(" + FastStringUtils.join(extensions, "|") + ")$";
         return Pattern.matches(regex, fileName

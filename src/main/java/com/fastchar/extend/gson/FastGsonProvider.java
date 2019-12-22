@@ -20,6 +20,7 @@ public class FastGsonProvider implements IFastJson {
         Gson gson = new GsonBuilder()
                 .enableComplexMapKeySerialization()
                 .setDateFormat(FastChar.getConstant().getDateFormat())
+                .disableHtmlEscaping()
                 .create();
         return gson.toJson(value);
     }

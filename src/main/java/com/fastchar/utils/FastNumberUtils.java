@@ -15,76 +15,76 @@ import java.util.regex.Pattern;
 
 public class FastNumberUtils {
 
-    private static boolean isMatch(String regex, String orginal) {
-        if (orginal == null || orginal.trim().equals("")) {
+    private static boolean isMatch(String regex, String value) {
+        if (value == null || value.trim().equals("")) {
             return false;
         }
         Pattern pattern = Pattern.compile(regex);
-        Matcher isNum = pattern.matcher(orginal);
+        Matcher isNum = pattern.matcher(value);
         return isNum.matches();
     }
 
     /**
      * 是否是正整数
-     * @param orginal
+     * @param value
      * @return
      */
-    public static boolean isPositiveInteger(String orginal) {
-        return isMatch("^\\+{0,1}[1-9]\\d*", orginal);
+    public static boolean isPositiveInteger(String value) {
+        return isMatch("^\\+{0,1}[1-9]\\d*", value);
     }
 
     /**
      * 是否是负整数
-     * @param orginal
+     * @param value
      * @return
      */
-    public static boolean isNegativeInteger(String orginal) {
-        return isMatch("^-[1-9]\\d*", orginal);
+    public static boolean isNegativeInteger(String value) {
+        return isMatch("^-[1-9]\\d*", value);
     }
 
     /**
      * 是否是数字，不包含小数点
-     * @param orginal
+     * @param value
      * @return
      */
-    public static boolean isWholeNumber(String orginal) {
-        return isMatch("[+-]{0,1}0", orginal) || isPositiveInteger(orginal) || isNegativeInteger(orginal);
+    public static boolean isWholeNumber(String value) {
+        return isMatch("[+-]{0,1}0", value) || isPositiveInteger(value) || isNegativeInteger(value);
     }
 
     /**
      * 是否是含有小数点的正数字
-     * @param orginal
+     * @param value
      * @return
      */
-    public static boolean isPositiveDecimal(String orginal) {
-        return isMatch("\\+{0,1}[0]\\.[1-9]*|\\+{0,1}[1-9]\\d*\\.\\d*", orginal);
+    public static boolean isPositiveDecimal(String value) {
+        return isMatch("\\+{0,1}[0]\\.[1-9]*|\\+{0,1}[1-9]\\d*\\.\\d*", value);
     }
 
     /**
      * 是否是含有小数点的负数字
-     * @param orginal
+     * @param value
      * @return
      */
-    public static boolean isNegativeDecimal(String orginal) {
-        return isMatch("^-[0]\\.[1-9]*|^-[1-9]\\d*\\.\\d*", orginal);
+    public static boolean isNegativeDecimal(String value) {
+        return isMatch("^-[0]\\.[1-9]*|^-[1-9]\\d*\\.\\d*", value);
     }
 
     /**
      * 是否是含有小数点的数字
-     * @param orginal
+     * @param value
      * @return
      */
-    public static boolean isDecimal(String orginal) {
-        return isMatch("[-+]{0,1}\\d+\\.\\d*|[-+]{0,1}\\d*\\.\\d+", orginal);
+    public static boolean isDecimal(String value) {
+        return isMatch("[-+]{0,1}\\d+\\.\\d*|[-+]{0,1}\\d*\\.\\d+", value);
     }
 
     /**
      * 是否是数字
-     * @param orginal
+     * @param value
      * @return
      */
-    public static boolean isRealNumber(String orginal) {
-        return isWholeNumber(orginal) || isDecimal(orginal);
+    public static boolean isRealNumber(String value) {
+        return isWholeNumber(value) || isDecimal(value);
     }
 
 
@@ -108,59 +108,7 @@ public class FastNumberUtils {
             if (value == null || value.toString().trim().length() == 0) {
                 return defaultValue;
             }
-            Number number = new Number() {
-                private static final long serialVersionUID = 1L;
-                String numberStr = "";
-
-                @Override
-                public long longValue() {
-                    try {
-                        numberStr = value.toString().replace(" ", "");
-                        if (isDecimal(numberStr)) {
-                            return (long) Float.parseFloat(numberStr);
-                        } else {
-                            return Long.parseLong(numberStr);
-                        }
-                    } catch (Exception e) {
-                        return defaultValue.longValue();
-                    }
-                }
-
-                @Override
-                public int intValue() {
-                    try {
-                        numberStr = value.toString().replace(" ", "");
-                        if (isDecimal(numberStr)) {
-                            return (int) Float.parseFloat(numberStr);
-                        } else {
-                            return Integer.parseInt(numberStr);
-                        }
-                    } catch (Exception e) {
-                        return defaultValue.intValue();
-                    }
-                }
-
-                @Override
-                public float floatValue() {
-                    try {
-                        numberStr = value.toString().replace(" ", "");
-                        return Float.parseFloat(numberStr);
-                    } catch (Exception e) {
-                        return defaultValue.floatValue();
-                    }
-                }
-
-                @Override
-                public double doubleValue() {
-                    try {
-                        numberStr = value.toString().replace(" ", "");
-                        return Double.parseDouble(numberStr);
-                    } catch (Exception e) {
-                        return defaultValue.doubleValue();
-                    }
-                }
-            };
-            return number;
+            return new FastNumber().setValue(value).setDefaultValue(defaultValue);
         } catch (Exception e) {
             return defaultValue;
         }
@@ -364,6 +312,110 @@ public class FastNumberUtils {
     public static double random(double minValue, double maxValue) {
         Random r = new Random();
         return Math.max(r.nextDouble() * maxValue, minValue);
+    }
+
+
+    /**
+     * 将数字转换成字节单位
+     */
+    public static String toByteUnit(Object value) {
+        long aLong = formatToLong(value);
+        double aG = 1024.0 * 1024.0 * 1024.0;
+        if (aLong > aG) {
+            return FastNumberUtils.formatToDouble(aLong / aG, 2) + "G";
+        }
+        double aM = 1024.0 * 1024.0;
+        if (aLong > aM) {
+            return FastNumberUtils.formatToDouble(aLong / aM, 2) + "M";
+        }
+        double aKb = 1024.0;
+        if (aLong > aKb) {
+            return FastNumberUtils.formatToDouble(aLong / aKb, 2) + "KB";
+        }
+        return aLong + "B";
+    }
+
+
+    static class FastNumber extends Number{
+        private static final long serialVersionUID = -380753666109976011L;
+        String value;
+        Number defaultValue = 0;
+        boolean isNumber;
+
+        public String getValue() {
+            return value;
+        }
+
+        public FastNumber setValue(Object value) {
+            this.value = String.valueOf(value).replace(" ", "");
+            isNumber = isRealNumber(this.value);
+            return this;
+        }
+
+        public Number getDefaultValue() {
+            return defaultValue;
+        }
+
+        public FastNumber setDefaultValue(Number defaultValue) {
+            this.defaultValue = defaultValue;
+            return this;
+        }
+
+        @Override
+        public int intValue() {
+            if (!isNumber) {
+                return defaultValue.intValue();
+            }
+            try {
+                if (isDecimal(this.value)) {
+                    return (int) Float.parseFloat(this.value);
+                } else {
+                    return Integer.parseInt(this.value);
+                }
+            } catch (Exception e) {
+                return defaultValue.intValue();
+            }
+        }
+
+        @Override
+        public long longValue() {
+            if (!isNumber) {
+                return defaultValue.longValue();
+            }
+            try {
+                if (isDecimal(this.value)) {
+                    return (long) Float.parseFloat(this.value);
+                } else {
+                    return Long.parseLong(this.value);
+                }
+            } catch (Exception e) {
+                return defaultValue.longValue();
+            }
+        }
+
+        @Override
+        public float floatValue() {
+            if (!isNumber) {
+                return defaultValue.floatValue();
+            }
+            try {
+                return Float.parseFloat(this.value);
+            } catch (Exception e) {
+                return defaultValue.floatValue();
+            }
+        }
+
+        @Override
+        public double doubleValue() {
+            if (!isNumber) {
+                return defaultValue.doubleValue();
+            }
+            try {
+                return Double.parseDouble(this.value);
+            } catch (Exception e) {
+                return defaultValue.doubleValue();
+            }
+        }
     }
 
 }

@@ -2,9 +2,11 @@ package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.PrintWriter;
 
 /**
@@ -32,9 +34,15 @@ public class FastOutJson extends FastOut<FastOutJson> {
         }
         response.setContentType(toContentType());
         response.setCharacterEncoding(getCharset());
-        PrintWriter writer = response.getWriter();
-        writer.write(FastChar.getJson().toJson(data));
-        writer.flush();
+        try (PrintWriter writer = response.getWriter()) {
+            if (data instanceof File) {
+                String jsonData = FastFileUtils.readFileToString((File) data, FastChar.getConstant().getEncoding());
+                writer.write(jsonData);
+            } else {
+                writer.write(FastChar.getJson().toJson(data));
+            }
+            writer.flush();
+        }
     }
 
 }

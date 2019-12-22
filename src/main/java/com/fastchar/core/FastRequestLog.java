@@ -136,6 +136,8 @@ public final class FastRequestLog {
 
                 if (isErrorStatus(fastOut.getStatus()) || isWarnStatus(fastOut.getStatus())) {
                     printResponseMap.put("Out-Content", String.valueOf(fastOut.getData()));
+                } else if (action.isLogResponse()) {
+                    printResponseMap.put("Out-Content", String.valueOf(fastOut.getData()));
                 }
 
                 printResponseMap.put("ContentType", fastOut.toContentType());

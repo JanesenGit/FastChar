@@ -3,6 +3,10 @@ package com.fastchar.core;
 import java.lang.reflect.Array;
 import java.util.*;
 
+/**
+ * 参数校验器
+ * @param <T>
+ */
 final class FastCheck<T> {
     private T target;
     private boolean rollback;
@@ -75,6 +79,7 @@ final class FastCheck<T> {
 
     public void rollback() {
         rollback = false;
+        hold = false;
         validators.clear();
     }
 

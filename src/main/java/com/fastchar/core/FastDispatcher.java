@@ -26,15 +26,18 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * FastChar核心路由转发器
+ */
 @SuppressWarnings("unchecked")
 public final class FastDispatcher {
 
     private static final ConcurrentHashMap<String, FastRoute> FAST_ROUTE_MAP = new ConcurrentHashMap<>();
-    private static final Set<String> resolved = new HashSet<>();
+    private static final Set<String> RESOLVED = new HashSet<>();
 
     static void initDispatcher() {
         FastEngine.instance().getInterceptors().sortRootInterceptor();
-        resolved.clear();
+        RESOLVED.clear();
     }
 
 
@@ -142,10 +145,10 @@ public final class FastDispatcher {
         if (FastChar.getServletContext() == null) {
             return false;
         }
-        if (resolved.contains(actionClass.getName())) {
+        if (RESOLVED.contains(actionClass.getName())) {
             return true;
         }
-        resolved.add(actionClass.getName());
+        RESOLVED.add(actionClass.getName());
         Class<? extends FastOut> defaultOut = FastEngine.instance().getActions().getDefaultOut();
 
         FastMethodRead parameterConverter = new FastMethodRead();
@@ -487,9 +490,10 @@ public final class FastDispatcher {
                     }
                 }
                 response.setStatus(200);
-                PrintWriter writer = response.getWriter();
-                writer.write(0);
-                writer.flush();
+                try (PrintWriter writer = response.getWriter()) {
+                    writer.write(0);
+                    writer.flush();
+                }
                 return;
             }
 
@@ -505,38 +509,44 @@ public final class FastDispatcher {
                 FastUrl fastUrl = parse.get(i);
                 if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRoute())) {
                     FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute()).copy();
-                    if (!fastRoute.checkMethod(request.getMethod())) {
-                        response404(inTime);
-                        return;
+                    try {
+                        if (!fastRoute.checkMethod(request.getMethod())) {
+                            response404(inTime);
+                            return;
+                        }
+                        fastRoute.inTime = inTime;
+                        fastRoute.request = request;
+                        fastRoute.response = response;
+                        fastRoute.fastUrl = fastUrl;
+                        fastRoute.forwarder = forwarder;
+                        fastRoute.rootInterceptor = rootInterceptor;
+                        if (FastChar.getConstant().isDebug()) {
+                            fastRoute.stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
+                        }
+                        initCrossDomain(fastRoute);
+                        fastRoute.invoke();
+                    } finally {
+                        fastRoute.release();
                     }
-                    fastRoute.inTime = inTime;
-                    fastRoute.request = request;
-                    fastRoute.response = response;
-                    fastRoute.fastUrl = fastUrl;
-                    fastRoute.forwarder = forwarder;
-                    fastRoute.rootInterceptor = rootInterceptor;
-                    if (FastChar.getConstant().isDebug()) {
-                        fastRoute.stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
-                    }
-                    initCrossDomain(fastRoute);
-                    fastRoute.invoke();
-                    fastRoute.release();
                     return;
                 }
                 if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRouteIndex())) {
                     FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRouteIndex()).copy();
-                    fastRoute.inTime = inTime;
-                    fastRoute.request = request;
-                    fastRoute.response = response;
-                    fastRoute.fastUrl = fastUrl;
-                    fastRoute.forwarder = forwarder;
-                    fastRoute.rootInterceptor = rootInterceptor;
-                    if (FastChar.getConstant().isDebug()) {
-                        fastRoute.stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
+                    try {
+                        fastRoute.inTime = inTime;
+                        fastRoute.request = request;
+                        fastRoute.response = response;
+                        fastRoute.fastUrl = fastUrl;
+                        fastRoute.forwarder = forwarder;
+                        fastRoute.rootInterceptor = rootInterceptor;
+                        if (FastChar.getConstant().isDebug()) {
+                            fastRoute.stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
+                        }
+                        initCrossDomain(fastRoute);
+                        fastRoute.invoke();
+                    } finally {
+                        fastRoute.release();
                     }
-                    initCrossDomain(fastRoute);
-                    fastRoute.invoke();
-                    fastRoute.release();
                     return;
                 }
                 if (i == 0) {
@@ -592,25 +602,28 @@ public final class FastDispatcher {
     private void response404(Date inTime) {
         contentUrl = FastStringUtils.stripEnd(contentUrl, "/");
         FastRoute fastRoute404 = new FastRoute();
-        fastRoute404.inTime = inTime;
-        fastRoute404.route = contentUrl;
+        try {
+            fastRoute404.inTime = inTime;
+            fastRoute404.route = contentUrl;
 
-        FastAction fastErrorAction = new FastAction() {
-            @Override
-            public String getRoute() {
-                return null;
+            FastAction fastErrorAction = new FastAction() {
+                @Override
+                public String getRoute() {
+                    return null;
+                }
+            };
+            fastRoute404.fastAction = fastErrorAction;
+            fastErrorAction.fastRoute = fastRoute404;
+            fastErrorAction.request = request;
+            fastErrorAction.response = response;
+            fastErrorAction.fastUrl = new FastUrl();
+            if (FastStringUtils.isEmpty(contentUrl)) {
+                contentUrl = "/";
             }
-        };
-        fastRoute404.fastAction = fastErrorAction;
-        fastErrorAction.fastRoute = fastRoute404;
-        fastErrorAction.request = request;
-        fastErrorAction.response = response;
-        fastErrorAction.fastUrl = new FastUrl();
-        if (FastStringUtils.isEmpty(contentUrl)) {
-            contentUrl = "/";
+            fastErrorAction.response404("the route '" + contentUrl + "' not found!");
+        } finally {
+            fastRoute404.release();
         }
-        fastErrorAction.response404("the route '" + contentUrl + "' not found!");
-        fastRoute404.release();
     }
 
     private void doFilter() throws Exception {

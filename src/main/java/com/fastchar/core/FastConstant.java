@@ -10,7 +10,7 @@ public final class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FastCharVersion = "1.0.7";
+    public static final String FastCharVersion = "1.1.7";
 
     /**
      * mysql数据库类型
@@ -52,6 +52,8 @@ public final class FastConstant {
     private boolean logFilterResponseTime =false;//是否只打印 超时的路由日志
     private boolean logSql = true;//是否打印sql语句日志
     private boolean logExtract = false;//是否打印解压jar包的文件日志
+
+    private boolean systemOutPrint = true;//是否允许system.out输出
 
     private String errorPage404;//404页面
     private String errorPage500;//500页面
@@ -640,7 +642,7 @@ public final class FastConstant {
     }
 
     /**
-     * 设置是否只打印请求响应时间超过配置的maxUseTotalLog时间日志
+     * 设置是否只打印请求响应时间超过配置的maxResponseTime时间日志
      * @param logFilterResponseTime 布尔值
      * @return 当前对象
      */
@@ -718,6 +720,24 @@ public final class FastConstant {
      */
     public FastConstant setLogRemoteAddress(boolean logRemoteAddress) {
         this.logRemoteAddress = logRemoteAddress;
+        return this;
+    }
+
+    /**
+     * 是否允许系统使用System.out输出打印
+     * @return 布尔值
+     */
+    public boolean isSystemOutPrint() {
+        return systemOutPrint;
+    }
+
+    /**
+     * 配置是否允许系统使用System.out输出打印
+     * @param systemOutPrint 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setSystemOutPrint(boolean systemOutPrint) {
+        this.systemOutPrint = systemOutPrint;
         return this;
     }
 }

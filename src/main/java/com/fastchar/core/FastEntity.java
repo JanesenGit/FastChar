@@ -22,21 +22,19 @@ import java.util.concurrent.ConcurrentHashMap;
  * @param <E>
  */
 @SuppressWarnings("unchecked")
-public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap<String, Object> {
+public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHashMap<String, Object> {
     private static final long serialVersionUID = 4002535971197915410L;
     private String database;
 
     /**
      * 获得实体对应的表格名称
-     *
-     * @return
+     * @return 字符串
      */
     public abstract String getTableName();
 
     /**
      * 获得表格的描述
-     *
-     * @return
+     * @return 字符串
      */
     public String getTableDetails() {
         return null;
@@ -56,22 +54,22 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
     public void setDefaultValue() {
     }
 
+    public final void markDefault() {
+        markSetDefault = true;
+    }
+
+    public final void unmarkDefault() {
+        markSetDefault = false;
+    }
+
     private transient FastData<E> fastData = null;
     protected transient List<String> modified = new ArrayList<>();
     private String error = "";
-
+    private transient FastMapWrap mapWrap = null;
+    private transient boolean markSetDefault = false;
 
     private boolean isDefaultMethodUse() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        if (stackTrace.length >= 5) {
-            String useMethod = stackTrace[4].getMethodName();
-            String useClassName = stackTrace[4].getClassName();
-            Class<?> aClass = FastClassUtils.getClass(useClassName, false);
-            if (aClass != null && FastEntity.class.isAssignableFrom(aClass)) {
-                return useMethod.equals("setDefaultValue");
-            }
-        }
-        return false;
+        return markSetDefault;
     }
 
     /**
@@ -84,6 +82,14 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
         }
         return fastData;
     }
+
+    private FastMapWrap getMapWrap() {
+        if (mapWrap == null) {
+            mapWrap = FastMapWrap.newInstance(this);
+        }
+        return mapWrap;
+    }
+
 
     /**
      * 是否是MySql数据库
@@ -136,8 +142,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
 
     /**
      * 获取当前entity绑定数据库的类型
-     *
-     * @return
+     * @return 字符串
      */
     public String getDatabaseType() {
         return FastChar.getDatabases().get(database).getType();
@@ -433,17 +438,6 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
 
 
     /**
-     * 删除关联表格的数据
-     *
-     * @return
-     */
-    public boolean deleteByLink(String... tables) {
-
-        return false;
-    }
-
-
-    /**
      * 保存数据到数据库中，如果存在自增长的主键，则在插入数据成功后会自动赋值到当前对象中
      *
      * @return 布尔值
@@ -521,7 +515,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
     /**
      * 更新到数据库中
      * @param ids 主键值，如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
-     * @return
+     * @return 布尔值
      */
     public boolean updateById(Object... ids) {
         return getFastData().updateById(ids);
@@ -550,11 +544,11 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
     /**
      * 获取任意对象值
      * @param attr 属性名称
-     * @param <E> 任意类
+     * @param <T> 任意类
      * @return 任意类
      */
-    public <E> E getObject(String attr) {
-        return (E) get(attr);
+    public <T> T getObject(String attr) {
+        return getMapWrap().getObject(attr);
     }
 
     /**
@@ -563,7 +557,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 字符串
      */
     public String getString(String attr) {
-        return FastStringUtils.defaultValue(get(attr), null);
+        return getMapWrap().getString(attr);
     }
 
     /**
@@ -573,7 +567,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 字符串
      */
     public String getString(String attr, String defaultValue) {
-        return FastStringUtils.defaultValue(get(attr), defaultValue);
+        return getMapWrap().getString(attr, defaultValue);
     }
 
     /**
@@ -582,7 +576,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Long
      */
     public long getLong(String attr) {
-        return FastNumberUtils.formatToLong(get(attr));
+        return getMapWrap().getLong(attr);
     }
 
     /**
@@ -592,7 +586,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Long
      */
     public long getLong(String attr, long defaultValue) {
-        return FastNumberUtils.formatToLong(get(attr), defaultValue);
+        return getMapWrap().getLong(attr, defaultValue);
     }
 
     /**
@@ -601,7 +595,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return int
      */
     public int getInt(String attr) {
-        return FastNumberUtils.formatToInt(get(attr));
+        return getMapWrap().getInt(attr);
     }
 
     /**
@@ -611,7 +605,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return int
      */
     public int getInt(String attr, int defaultValue) {
-        return FastNumberUtils.formatToInt(get(attr), defaultValue);
+        return getMapWrap().getInt(attr, defaultValue);
     }
 
 
@@ -621,7 +615,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return short
      */
     public short getShort(String attr) {
-        return FastNumberUtils.formatToShort(get(attr));
+        return getMapWrap().getShort(attr);
     }
 
     /**
@@ -631,7 +625,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return short
      */
     public short getShort(String attr, short defaultValue) {
-        return FastNumberUtils.formatToShort(get(attr), defaultValue);
+        return getMapWrap().getShort(attr, defaultValue);
     }
 
     /**
@@ -640,7 +634,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Boolean
      */
     public boolean getBoolean(String attr) {
-        return FastBooleanUtils.formatToBoolean(get(attr), false);
+        return getMapWrap().getBoolean(attr);
     }
 
     /**
@@ -650,7 +644,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Boolean
      */
     public boolean getBoolean(String attr, boolean defaultValue) {
-        return FastBooleanUtils.formatToBoolean(get(attr), defaultValue);
+        return getMapWrap().getBoolean(attr, defaultValue);
     }
 
 
@@ -660,7 +654,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Float
      */
     public float getFloat(String attr) {
-        return FastNumberUtils.formatToFloat(get(attr));
+        return getMapWrap().getFloat(attr);
     }
 
     /**
@@ -670,7 +664,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Float
      */
     public float getFloat(String attr, float defaultValue) {
-        return FastNumberUtils.formatToFloat(get(attr), defaultValue);
+        return getMapWrap().getFloat(attr, defaultValue);
     }
 
     /**
@@ -680,7 +674,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Float
      */
     public float getFloat(String attr, int digit) {
-        return FastNumberUtils.formatToFloat(get(attr), digit);
+        return getMapWrap().getFloat(attr, digit);
     }
 
     /**
@@ -691,7 +685,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Float
      */
     public float getFloat(String attr, float defaultValue, int digit) {
-        return FastNumberUtils.formatToFloat(get(attr), defaultValue, digit);
+        return getMapWrap().getFloat(attr, defaultValue, digit);
     }
 
     /**
@@ -700,7 +694,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Double
      */
     public double getDouble(String attr) {
-        return FastNumberUtils.formatToDouble(get(attr));
+        return getMapWrap().getDouble(attr);
     }
 
     /**
@@ -710,7 +704,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Double
      */
     public double getDouble(String attr, double defaultValue) {
-        return FastNumberUtils.formatToDouble(get(attr), defaultValue);
+        return getMapWrap().getDouble(attr, defaultValue);
     }
 
     /**
@@ -720,7 +714,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Double
      */
     public double getDouble(String attr, int digit) {
-        return FastNumberUtils.formatToDouble(get(attr), digit);
+        return getMapWrap().getDouble(attr, digit);
     }
 
     /**
@@ -731,7 +725,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Double
      */
     public double getDouble(String attr, double defaultValue, int digit) {
-        return FastNumberUtils.formatToDouble(get(attr), defaultValue, digit);
+        return getMapWrap().getDouble(attr, defaultValue, digit);
     }
 
 
@@ -770,8 +764,8 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param <T> 继承Enum的泛型类
      * @return 枚举值
      */
-    public <T extends Enum> T getEnum(String attr, Class<T> targetClass) {
-        return getEnum(attr, targetClass, null);
+    public <T extends Enum<?>> T getEnum(String attr, Class<T> targetClass) {
+        return getMapWrap().getEnum(attr, targetClass);
     }
 
     /**
@@ -782,8 +776,8 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param <T> 继承Enum的泛型类
      * @return 枚举值
      */
-    public <T extends Enum> T getEnum(String attr, Class<T> targetClass, Enum defaultEnum) {
-        return FastEnumUtils.formatToEnum(targetClass, getString(attr), defaultEnum);
+    public <T extends Enum<?>> T getEnum(String attr, Class<T> targetClass, Enum<?> defaultEnum) {
+        return getMapWrap().getEnum(attr, targetClass,defaultEnum);
     }
 
     /**
@@ -792,7 +786,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Blob
      */
     public Blob getBlob(String attr) {
-        return (Blob) get(attr);
+        return getMapWrap().getBlob(attr);
     }
 
     /**
@@ -801,7 +795,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Timestamp
      */
     public Timestamp getTimestamp(String attr) {
-        return getTimestamp(attr, null);
+        return getMapWrap().getTimestamp(attr);
     }
 
     /**
@@ -811,14 +805,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return Timestamp
      */
     public Timestamp getTimestamp(String attr, Timestamp defaultValue) {
-        if (isEmpty(attr)) {
-            return defaultValue;
-        }
-        Object value = get(attr);
-        if (value instanceof Timestamp) {
-            return (Timestamp) value;
-        }
-        return Timestamp.valueOf(value.toString());
+        return getMapWrap().getTimestamp(attr, defaultValue);
     }
 
     /**
@@ -827,7 +814,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return BigDecimal
      */
     public BigDecimal getBigDecimal(String attr) {
-        return getBigDecimal(attr, null);
+        return getMapWrap().getBigDecimal(attr);
     }
 
     /**
@@ -837,10 +824,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return BigDecimal
      */
     public BigDecimal getBigDecimal(String attr, BigDecimal defaultValue) {
-        if (isEmpty(attr)) {
-            return defaultValue;
-        }
-        return (BigDecimal) get(attr);
+        return getMapWrap().getBigDecimal(attr, defaultValue);
     }
 
     /**
@@ -849,7 +833,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isColumn(String attr) {
-        FastTableInfo tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
+        FastTableInfo<?> tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
         if (tableInfo != null) {
             return tableInfo.checkColumn(attr);
         }
@@ -861,8 +845,8 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param attr 属性名
      * @return FastColumnInfo
      */
-    public <T extends FastColumnInfo> T getColumn(String attr) {
-        FastTableInfo tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
+    public <T extends FastColumnInfo<?>> T getColumn(String attr) {
+        FastTableInfo<?> tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
         if (tableInfo != null) {
             return (T) tableInfo.getColumnInfo(attr);
         }
@@ -873,7 +857,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * 获取绑定的表格对象
      * @return FastTableInfo
      */
-    public <T extends FastTableInfo> T getTable() {
+    public <T extends FastTableInfo<?>> T getTable() {
         return (T) FastChar.getDatabases().get(database).getTableInfo(getTableName());
     }
 
@@ -882,8 +866,8 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * 获取主键列集合
      * @return List&lt;FastColumnInfo&lt;?&gt;&gt;
      */
-    public <T extends FastColumnInfo> List<T> getPrimaries() {
-        FastTableInfo tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
+    public <T extends FastColumnInfo<?>> List<T> getPrimaries() {
+        FastTableInfo<?> tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
         if (tableInfo != null) {
             return tableInfo.getPrimaries();
         }
@@ -896,7 +880,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isPrimary(String attr) {
-        FastColumnInfo column = getColumn(attr);
+        FastColumnInfo<?> column = getColumn(attr);
         if (column == null) {
             return false;
         }
@@ -910,7 +894,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isAutoincrement(String attr) {
-        FastColumnInfo column = getColumn(attr);
+        FastColumnInfo<?> column = getColumn(attr);
         if (column == null) {
             return false;
         }
@@ -925,11 +909,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isEmpty(String attr) {
-        Object value = get(attr);
-        if (value == null) {
-            return true;
-        }
-        return FastStringUtils.isEmpty(String.valueOf(value));
+        return getMapWrap().isEmpty(attr);
     }
 
 
@@ -939,11 +919,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isNotEmpty(String attr) {
-        Object value = get(attr);
-        if (value == null) {
-            return false;
-        }
-        return FastStringUtils.isNotEmpty(String.valueOf(value));
+        return getMapWrap().isNotEmpty(attr);
     }
 
 
@@ -953,11 +929,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isBlank(String attr) {
-        Object value = get(attr);
-        if (value == null) {
-            return false;
-        }
-        return FastStringUtils.isBlank(String.valueOf(value));
+        return getMapWrap().isBlank(attr);
     }
 
     /**
@@ -966,11 +938,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isNotBlank(String attr) {
-        Object value = get(attr);
-        if (value == null) {
-            return true;
-        }
-        return FastStringUtils.isNotBlank(String.valueOf(value));
+        return getMapWrap().isNotBlank(attr);
     }
 
     /**
@@ -979,11 +947,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isNull(String attr) {
-        Object value = get(attr);
-        if (value == null) {
-            return true;
-        }
-        return value.toString().equalsIgnoreCase("<null>");
+        return getMapWrap().isNull(attr);
     }
 
     /**
@@ -992,7 +956,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isTimestamp(String attr) {
-        return get(attr) instanceof Timestamp;
+        return getMapWrap().isTimestamp(attr);
     }
 
     /**
@@ -1001,7 +965,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @return 布尔值
      */
     public boolean isBigDecimal(String attr) {
-        return get(attr) instanceof BigDecimal;
+        return getMapWrap().isBigDecimal(attr);
     }
 
     /**
@@ -1036,7 +1000,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
 
     /**
      * 获取sql操作对象
-     * @return
+     * @return FastSql
      */
     public FastSql getSql() {
         return FastSql.getInstance(getDatabaseType());
@@ -1092,8 +1056,17 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param ids 指定主键值 如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
      * @return FastSqlInfo
      */
-    public FastSqlInfo toUpdateSql(Object... ids) {
+    public FastSqlInfo toUpdateSqlByIds(Object... ids) {
         return FastSql.getInstance(FastChar.getDatabases().get(database).getType()).buildUpdateSqlByIds(this, ids);
+    }
+
+    /**
+     * 将当前对象转换成update语句对象
+     * @param checks 检测属性名，用作where判断
+     * @return FastSqlInfo
+     */
+    public FastSqlInfo toUpdateSql(String... checks) {
+        return FastSql.getInstance(FastChar.getDatabases().get(database).getType()).buildUpdateSql(this, checks);
     }
 
     /**
@@ -1106,10 +1079,19 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
 
     /**
      * 将当前对象转换成delete语句对象
+     * @param checks 检测属性名，用作where判断
+     * @return FastSqlInfo
+     */
+    public FastSqlInfo toDeleteSql(String... checks) {
+        return FastSql.getInstance(FastChar.getDatabases().get(database).getType()).buildDeleteSql(this,checks);
+    }
+
+    /**
+     * 将当前对象转换成delete语句对象
      * @param ids 指定主键值 如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
      * @return FastSqlInfo
      */
-    public FastSqlInfo toDeleteSql(Object... ids) {
+    public FastSqlInfo toDeleteSqlByIds(Object... ids) {
         return FastSql.getInstance(FastChar.getDatabases().get(database).getType()).buildDeleteSqlByIds(this, ids);
     }
 
@@ -1120,7 +1102,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param <T> 继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
-    public <T extends FastEntity> T toEntity(Class<T> targetClass) {
+    public <T extends FastEntity<?>> T toEntity(Class<T> targetClass) {
         return toEntity(null, targetClass, true);
     }
 
@@ -1131,7 +1113,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param <T> 继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
-    public <T extends FastEntity> T toEntity(Class<T> targetClass, boolean pluckAttr) {
+    public <T extends FastEntity<?>> T toEntity(Class<T> targetClass, boolean pluckAttr) {
         return toEntity(null, targetClass, pluckAttr);
     }
 
@@ -1142,7 +1124,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param <T> 继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
-    public <T extends FastEntity> T toEntity(String alias, Class<T> targetClass) {
+    public <T extends FastEntity<?>> T toEntity(String alias, Class<T> targetClass) {
         return toEntity(alias, targetClass, true);
     }
 
@@ -1154,11 +1136,11 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
      * @param <T> 继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
-    public <T extends FastEntity> T toEntity(String alias, Class<T> targetClass, boolean pluckAttr) {
+    public <T extends FastEntity<?>> T toEntity(String alias, Class<T> targetClass, boolean pluckAttr) {
         if (targetClass == null) {
             return null;
         }
-        FastEntity fastEntity = FastClassUtils.newInstance(targetClass);
+        T fastEntity = FastClassUtils.newInstance(targetClass);
         if (fastEntity == null) {
             return null;
         }
@@ -1189,7 +1171,7 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
             return null;
         }
         fastEntity.convertValue();
-        return (T) fastEntity;
+        return fastEntity;
     }
 
     /**
@@ -1271,8 +1253,8 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
         }
 
         List<String> columns = new ArrayList<>();
-        List<FastColumnInfo> tableColumns = getTable().getColumns();
-        for (FastColumnInfo column : tableColumns) {
+        List<FastColumnInfo<?>> tableColumns = getTable().getColumns();
+        for (FastColumnInfo<?> column : tableColumns) {
             if (FastArrayUtils.contains(excludes, column.getName())) {
                 continue;
             }
@@ -1322,8 +1304,8 @@ public abstract class FastEntity<E extends FastEntity> extends ConcurrentHashMap
 
         /**
          * 运行，如果检测到缓存则直接返回缓存的数据，否则运行代码块并返回
-         * @param <T>
-         * @return
+         * @param <T> 任意类
+         * @return T
          */
         public <T> T run() {
             try {

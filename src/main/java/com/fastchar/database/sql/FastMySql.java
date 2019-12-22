@@ -7,10 +7,7 @@ import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.utils.FastStringUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.*;
 
 public class FastMySql extends FastSql {
 
@@ -34,11 +31,13 @@ public class FastMySql extends FastSql {
         List<String> columns = new ArrayList<>();
         List<String> placeholders = new ArrayList<>();
         List<Object> values = new ArrayList<>();
+        entity.markDefault();
         entity.setDefaultValue();
+        entity.unmarkDefault();
 
         TreeSet<String> treeKeys = new TreeSet<>(entity.allKeys());
         for (String key : treeKeys) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 if (column.isNotNull() && columnValue == null) {
@@ -54,7 +53,7 @@ public class FastMySql extends FastSql {
         }
         List<String> checkColumns = new ArrayList<>();
         for (String key : checks) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 values.add(columnValue);
@@ -94,3 +93,4 @@ public class FastMySql extends FastSql {
         return selectSql;
     }
 }
+

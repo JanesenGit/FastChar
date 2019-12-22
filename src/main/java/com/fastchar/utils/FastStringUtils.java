@@ -6,6 +6,7 @@ import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
@@ -593,6 +594,9 @@ public class FastStringUtils {
         if (isEmpty(String.valueOf(value))) {
             return defaultValue;
         }
+        if (value instanceof Number) {
+            return FastNumberUtils.toPlainText(value);
+        }
         return String.valueOf(value);
     }
 
@@ -621,6 +625,10 @@ public class FastStringUtils {
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS");//精确到毫秒
         return prefix + sdf.format(new Date()) + String.format("%03d", atomicInteger.incrementAndGet());
+    }
+
+    public static String buildUUID() {
+        return UUID.randomUUID().toString();
     }
 
 

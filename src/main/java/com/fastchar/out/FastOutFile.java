@@ -136,18 +136,19 @@ public class FastOutFile extends FastOut<FastOutFile> {
         InputStream inputStream = null;
         try {
             inputStream = new BufferedInputStream(new FileInputStream(file));
-            ServletOutputStream outputStream = response.getOutputStream();
-            byte[] buffer = new byte[inputSize];
-            int len;
-            while (true) {
-                try {
-                    len = inputStream.read(buffer);
-                    if (len == -1) {
+            try (ServletOutputStream outputStream = response.getOutputStream()) {
+                byte[] buffer = new byte[inputSize];
+                int len;
+                while (true) {
+                    try {
+                        len = inputStream.read(buffer);
+                        if (len == -1) {
+                            break;
+                        }
+                        outputStream.write(buffer, 0, len);
+                    } catch (IOException e) {
                         break;
                     }
-                    outputStream.write(buffer, 0, len);
-                } catch (IOException e) {
-                    break;
                 }
             }
         } catch (Exception e) {
@@ -174,17 +175,18 @@ public class FastOutFile extends FastOut<FastOutFile> {
             inputStream = new BufferedInputStream(new FileInputStream(file));
             if (inputStream.skip(start) != start)
                 throw new RuntimeException("File skip error");
-            ServletOutputStream outputStream = response.getOutputStream();
-            byte[] buffer = new byte[inputSize];
-            long position = start;
-            for (int len; position <= end && (len = inputStream.read(buffer)) != -1; ) {
-                if (position + len <= end) {
-                    outputStream.write(buffer, 0, len);
-                    position += len;
-                } else {
-                    for (int i = 0; i < len && position <= end; i++) {
-                        outputStream.write(buffer[i]);
-                        position++;
+            try (ServletOutputStream outputStream = response.getOutputStream()) {
+                byte[] buffer = new byte[inputSize];
+                long position = start;
+                for (int len; position <= end && (len = inputStream.read(buffer)) != -1; ) {
+                    if (position + len <= end) {
+                        outputStream.write(buffer, 0, len);
+                        position += len;
+                    } else {
+                        for (int i = 0; i < len && position <= end; i++) {
+                            outputStream.write(buffer[i]);
+                            position++;
+                        }
                     }
                 }
             }

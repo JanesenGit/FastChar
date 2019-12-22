@@ -27,9 +27,11 @@ public class FastOutText extends FastOut<FastOutText> {
         response.setContentType(toContentType());
         response.setCharacterEncoding(getCharset());
 
-        PrintWriter writer = response.getWriter();
-        writer.write(String.valueOf(data));
-        writer.flush();
+        try (PrintWriter writer = response.getWriter()) {
+            writer.write(String.valueOf(data));
+            writer.flush();
+        }
+
     }
 }
 

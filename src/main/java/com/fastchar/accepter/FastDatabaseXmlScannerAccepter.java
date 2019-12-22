@@ -24,6 +24,8 @@ import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,6 +72,7 @@ public class FastDatabaseXmlScannerAccepter implements IFastScannerAccepter {
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
             if (FastStringUtils.matches(name, databaseInfo.getName())) {
                 databaseInfo.merge(databaseInfoHandler.databaseInfo.copy());
+                databaseInfo.fromProperty();
                 hasDatabaseMatch = true;
             }
         }
@@ -112,7 +115,7 @@ public class FastDatabaseXmlScannerAccepter implements IFastScannerAccepter {
         info.setOutputProperty(OutputKeys.ENCODING, "utf-8");
         info.setOutputProperty(OutputKeys.VERSION, "1.0");
 
-        StreamResult result = new StreamResult(new FileOutputStream(file));
+        StreamResult result = new StreamResult(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
         handler.setResult(result);
 
         handler.startDocument();
@@ -259,7 +262,7 @@ public class FastDatabaseXmlScannerAccepter implements IFastScannerAccepter {
                 columnInfo.fromProperty();
                 columnInfo.setTableName(tableInfo.getName());
                 columnInfo.setDatabaseName(tableInfo.getDatabaseName());
-                FastColumnInfo existColumn = tableInfo.getColumnInfo(columnInfo.getName());
+                FastColumnInfo<?> existColumn = tableInfo.getColumnInfo(columnInfo.getName());
                 if (existColumn != null) {
                     existColumn.merge(columnInfo);
                     existColumn.fromProperty();

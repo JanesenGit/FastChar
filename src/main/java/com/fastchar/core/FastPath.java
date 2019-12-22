@@ -1,7 +1,14 @@
 package com.fastchar.core;
 
+import com.fastchar.utils.FastStringUtils;
+
 import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.management.ManagementFactory;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.jar.JarFile;
 
 public final class FastPath {
     private String pid;
@@ -11,15 +18,28 @@ public final class FastPath {
 
     FastPath() {
     }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public String getClassRootPath() {
         if (classRootPath == null) {
             try {
-                String path = FastPath.class.getClassLoader().getResource("").toURI().getPath();
-                classRootPath = new File(path).getAbsolutePath();
-            }
-            catch (Exception e) {
-                String path = FastPath.class.getClassLoader().getResource("").getPath();
-                classRootPath = new File(path).getAbsolutePath();
+                URL resource = FastPath.class.getResource("/");
+                String path = URLDecoder.decode(resource.getPath(), "utf-8");
+                path = path.replace("file:", "");
+                String systemName = System.getProperties().getProperty("os.name").toLowerCase();
+                if (systemName.contains("windows") && path.startsWith("/")) {
+                    path = FastStringUtils.stripStart(path, "/");
+                }
+                if (path.contains("WEB-INF")) {
+                    path = new File(path.split("WEB-INF")[0], "WEB-INF/classes").getAbsolutePath();
+                }
+                classRootPath = path;
+                File classRootFile = new File(classRootPath);
+                if (!classRootFile.exists()) {
+                    classRootFile.mkdirs();
+                }
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
             }
         }
         return classRootPath;
@@ -32,7 +52,7 @@ public final class FastPath {
 
     public String getWebRootPath() {
         if (webRootPath == null) {
-            webRootPath = getClassRootPath().replace("WEB-INF/classes", "");
+            webRootPath = getClassRootPath().split("WEB-INF")[0];
         }
         return webRootPath;
     }
@@ -72,5 +92,4 @@ public final class FastPath {
         }
         return jar.getAbsolutePath().startsWith(getLibRootPath());
     }
-
 }

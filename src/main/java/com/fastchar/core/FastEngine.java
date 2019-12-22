@@ -7,12 +7,15 @@ import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.interfaces.IFastSecurity;
 import com.fastchar.observer.FastDatabaseObserver;
 import com.fastchar.system.FastErrorPrintStream;
+import com.fastchar.system.FastOutPrintStream;
 import com.fastchar.utils.FastStringUtils;
 import com.fastchar.validators.FastNullValidator;
 import com.fastchar.validators.FastRegularValidator;
 
 import javax.servlet.ServletContext;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 
 /**
  * FastChar核心框架引擎
@@ -24,11 +27,11 @@ public final class FastEngine {
     }
 
     private static class FastContainerHolder {
-        final static FastEngine CONTAINER = new FastEngine();
+        final static FastEngine ENGINE_HOLDER = new FastEngine();
     }
 
     static FastEngine instance() {
-        return FastContainerHolder.CONTAINER;
+        return FastContainerHolder.ENGINE_HOLDER;
     }
 
     private ServletContext servletContext = null;
@@ -60,6 +63,7 @@ public final class FastEngine {
                     .setAttachMaxPostSize(30 * 1024 * 1024);
 
         }
+        System.setOut(new FastOutPrintStream(new FileOutputStream(FileDescriptor.out), true));
         System.setErr(new FastErrorPrintStream(System.out, true));
 
         converters.add(FastEntityParamConverter.class);
@@ -69,6 +73,7 @@ public final class FastEngine {
         converters.add(FastNumberParamConverter.class);
         converters.add(FastBooleanParamConverter.class);
         converters.add(FastEnumParamConverter.class);
+        converters.add(FastNormalParamConverter.class);
 
         observable.addObserver(FastDatabaseObserver.class);
         observable.addObserver(entities);
@@ -87,13 +92,15 @@ public final class FastEngine {
 
 
     void run() throws Exception {
+        scanner.startLocal();
+        webs.initWeb(this);
         scanner.startScanner();
         webs.initWeb(this);
         observable.notifyObservers("onWebStart", this);
         scanner.notifyAccepter();
         observable.notifyObservers("onScannerFinish");
         FastDispatcher.initDispatcher();
-        if (!getConstant().isTestEnvironment()) {
+        if (!isMain()) {
             webs.runWeb(this);
         }
     }
@@ -320,4 +327,18 @@ public final class FastEngine {
     public FastFindClass getFindClass() {
         return findClass;
     }
+
+
+    /**
+     * 是否在main方法运行
+     * @return
+     */
+    public boolean isMain() {
+        ClassLoader classLoader =  Thread.currentThread().getContextClassLoader();
+        if (classLoader != null && classLoader.getClass().getSimpleName().equalsIgnoreCase("AppClassLoader")) {
+            return true;
+        }
+        return false;
+    }
+
 }

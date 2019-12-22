@@ -14,19 +14,28 @@ public class FastBooleanUtils {
     /**
      * 格式化boolean值
      * @param value false true or  0 1
-     * @return
+     * @return 布尔值
      */
     public static boolean formatToBoolean(Object value,boolean defaultValue) {
         if (value != null) {
             try {
-                int intValue = FastNumberUtils.formatToInt(value, -1);
+                String string = String.valueOf(value).replace(" ", "");
+                if (FastStringUtils.isEmpty(string)) {
+                    return defaultValue;
+                }
+                if (string.equalsIgnoreCase("true")) {
+                    return true;
+                }
+                if (string.equalsIgnoreCase("false")) {
+                    return false;
+                }
+                int intValue = FastNumberUtils.formatToInt(string, -1);
                 if (intValue == 0) {
                     return false;
                 }
                 if (intValue == 1) {
                     return true;
                 }
-                return Boolean.valueOf(value.toString().trim());
             } catch (Exception ignored) {}
         }
         return defaultValue;

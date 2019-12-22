@@ -5,7 +5,7 @@ import com.fastchar.database.info.FastSqlInfo;
 
 import java.util.List;
 
-public class FastPage<T extends FastEntity> {
+public class FastPage<T extends FastEntity<?>> {
     private transient FastSqlInfo sqlInfo;
     private int page;
     private int totalPage;

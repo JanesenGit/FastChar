@@ -12,6 +12,7 @@ import java.util.Map;
 class FastResultSet {
 
     private ResultSet resultSet;
+    private boolean ignoreCase;
 
     public FastResultSet(ResultSet resultSet) {
         this.resultSet = resultSet;
@@ -30,7 +31,11 @@ class FastResultSet {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
                             Object value = resultSet.getObject(key);
-                            fastEntity.put(key, value);
+                            if (isIgnoreCase()) {
+                                fastEntity.put(key.toLowerCase(), value);
+                            } else {
+                                fastEntity.put(key, value);
+                            }
                         } catch (Exception ignored) {
                         }
                     }
@@ -89,7 +94,7 @@ class FastResultSet {
                             if (keyCount.containsKey(key)) {
                                 keyCount.put(key, keyCount.get(key) + 1);
                                 key = key + "(" + keyCount.get(key) + ")";
-                            }else{
+                            } else {
                                 keyCount.put(key, 0);
                             }
 
@@ -132,7 +137,12 @@ class FastResultSet {
         return null;
     }
 
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
 
-
-
+    public FastResultSet setIgnoreCase(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
+        return this;
+    }
 }
