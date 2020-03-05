@@ -1,7 +1,5 @@
 package com.fastchar.utils;
 
-import org.apache.commons.lang3.mutable.MutableInt;
-
 import java.lang.reflect.Array;
 import java.util.*;
 
@@ -35,11 +33,11 @@ public class FastArrayUtils {
     }
 
     public static Class<?>[] nullToEmpty(Class<?>[] array) {
-        return isEmpty((Object[])array) ? EMPTY_CLASS_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_CLASS_ARRAY : array;
     }
 
     public static String[] nullToEmpty(String[] array) {
-        return isEmpty((Object[])array) ? EMPTY_STRING_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_STRING_ARRAY : array;
     }
 
     public static long[] nullToEmpty(long[] array) {
@@ -75,41 +73,42 @@ public class FastArrayUtils {
     }
 
     public static Long[] nullToEmpty(Long[] array) {
-        return isEmpty((Object[])array) ? EMPTY_LONG_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_LONG_OBJECT_ARRAY : array;
     }
 
     public static Integer[] nullToEmpty(Integer[] array) {
-        return isEmpty((Object[])array) ? EMPTY_INTEGER_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_INTEGER_OBJECT_ARRAY : array;
     }
 
     public static Short[] nullToEmpty(Short[] array) {
-        return isEmpty((Object[])array) ? EMPTY_SHORT_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_SHORT_OBJECT_ARRAY : array;
     }
 
     public static Character[] nullToEmpty(Character[] array) {
-        return isEmpty((Object[])array) ? EMPTY_CHARACTER_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_CHARACTER_OBJECT_ARRAY : array;
     }
 
     public static Byte[] nullToEmpty(Byte[] array) {
-        return isEmpty((Object[])array) ? EMPTY_BYTE_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_BYTE_OBJECT_ARRAY : array;
     }
 
     public static Double[] nullToEmpty(Double[] array) {
-        return isEmpty((Object[])array) ? EMPTY_DOUBLE_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_DOUBLE_OBJECT_ARRAY : array;
     }
 
     public static Float[] nullToEmpty(Float[] array) {
-        return isEmpty((Object[])array) ? EMPTY_FLOAT_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_FLOAT_OBJECT_ARRAY : array;
     }
 
     public static Boolean[] nullToEmpty(Boolean[] array) {
-        return isEmpty((Object[])array) ? EMPTY_BOOLEAN_OBJECT_ARRAY : array;
+        return isEmpty((Object[]) array) ? EMPTY_BOOLEAN_OBJECT_ARRAY : array;
     }
 
 
     public static boolean isEmpty(Object[] array) {
         return array == null || array.length == 0;
     }
+
     public static boolean isEmpty(long[] array) {
         return array == null || array.length == 0;
     }
@@ -179,47 +178,45 @@ public class FastArrayUtils {
     }
 
 
-
     public static <T> T[] clone(T[] array) {
         return array == null ? null : (T[]) (Object[]) array.clone();
     }
 
     public static long[] clone(long[] array) {
-        return array == null ? null : (long[])array.clone();
+        return array == null ? null : (long[]) array.clone();
     }
 
     public static int[] clone(int[] array) {
-        return array == null ? null : (int[])array.clone();
+        return array == null ? null : (int[]) array.clone();
     }
 
     public static short[] clone(short[] array) {
-        return array == null ? null : (short[])array.clone();
+        return array == null ? null : (short[]) array.clone();
     }
 
     public static char[] clone(char[] array) {
-        return array == null ? null : (char[])array.clone();
+        return array == null ? null : (char[]) array.clone();
     }
 
     public static byte[] clone(byte[] array) {
-        return array == null ? null : (byte[])array.clone();
+        return array == null ? null : (byte[]) array.clone();
     }
 
     public static double[] clone(double[] array) {
-        return array == null ? null : (double[])array.clone();
+        return array == null ? null : (double[]) array.clone();
     }
 
     public static float[] clone(float[] array) {
-        return array == null ? null : (float[])array.clone();
+        return array == null ? null : (float[]) array.clone();
     }
 
     public static boolean[] clone(boolean[] array) {
-        return array == null ? null : (boolean[])array.clone();
+        return array == null ? null : (boolean[]) array.clone();
     }
 
 
-
     public static <T> T[] remove(T[] array, int index) {
-        return (T[]) remove((Object)array, index);
+        return (T[]) remove((Object) array, index);
     }
 
     public static <T> T[] removeElement(T[] array, Object element) {
@@ -228,7 +225,7 @@ public class FastArrayUtils {
     }
 
     public static boolean[] remove(boolean[] array, int index) {
-        return (boolean[])((boolean[])remove((Object)array, index));
+        return (boolean[]) ((boolean[]) remove((Object) array, index));
     }
 
     public static boolean[] removeElement(boolean[] array, boolean element) {
@@ -237,7 +234,7 @@ public class FastArrayUtils {
     }
 
     public static byte[] remove(byte[] array, int index) {
-        return (byte[])((byte[])remove((Object)array, index));
+        return (byte[]) ((byte[]) remove((Object) array, index));
     }
 
     public static byte[] removeElement(byte[] array, byte element) {
@@ -246,7 +243,7 @@ public class FastArrayUtils {
     }
 
     public static char[] remove(char[] array, int index) {
-        return (char[])((char[])remove((Object)array, index));
+        return (char[]) ((char[]) remove((Object) array, index));
     }
 
     public static char[] removeElement(char[] array, char element) {
@@ -255,7 +252,7 @@ public class FastArrayUtils {
     }
 
     public static double[] remove(double[] array, int index) {
-        return (double[])((double[])remove((Object)array, index));
+        return (double[]) ((double[]) remove((Object) array, index));
     }
 
     public static double[] removeElement(double[] array, double element) {
@@ -264,7 +261,7 @@ public class FastArrayUtils {
     }
 
     public static float[] remove(float[] array, int index) {
-        return (float[])((float[])remove((Object)array, index));
+        return (float[]) ((float[]) remove((Object) array, index));
     }
 
     public static float[] removeElement(float[] array, float element) {
@@ -273,7 +270,7 @@ public class FastArrayUtils {
     }
 
     public static int[] remove(int[] array, int index) {
-        return (int[])((int[])remove((Object)array, index));
+        return (int[]) ((int[]) remove((Object) array, index));
     }
 
     public static int[] removeElement(int[] array, int element) {
@@ -282,7 +279,7 @@ public class FastArrayUtils {
     }
 
     public static long[] remove(long[] array, int index) {
-        return (long[])((long[])remove((Object)array, index));
+        return (long[]) ((long[]) remove((Object) array, index));
     }
 
     public static long[] removeElement(long[] array, long element) {
@@ -291,7 +288,7 @@ public class FastArrayUtils {
     }
 
     public static short[] remove(short[] array, int index) {
-        return (short[])((short[])remove((Object)array, index));
+        return (short[]) ((short[]) remove((Object) array, index));
     }
 
     public static short[] removeElement(short[] array, short element) {
@@ -315,7 +312,7 @@ public class FastArrayUtils {
     }
 
     public static <T> T[] removeAll(T[] array, int... indices) {
-        return (T[]) removeAll((Object)array, (int[])clone(indices));
+        return (T[]) removeAll((Object) array, (int[]) clone(indices));
     }
 
     public static <T> T[] removeElements(T[] array, T... values) {
@@ -325,9 +322,9 @@ public class FastArrayUtils {
             int len$ = values.length;
 
             Object v;
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 v = arr$[i$];
-                MutableInt count = (MutableInt)occurrences.get(v);
+                MutableInt count = (MutableInt) occurrences.get(v);
                 if (count == null) {
                     occurrences.put((T) v, new MutableInt(1));
                 } else {
@@ -338,13 +335,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<T, MutableInt> e = (Map.Entry)i$.next();
+            while (i$.hasNext()) {
+                Map.Entry<T, MutableInt> e = (Map.Entry) i$.next();
                 v = e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -354,7 +351,7 @@ public class FastArrayUtils {
                 }
             }
 
-            T[] result = (T[]) removeAll((Object)array, (BitSet)toRemove);
+            T[] result = (T[]) removeAll((Object) array, (BitSet) toRemove);
             return result;
         } else {
             return clone(array);
@@ -362,7 +359,7 @@ public class FastArrayUtils {
     }
 
     public static byte[] removeAll(byte[] array, int... indices) {
-        return (byte[])((byte[])removeAll((Object)array, (int[])clone(indices)));
+        return (byte[]) ((byte[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static byte[] removeElements(byte[] array, byte... values) {
@@ -371,10 +368,10 @@ public class FastArrayUtils {
             byte[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 byte v = arr$[i$];
                 Byte boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -385,13 +382,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Byte, MutableInt> e = (Map.Entry)i$.next();
-                Byte v = (Byte)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Byte, MutableInt> e = (Map.Entry) i$.next();
+                Byte v = (Byte) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -401,14 +398,14 @@ public class FastArrayUtils {
                 }
             }
 
-            return (byte[])((byte[])removeAll((Object)array, (BitSet)toRemove));
+            return (byte[]) ((byte[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
     }
 
     public static short[] removeAll(short[] array, int... indices) {
-        return (short[])((short[])removeAll((Object)array, (int[])clone(indices)));
+        return (short[]) ((short[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static short[] removeElements(short[] array, short... values) {
@@ -417,10 +414,10 @@ public class FastArrayUtils {
             short[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 short v = arr$[i$];
                 Short boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -431,13 +428,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Short, MutableInt> e = (Map.Entry)i$.next();
-                Short v = (Short)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Short, MutableInt> e = (Map.Entry) i$.next();
+                Short v = (Short) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -447,14 +444,14 @@ public class FastArrayUtils {
                 }
             }
 
-            return (short[])((short[])removeAll((Object)array, (BitSet)toRemove));
+            return (short[]) ((short[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
     }
 
     public static int[] removeAll(int[] array, int... indices) {
-        return (int[])((int[])removeAll((Object)array, (int[])clone(indices)));
+        return (int[]) ((int[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static int[] removeElements(int[] array, int... values) {
@@ -463,10 +460,10 @@ public class FastArrayUtils {
             int[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 int v = arr$[i$];
                 Integer boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -477,13 +474,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Integer, MutableInt> e = (Map.Entry)i$.next();
-                Integer v = (Integer)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Integer, MutableInt> e = (Map.Entry) i$.next();
+                Integer v = (Integer) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -493,14 +490,14 @@ public class FastArrayUtils {
                 }
             }
 
-            return (int[])((int[])removeAll((Object)array, (BitSet)toRemove));
+            return (int[]) ((int[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
     }
 
     public static char[] removeAll(char[] array, int... indices) {
-        return (char[])((char[])removeAll((Object)array, (int[])clone(indices)));
+        return (char[]) ((char[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static char[] removeElements(char[] array, char... values) {
@@ -509,10 +506,10 @@ public class FastArrayUtils {
             char[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 char v = arr$[i$];
                 Character boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -523,13 +520,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Character, MutableInt> e = (Map.Entry)i$.next();
-                Character v = (Character)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Character, MutableInt> e = (Map.Entry) i$.next();
+                Character v = (Character) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -539,14 +536,14 @@ public class FastArrayUtils {
                 }
             }
 
-            return (char[])((char[])removeAll((Object)array, (BitSet)toRemove));
+            return (char[]) ((char[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
     }
 
     public static long[] removeAll(long[] array, int... indices) {
-        return (long[])((long[])removeAll((Object)array, (int[])clone(indices)));
+        return (long[]) ((long[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static long[] removeElements(long[] array, long... values) {
@@ -555,10 +552,10 @@ public class FastArrayUtils {
             long[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 long v = arr$[i$];
                 Long boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -569,13 +566,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Long, MutableInt> e = (Map.Entry)i$.next();
-                Long v = (Long)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Long, MutableInt> e = (Map.Entry) i$.next();
+                Long v = (Long) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -585,14 +582,14 @@ public class FastArrayUtils {
                 }
             }
 
-            return (long[])((long[])removeAll((Object)array, (BitSet)toRemove));
+            return (long[]) ((long[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
     }
 
     public static float[] removeAll(float[] array, int... indices) {
-        return (float[])((float[])removeAll((Object)array, (int[])clone(indices)));
+        return (float[]) ((float[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static float[] removeElements(float[] array, float... values) {
@@ -601,10 +598,10 @@ public class FastArrayUtils {
             float[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 float v = arr$[i$];
                 Float boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -615,13 +612,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Float, MutableInt> e = (Map.Entry)i$.next();
-                Float v = (Float)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Float, MutableInt> e = (Map.Entry) i$.next();
+                Float v = (Float) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -631,14 +628,14 @@ public class FastArrayUtils {
                 }
             }
 
-            return (float[])((float[])removeAll((Object)array, (BitSet)toRemove));
+            return (float[]) ((float[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
     }
 
     public static double[] removeAll(double[] array, int... indices) {
-        return (double[])((double[])removeAll((Object)array, (int[])clone(indices)));
+        return (double[]) ((double[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static double[] removeElements(double[] array, double... values) {
@@ -647,10 +644,10 @@ public class FastArrayUtils {
             double[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 double v = arr$[i$];
                 Double boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -661,13 +658,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Double, MutableInt> e = (Map.Entry)i$.next();
-                Double v = (Double)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Double, MutableInt> e = (Map.Entry) i$.next();
+                Double v = (Double) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -677,14 +674,14 @@ public class FastArrayUtils {
                 }
             }
 
-            return (double[])((double[])removeAll((Object)array, (BitSet)toRemove));
+            return (double[]) ((double[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
     }
 
     public static boolean[] removeAll(boolean[] array, int... indices) {
-        return (boolean[])((boolean[])removeAll((Object)array, (int[])clone(indices)));
+        return (boolean[]) ((boolean[]) removeAll((Object) array, (int[]) clone(indices)));
     }
 
     public static boolean[] removeElements(boolean[] array, boolean... values) {
@@ -693,10 +690,10 @@ public class FastArrayUtils {
             boolean[] arr$ = values;
             int len$ = values.length;
 
-            for(int i$ = 0; i$ < len$; ++i$) {
+            for (int i$ = 0; i$ < len$; ++i$) {
                 boolean v = arr$[i$];
                 Boolean boxed = v;
-                MutableInt count = (MutableInt)occurrences.get(boxed);
+                MutableInt count = (MutableInt) occurrences.get(boxed);
                 if (count == null) {
                     occurrences.put(boxed, new MutableInt(1));
                 } else {
@@ -707,13 +704,13 @@ public class FastArrayUtils {
             BitSet toRemove = new BitSet();
             Iterator i$ = occurrences.entrySet().iterator();
 
-            while(i$.hasNext()) {
-                Map.Entry<Boolean, MutableInt> e = (Map.Entry)i$.next();
-                Boolean v = (Boolean)e.getKey();
+            while (i$.hasNext()) {
+                Map.Entry<Boolean, MutableInt> e = (Map.Entry) i$.next();
+                Boolean v = (Boolean) e.getKey();
                 int found = 0;
                 int i = 0;
 
-                for(int ct = ((MutableInt)e.getValue()).intValue(); i < ct; ++i) {
+                for (int ct = ((MutableInt) e.getValue()).intValue(); i < ct; ++i) {
                     found = indexOf(array, v, found);
                     if (found < 0) {
                         break;
@@ -723,7 +720,7 @@ public class FastArrayUtils {
                 }
             }
 
-            return (boolean[])((boolean[])removeAll((Object)array, (BitSet)toRemove));
+            return (boolean[]) ((boolean[]) removeAll((Object) array, (BitSet) toRemove));
         } else {
             return clone(array);
         }
@@ -739,7 +736,7 @@ public class FastArrayUtils {
             int i = indices.length;
             end = length;
 
-            while(true) {
+            while (true) {
                 --i;
                 if (i < 0) {
                     break;
@@ -762,7 +759,7 @@ public class FastArrayUtils {
             end = length;
             dest = length - diff;
 
-            for(int i = indices.length - 1; i >= 0; --i) {
+            for (int i = indices.length - 1; i >= 0; --i) {
                 int index = indices[i];
                 if (end - index > 1) {
                     int cp = end - index - 1;
@@ -790,7 +787,7 @@ public class FastArrayUtils {
         int destIndex;
         int count;
         int set;
-        for(destIndex = 0; (set = indices.nextSetBit(srcIndex)) != -1; srcIndex = indices.nextClearBit(set)) {
+        for (destIndex = 0; (set = indices.nextSetBit(srcIndex)) != -1; srcIndex = indices.nextClearBit(set)) {
             count = set - srcIndex;
             if (count > 0) {
                 System.arraycopy(array, srcIndex, result, destIndex, count);
@@ -818,7 +815,7 @@ public class FastArrayUtils {
     }
 
     public static int indexOf(short[] array, short valueToFind) {
-        return indexOf((short[])array, (short)valueToFind, 0);
+        return indexOf((short[]) array, (short) valueToFind, 0);
     }
 
     public static int indexOf(short[] array, short valueToFind, int startIndex) {
@@ -829,7 +826,7 @@ public class FastArrayUtils {
                 startIndex = 0;
             }
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (valueToFind == array[i]) {
                     return i;
                 }
@@ -851,7 +848,7 @@ public class FastArrayUtils {
                 startIndex = 0;
             }
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (valueToFind == array[i]) {
                     return i;
                 }
@@ -863,7 +860,7 @@ public class FastArrayUtils {
 
 
     public static int indexOf(byte[] array, byte valueToFind) {
-        return indexOf((byte[])array, (byte)valueToFind, 0);
+        return indexOf((byte[]) array, (byte) valueToFind, 0);
     }
 
     public static int indexOf(byte[] array, byte valueToFind, int startIndex) {
@@ -874,7 +871,7 @@ public class FastArrayUtils {
                 startIndex = 0;
             }
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (valueToFind == array[i]) {
                     return i;
                 }
@@ -886,7 +883,7 @@ public class FastArrayUtils {
 
 
     public static int indexOf(int[] array, int valueToFind) {
-        return indexOf((int[])array, (int)valueToFind, 0);
+        return indexOf((int[]) array, (int) valueToFind, 0);
     }
 
     public static int indexOf(int[] array, int valueToFind, int startIndex) {
@@ -897,7 +894,7 @@ public class FastArrayUtils {
                 startIndex = 0;
             }
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (valueToFind == array[i]) {
                     return i;
                 }
@@ -919,7 +916,7 @@ public class FastArrayUtils {
                 startIndex = 0;
             }
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (valueToFind == array[i]) {
                     return i;
                 }
@@ -931,9 +928,8 @@ public class FastArrayUtils {
 
 
     public static int indexOf(char[] array, char valueToFind) {
-        return indexOf((char[])array, (char)valueToFind, 0);
+        return indexOf((char[]) array, (char) valueToFind, 0);
     }
-
 
 
     public static int indexOf(Object[] array, Object objectToFind, int startIndex) {
@@ -946,13 +942,13 @@ public class FastArrayUtils {
 
             int i;
             if (objectToFind == null) {
-                for(i = startIndex; i < array.length; ++i) {
+                for (i = startIndex; i < array.length; ++i) {
                     if (array[i] == null) {
                         return i;
                     }
                 }
             } else if (array.getClass().getComponentType().isInstance(objectToFind)) {
-                for(i = startIndex; i < array.length; ++i) {
+                for (i = startIndex; i < array.length; ++i) {
                     if (objectToFind.equals(array[i])) {
                         return i;
                     }
@@ -966,12 +962,15 @@ public class FastArrayUtils {
     public static boolean contains(Object[] array, Object objectToFind) {
         return indexOf(array, objectToFind) != -1;
     }
+
     public static boolean contains(long[] array, long valueToFind) {
         return indexOf(array, valueToFind) != -1;
     }
+
     public static int indexOf(long[] array, long valueToFind) {
         return indexOf(array, valueToFind, 0);
     }
+
     public static boolean contains(double[] array, double valueToFind) {
         return indexOf(array, valueToFind) != -1;
     }
@@ -996,7 +995,7 @@ public class FastArrayUtils {
                 startIndex = 0;
             }
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (valueToFind == array[i]) {
                     return i;
                 }
@@ -1015,7 +1014,7 @@ public class FastArrayUtils {
                 startIndex = 0;
             }
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (valueToFind == array[i]) {
                     return i;
                 }
@@ -1036,7 +1035,7 @@ public class FastArrayUtils {
             double min = valueToFind - tolerance;
             double max = valueToFind + tolerance;
 
-            for(int i = startIndex; i < array.length; ++i) {
+            for (int i = startIndex; i < array.length; ++i) {
                 if (array[i] >= min && array[i] <= max) {
                     return i;
                 }
@@ -1052,8 +1051,6 @@ public class FastArrayUtils {
     }
 
 
-
-
     public static boolean[] toPrimitive(Boolean[] array) {
         if (array == null) {
             return null;
@@ -1062,7 +1059,7 @@ public class FastArrayUtils {
         } else {
             boolean[] result = new boolean[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1078,7 +1075,7 @@ public class FastArrayUtils {
         } else {
             boolean[] result = new boolean[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Boolean b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1095,7 +1092,7 @@ public class FastArrayUtils {
         } else {
             Boolean[] result = new Boolean[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i] ? Boolean.TRUE : Boolean.FALSE;
             }
 
@@ -1112,7 +1109,7 @@ public class FastArrayUtils {
         } else {
             char[] result = new char[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1128,7 +1125,7 @@ public class FastArrayUtils {
         } else {
             char[] result = new char[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Character b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1145,7 +1142,7 @@ public class FastArrayUtils {
         } else {
             Character[] result = new Character[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1161,7 +1158,7 @@ public class FastArrayUtils {
         } else {
             long[] result = new long[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1177,7 +1174,7 @@ public class FastArrayUtils {
         } else {
             long[] result = new long[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Long b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1194,7 +1191,7 @@ public class FastArrayUtils {
         } else {
             Long[] result = new Long[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1210,7 +1207,7 @@ public class FastArrayUtils {
         } else {
             int[] result = new int[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1226,7 +1223,7 @@ public class FastArrayUtils {
         } else {
             int[] result = new int[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Integer b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1243,7 +1240,7 @@ public class FastArrayUtils {
         } else {
             Integer[] result = new Integer[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1259,7 +1256,7 @@ public class FastArrayUtils {
         } else {
             short[] result = new short[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1275,7 +1272,7 @@ public class FastArrayUtils {
         } else {
             short[] result = new short[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Short b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1292,7 +1289,7 @@ public class FastArrayUtils {
         } else {
             Short[] result = new Short[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1308,7 +1305,7 @@ public class FastArrayUtils {
         } else {
             byte[] result = new byte[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1324,7 +1321,7 @@ public class FastArrayUtils {
         } else {
             byte[] result = new byte[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Byte b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1341,7 +1338,7 @@ public class FastArrayUtils {
         } else {
             Byte[] result = new Byte[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1357,7 +1354,7 @@ public class FastArrayUtils {
         } else {
             double[] result = new double[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1373,7 +1370,7 @@ public class FastArrayUtils {
         } else {
             double[] result = new double[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Double b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1390,7 +1387,7 @@ public class FastArrayUtils {
         } else {
             Double[] result = new Double[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1406,7 +1403,7 @@ public class FastArrayUtils {
         } else {
             float[] result = new float[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
@@ -1422,7 +1419,7 @@ public class FastArrayUtils {
         } else {
             float[] result = new float[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 Float b = array[i];
                 result[i] = b == null ? valueForNull : b;
             }
@@ -1439,14 +1436,13 @@ public class FastArrayUtils {
         } else {
             Float[] result = new Float[array.length];
 
-            for(int i = 0; i < array.length; ++i) {
+            for (int i = 0; i < array.length; ++i) {
                 result[i] = array[i];
             }
 
             return result;
         }
     }
-
 
 
     public static <T> T[] subarray(T[] array, int startIndexInclusive, int endIndexExclusive) {
@@ -1671,6 +1667,135 @@ public class FastArrayUtils {
         }
     }
 
+
+    public static <T> T[] addAll(T[] array1, T... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            Class<?> type1 = array1.getClass().getComponentType();
+            T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+
+            try {
+                System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+                return joinedArray;
+            } catch (ArrayStoreException var6) {
+                Class<?> type2 = array2.getClass().getComponentType();
+                if (!type1.isAssignableFrom(type2)) {
+                    throw new IllegalArgumentException("Cannot store " + type2.getName() + " in an array of " + type1.getName(), var6);
+                } else {
+                    throw var6;
+                }
+            }
+        }
+    }
+
+    public static boolean[] addAll(boolean[] array1, boolean... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            boolean[] joinedArray = new boolean[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
+    public static char[] addAll(char[] array1, char... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            char[] joinedArray = new char[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
+    public static byte[] addAll(byte[] array1, byte... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            byte[] joinedArray = new byte[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
+    public static short[] addAll(short[] array1, short... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            short[] joinedArray = new short[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
+    public static int[] addAll(int[] array1, int... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            int[] joinedArray = new int[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
+    public static long[] addAll(long[] array1, long... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            long[] joinedArray = new long[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
+    public static float[] addAll(float[] array1, float... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            float[] joinedArray = new float[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
+    public static double[] addAll(double[] array1, double... array2) {
+        if (array1 == null) {
+            return clone(array2);
+        } else if (array2 == null) {
+            return clone(array1);
+        } else {
+            double[] joinedArray = new double[array1.length + array2.length];
+            System.arraycopy(array1, 0, joinedArray, 0, array1.length);
+            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);
+            return joinedArray;
+        }
+    }
+
     public static <T> T[] add(T[] array, int index, T element) {
         Class<?> clss = null;
         if (array != null) {
@@ -1688,37 +1813,36 @@ public class FastArrayUtils {
     }
 
 
-
     public static boolean[] add(boolean[] array, int index, boolean element) {
-        return (boolean[])((boolean[])add(array, index, element, Boolean.TYPE));
+        return (boolean[]) ((boolean[]) add(array, index, element, Boolean.TYPE));
     }
 
     public static char[] add(char[] array, int index, char element) {
-        return (char[])((char[])add(array, index, element, Character.TYPE));
+        return (char[]) ((char[]) add(array, index, element, Character.TYPE));
     }
 
     public static byte[] add(byte[] array, int index, byte element) {
-        return (byte[])((byte[])add(array, index, element, Byte.TYPE));
+        return (byte[]) ((byte[]) add(array, index, element, Byte.TYPE));
     }
 
     public static short[] add(short[] array, int index, short element) {
-        return (short[])((short[])add(array, index, element, Short.TYPE));
+        return (short[]) ((short[]) add(array, index, element, Short.TYPE));
     }
 
     public static int[] add(int[] array, int index, int element) {
-        return (int[])((int[])add(array, index, element, Integer.TYPE));
+        return (int[]) ((int[]) add(array, index, element, Integer.TYPE));
     }
 
     public static long[] add(long[] array, int index, long element) {
-        return (long[])((long[])add(array, index, element, Long.TYPE));
+        return (long[]) ((long[]) add(array, index, element, Long.TYPE));
     }
 
     public static float[] add(float[] array, int index, float element) {
-        return (float[])((float[])add(array, index, element, Float.TYPE));
+        return (float[]) ((float[]) add(array, index, element, Float.TYPE));
     }
 
     public static double[] add(double[] array, int index, double element) {
-        return (double[])((double[])add(array, index, element, Double.TYPE));
+        return (double[]) ((double[]) add(array, index, element, Double.TYPE));
     }
 
     private static Object add(Object array, int index, Object element, Class<?> clss) {
@@ -1749,6 +1873,165 @@ public class FastArrayUtils {
 
     public static int getLength(Object array) {
         return array == null ? 0 : Array.getLength(array);
+    }
+
+
+
+    public static class MutableInt extends Number implements Comparable<MutableInt>{
+
+        private static final long serialVersionUID = 512176391864L;
+
+        private int value;
+
+        public MutableInt() {
+            super();
+        }
+
+        public MutableInt(final int value) {
+            super();
+            this.value = value;
+        }
+
+        public MutableInt(final Number value) {
+            super();
+            this.value = value.intValue();
+        }
+
+        public MutableInt(final String value) {
+            super();
+            this.value = Integer.parseInt(value);
+        }
+
+        public Integer getValue() {
+            return this.value;
+        }
+
+        public void setValue(final int value) {
+            this.value = value;
+        }
+
+        public void setValue(final Number value) {
+            this.value = value.intValue();
+        }
+
+        public void increment() {
+            value++;
+        }
+
+        public int getAndIncrement() {
+            final int last = value;
+            value++;
+            return last;
+        }
+
+        public int incrementAndGet() {
+            value++;
+            return value;
+        }
+
+        public void decrement() {
+            value--;
+        }
+
+        public int getAndDecrement() {
+            final int last = value;
+            value--;
+            return last;
+        }
+
+        public int decrementAndGet() {
+            value--;
+            return value;
+        }
+
+        public void add(final int operand) {
+            this.value += operand;
+        }
+
+        public void add(final Number operand) {
+            this.value += operand.intValue();
+        }
+        public void subtract(final int operand) {
+            this.value -= operand;
+        }
+
+        public void subtract(final Number operand) {
+            this.value -= operand.intValue();
+        }
+
+        public int addAndGet(final int operand) {
+            this.value += operand;
+            return value;
+        }
+
+        public int addAndGet(final Number operand) {
+            this.value += operand.intValue();
+            return value;
+        }
+
+        public int getAndAdd(final int operand) {
+            final int last = value;
+            this.value += operand;
+            return last;
+        }
+
+        public int getAndAdd(final Number operand) {
+            final int last = value;
+            this.value += operand.intValue();
+            return last;
+        }
+
+        @Override
+        public int intValue() {
+            return value;
+        }
+
+        @Override
+        public long longValue() {
+            return value;
+        }
+
+        /**
+         * Returns the value of this MutableInt as a float.
+         *
+         * @return the numeric value represented by this object after conversion to type float.
+         */
+        @Override
+        public float floatValue() {
+            return value;
+        }
+
+        @Override
+        public double doubleValue() {
+            return value;
+        }
+
+        public Integer toInteger() {
+            return intValue();
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (obj instanceof MutableInt) {
+                return value == ((MutableInt) obj).intValue();
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return value;
+        }
+
+        public int compareTo(final MutableInt other) {
+            return Integer.compare(this.value, other.value);
+        }
+
+        @Override
+        public String toString() {
+            return String.valueOf(value);
+        }
+
     }
 
 

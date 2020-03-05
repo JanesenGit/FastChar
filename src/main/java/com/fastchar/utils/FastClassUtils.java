@@ -1,7 +1,9 @@
 package com.fastchar.utils;
 
+import com.fastchar.core.FastClassLoader;
 import com.fastchar.core.FastFile;
 import com.fastchar.exception.FastOverrideException;
+import org.terracotta.offheapstore.pinning.PinnableCache;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
@@ -14,13 +16,16 @@ public class FastClassUtils {
     public static Class<?> getClass(String className) {
         return getClass(className, true);
     }
-
     public static Class<?> getClass(String className, boolean printException) {
+        return getClass(FastClassUtils.class.getClassLoader(), className, printException);
+    }
+
+    public static Class<?> getClass(ClassLoader loader, String className, boolean printException) {
         try {
             if (className == null || className.length() == 0) {
                 return null;
             }
-            return Class.forName(className);
+            return Class.forName(className, true, loader);
         } catch (Throwable e) {
             if (printException) {
                 e.printStackTrace();
@@ -214,6 +219,34 @@ public class FastClassUtils {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+
+    public static boolean isSameRefined(Class<?> classA, Class<?> classB) {
+        if (classB == null || classA == null) {
+            return true;
+        }
+        return classA.getName().equals(classB.getName()) && classA != classB;
+    }
+
+    public static boolean isRelease(Class<?> targetClass) {
+        if (targetClass.getClassLoader() instanceof FastClassLoader) {
+            FastClassLoader fastClassLoader = (FastClassLoader) targetClass.getClassLoader();
+            return fastClassLoader.isClosed();
+        }
+        return false;
+    }
+
+
+    public static boolean isRelease(Object targetObject) {
+        if (targetObject == null) {
+            return true;
+        }
+        if (targetObject.getClass().getClassLoader() instanceof FastClassLoader) {
+            FastClassLoader fastClassLoader = (FastClassLoader) targetObject.getClass().getClassLoader();
+            return fastClassLoader.isClosed();
+        }
+        return false;
     }
 }
 

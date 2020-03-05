@@ -2,6 +2,7 @@ package com.fastchar.core;
 
 import com.fastchar.accepter.*;
 import com.fastchar.converters.*;
+import com.fastchar.database.FastDatabaseXml;
 import com.fastchar.database.FastDb;
 import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.interfaces.IFastSecurity;
@@ -52,6 +53,7 @@ public final class FastEngine {
     private final FastLog log = new FastLog();
     private final FastValidators validators = new FastValidators();
     private final FastFindClass findClass = new FastFindClass();
+    private final FastDatabaseXml databaseXml = new FastDatabaseXml();
 
 
     void init(ServletContext servletContext) {
@@ -316,6 +318,9 @@ public final class FastEngine {
      * @return
      */
     public FastProperties getProperties(String fileName) {
+        if (!fileName.endsWith(".properties")) {
+            fileName = fileName + ".properties";
+        }
         return FastChar.getOverrides().singleInstance(getSecurity().MD5_Encrypt(fileName + FastProperties.class.getName()),
                 FastProperties.class).setFile(new File(path.getClassRootPath(), fileName));
     }
@@ -339,6 +344,29 @@ public final class FastEngine {
             return true;
         }
         return false;
+    }
+
+    /**
+     * 获取fast-database.xml操作工具类
+     * @return
+     */
+    public FastDatabaseXml getDatabaseXml() {
+        return databaseXml;
+    }
+
+    /**
+     * 刷新已被释放的类或对象
+     */
+    public void flush() {
+        FastDispatcher.flush();
+        FastEngine.instance().getEntities().flush();
+        FastEngine.instance().getObservable().flush();
+        FastEngine.instance().getOverrides().flush();
+        FastEngine.instance().getInterceptors().flush();
+        FastEngine.instance().getScanner().flush();
+        FastEngine.instance().getValidators().flush();
+        FastEngine.instance().getConverters().flush();
+        FastEngine.instance().getWebs().flush();
     }
 
 }

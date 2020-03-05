@@ -22,11 +22,10 @@ import java.lang.reflect.Field;
 @AFastClassFind("com.alibaba.druid.pool.DruidDataSource")
 public class FastDruidDataSourceProvider implements IFastDataSource {
     private DruidDataSource dataSource = null;
+    private FastDatabaseInfo databaseInfo;
 
     public FastDruidDataSourceProvider() {
-        if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "Druid"));
-        }
+
     }
 
     @Override
@@ -38,6 +37,11 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
             dataSource.setPassword(databaseInfo.getPassword());
             dataSource.setDriverClassName(databaseInfo.getDriver());
             dataSource.setValidationQuery(buildValidationQuery(databaseInfo.toUrl()));
+            this.databaseInfo = databaseInfo;
+
+            if (FastChar.getConstant().isDebug()) {
+                FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "Druid of " + databaseInfo.getName()));
+            }
 
             try {
                 FastDruidConfig druid = FastChar.getConfigs().getDruidConfig();
@@ -80,7 +84,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "Druid"));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "Druid of " + databaseInfo.getName()));
                 }
             }
         } finally {

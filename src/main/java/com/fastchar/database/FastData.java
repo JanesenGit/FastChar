@@ -35,6 +35,9 @@ public class FastData<T extends FastEntity<?>> {
     }
 
     protected void convertValue(FastEntity<?> entity) {
+        if (entity.getTable() == null) {
+            return;
+        }
         List<FastColumnInfo<?>> columns = entity.getTable().getColumns();
         for (FastColumnInfo<?> column : columns) {
             if (FastStringUtils.isNotEmpty(column.getEncrypt())) {
@@ -48,12 +51,20 @@ public class FastData<T extends FastEntity<?>> {
     }
 
     public T selectById(Object... ids) {
+        return selectById(false, ids);
+    }
+
+    public T selectById(boolean cache,Object... ids) {
         try {
             FastSqlInfo sqlInfo = FastSql.getInstance(getDatabaseType()).buildSelectSqlByIds(target, ids);
             if (sqlInfo == null) {
                 return null;
             }
-            FastEntity<?> fastEntity = FastChar.getDb().setDatabase(target.getDatabase()).setLog(sqlInfo.isLog()).selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
+            FastEntity<?> fastEntity = FastChar.getDb()
+                    .setCache(cache)
+                    .setDatabase(target.getDatabase())
+                    .setIgnoreCase(target.isIgnoreCase())
+                    .setLog(sqlInfo.isLog()).selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
             if (fastEntity != null) {
                 T newInstance = (T) FastClassUtils.newInstance(target.getClass());
                 if (newInstance == null) {
@@ -73,9 +84,18 @@ public class FastData<T extends FastEntity<?>> {
     }
 
     public List<T> selectBySql(String sqlStr, Object... params) {
+        return selectBySql(false, sqlStr, params);
+    }
+
+    public List<T> selectBySql(boolean cache,String sqlStr, Object... params) {
         try {
             List<T> list = new ArrayList<>();
-            List<FastEntity<?>> fastEntities = FastChar.getDb().setDatabase(target.getDatabase()).setLog(target.getBoolean("log", true)).select(sqlStr, params);
+            List<FastEntity<?>> fastEntities = FastChar.getDb()
+                    .setCache(cache)
+                    .setDatabase(target.getDatabase())
+                    .setIgnoreCase(target.isIgnoreCase())
+                    .setLog(target.getBoolean("log", true))
+                    .select(sqlStr, params);
             for (FastEntity<?> fastEntity : fastEntities) {
                 T newInstance = (T) FastClassUtils.newInstance(target.getClass());
                 if (newInstance == null) {
@@ -96,8 +116,16 @@ public class FastData<T extends FastEntity<?>> {
     }
 
     public T selectFirstBySql(String sqlStr, Object... params) {
+        return selectFirstBySql(false, sqlStr, params);
+    }
+    public T selectFirstBySql(boolean cache,String sqlStr, Object... params) {
         try {
-            FastEntity<?> fastEntity = FastChar.getDb().setDatabase(target.getDatabase()).setLog(target.getBoolean("log", true)).selectFirst(sqlStr, params);
+            FastEntity<?> fastEntity = FastChar.getDb()
+                    .setCache(cache)
+                    .setDatabase(target.getDatabase())
+                    .setIgnoreCase(target.isIgnoreCase())
+                    .setLog(target.getBoolean("log", true))
+                    .selectFirst(sqlStr, params);
             if (fastEntity != null) {
                 T newInstance = (T) FastClassUtils.newInstance(target.getClass());
                 if (newInstance == null) {
@@ -117,8 +145,16 @@ public class FastData<T extends FastEntity<?>> {
     }
 
     public T selectLastBySql(String sqlStr, Object... params) {
+        return selectLastBySql(false, sqlStr, params);
+    }
+    public T selectLastBySql(boolean cache,String sqlStr, Object... params) {
         try {
-            FastEntity<?> fastEntity = FastChar.getDb().setDatabase(target.getDatabase()).setLog(target.getBoolean("log", true)).selectLast(sqlStr, params);
+            FastEntity<?> fastEntity = FastChar.getDb()
+                    .setCache(cache)
+                    .setDatabase(target.getDatabase())
+                    .setIgnoreCase(target.isIgnoreCase())
+                    .setLog(target.getBoolean("log", true))
+                    .selectLast(sqlStr, params);
             if (fastEntity != null) {
                 T newInstance = (T) FastClassUtils.newInstance(target.getClass());
                 if (newInstance == null) {
@@ -139,9 +175,14 @@ public class FastData<T extends FastEntity<?>> {
 
 
     public FastPage<T> selectBySql(int page, int pageSize, String sqlStr, Object... params) {
+        return selectBySql(false, page, pageSize, sqlStr, params);
+    }
+    public FastPage<T> selectBySql(boolean cache,int page, int pageSize, String sqlStr, Object... params) {
         try {
             FastPage<FastEntity<?>> result = FastChar.getDb()
+                    .setCache(cache)
                     .setDatabase(target.getDatabase())
+                    .setIgnoreCase(target.isIgnoreCase())
                     .setLog(target.getBoolean("log", true))
                     .select(page, pageSize, sqlStr, params);
 
@@ -220,6 +261,7 @@ public class FastData<T extends FastEntity<?>> {
                     .insert(sqlInfo.getSql(), sqlInfo.toParams());
             boolean result = insert > 0;
             if (result) {
+                target.getModified().clear();
                 for (FastColumnInfo<?> primary : target.getPrimaries()) {
                     if (primary.isAutoincrement()) {
                         target.put(primary.getName(), insert);
@@ -316,10 +358,14 @@ public class FastData<T extends FastEntity<?>> {
                 target.setError(FastChar.getLocal().getInfo("Entity_Error3"));
                 return false;
             }
-            return FastChar.getDb()
+            boolean result = FastChar.getDb()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .update(sqlInfo.getSql(), sqlInfo.toParams()) > 0;
+            if (result) {
+                target.getModified().clear();
+            }
+            return result;
         } catch (Exception e) {
             setError(e);
             throw new FastSqlException(e);
@@ -332,10 +378,14 @@ public class FastData<T extends FastEntity<?>> {
             if (sqlInfo == null) {
                 return false;
             }
-            return FastChar.getDb()
+            boolean result = FastChar.getDb()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .update(sqlInfo.getSql(), sqlInfo.toParams()) > 0;
+            if (result) {
+                target.getModified().clear();
+            }
+            return result;
         } catch (Exception e) {
             setError(e);
             throw new FastSqlException(e);

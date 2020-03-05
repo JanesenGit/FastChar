@@ -112,7 +112,7 @@ public class FastType {
         return ORACLE_TYPES.containsKey(type.toUpperCase());
     }
 
-    public static Class getTypeClass(String type) {
+    public static Class<?> getTypeClass(String type) {
         String javaClassName = null;
         if (isMySqlType(type)) {
             javaClassName = MYSQL_TYPES.get(type.toUpperCase());

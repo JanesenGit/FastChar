@@ -78,4 +78,14 @@ public final class FastObservable{
     }
 
 
+    public synchronized void flush() {
+        List<Object> waitRemove = new ArrayList<>();
+        for (Object ob : obs) {
+            if (FastClassUtils.isRelease(ob)) {
+                waitRemove.add(ob);
+            }
+        }
+        obs.removeAll(waitRemove);
+    }
+
 }

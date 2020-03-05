@@ -66,4 +66,16 @@ public class FastConverters {
         return value;
     }
 
+
+    public void flush() {
+        List<Class<? extends IFastParamConverter>> waitRemove = new ArrayList<>();
+        for (Class<? extends IFastParamConverter> paramConverter : paramConverters) {
+            if (FastClassUtils.isRelease(paramConverter)) {
+                waitRemove.add(paramConverter);
+            }
+        }
+        paramConverters.removeAll(waitRemove);
+    }
+
+
 }

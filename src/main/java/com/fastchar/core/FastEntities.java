@@ -6,6 +6,7 @@ import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastEntityException;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
+import net.sf.cglib.reflect.FastClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,7 @@ public final class FastEntities {
      FastEntities() {
     }
 
-    public FastEntities addEntity(Class<? extends FastEntity> targetClass) throws Exception {
+    public FastEntities addEntity(Class<? extends FastEntity<?>> targetClass) throws Exception {
         if (!FastClassUtils.checkNewInstance(targetClass)) {
             return this;
         }
@@ -33,7 +34,7 @@ public final class FastEntities {
 
         EntityInfo entityInfo = new EntityInfo();
         List<FastMethodRead.MethodLine> lineNumber = methodConverter.getMethodLineNumber(targetClass, "getTableName");
-        FastEntity fastEntity = FastClassUtils.newInstance(targetClass);
+        FastEntity<?> fastEntity = FastClassUtils.newInstance(targetClass);
         if (fastEntity == null) {
             return this;
         }
@@ -57,9 +58,9 @@ public final class FastEntities {
 
     private void checkTableExists() throws Exception {
         for (EntityInfo entityInfo : entityInfos) {
-            FastTableInfo tableInfo = FastChar.getDatabases().get(entityInfo.getDatabaseName()).getTableInfo(entityInfo.getTableName());
+            FastTableInfo<?> tableInfo = FastChar.getDatabases().get(entityInfo.getDatabaseName()).getTableInfo(entityInfo.getTableName());
             if (tableInfo == null) {
-                Class<? extends FastEntity> aClass = entityInfo.getTargetClass();
+                Class<? extends FastEntity<?>> aClass = entityInfo.getTargetClass();
                 StackTraceElement stackTraceElement = new StackTraceElement(aClass.getName(),
                         "getTableName", aClass.getSimpleName() + ".java",
                         entityInfo.getMethodLine().getLastLine());
@@ -70,7 +71,7 @@ public final class FastEntities {
     }
 
 
-    public EntityInfo getEntityInfo(Class<? extends FastEntity> targetClass) {
+    public EntityInfo getEntityInfo(Class<? extends FastEntity<?>> targetClass) {
         for (EntityInfo entityInfo : entityInfos) {
             if (entityInfo.getTargetClass() == targetClass) {
                 return entityInfo;
@@ -95,11 +96,22 @@ public final class FastEntities {
     }
 
 
+    public void flush() {
+        List<EntityInfo> waitRemove = new ArrayList<>();
+        for (EntityInfo entityInfo : entityInfos) {
+            if (FastClassUtils.isRelease(entityInfo.getTargetClass())) {
+                waitRemove.add(entityInfo);
+            }
+        }
+        entityInfos.removeAll(waitRemove);
+    }
+
+
     public static class EntityInfo {
         private String databaseName;
         private String tableName;
         private FastMethodRead.MethodLine methodLine;
-        private Class<? extends FastEntity> targetClass;
+        private Class<? extends FastEntity<?>> targetClass;
 
         public String getTableName() {
             return tableName;
@@ -119,11 +131,11 @@ public final class FastEntities {
             return this;
         }
 
-        public Class<? extends FastEntity> getTargetClass() {
+        public Class<? extends FastEntity<?>> getTargetClass() {
             return targetClass;
         }
 
-        public EntityInfo setTargetClass(Class<? extends FastEntity> targetClass) {
+        public EntityInfo setTargetClass(Class<? extends FastEntity<?>> targetClass) {
             this.targetClass = targetClass;
             return this;
         }

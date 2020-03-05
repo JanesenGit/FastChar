@@ -1,6 +1,8 @@
 package com.fastchar.extend.fastjson;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson.support.config.FastJsonConfig;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.interfaces.IFastJson;
 
@@ -13,7 +15,10 @@ import java.lang.reflect.Type;
 public class FastJsonProvider implements IFastJson {
     @Override
     public String toJson(Object value) {
-        return JSON.toJSONString(value);
+        return JSON.toJSONString(value,
+                SerializerFeature.DisableCircularReferenceDetect,
+                SerializerFeature.WriteDateUseDateFormat,
+                SerializerFeature.IgnoreNonFieldGetter);
     }
 
     @Override

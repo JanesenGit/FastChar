@@ -16,12 +16,14 @@ import com.fastchar.utils.FastStringUtils;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * 数据库sql操作
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class FastDb {
+    private static final ConcurrentSkipListSet<String> CACHE_TABLE = new ConcurrentSkipListSet<>();
     private static final ThreadLocal<FastTransaction> TRANSACTION_THREAD_LOCAL = new ThreadLocal<FastTransaction>();
 
     public static boolean isTransaction() {
@@ -38,18 +40,26 @@ public class FastDb {
 
     private boolean log = true;
     private boolean useCache = true;
+    private boolean cache;
     private String database;
     private long inTime;
     private long firstBuildTime;
     private long lastBuildTime;
     private boolean ignoreCase = false;
+    private FastDatabaseInfo databaseInfo;
 
     private FastDatabaseInfo getDatabaseInfo() {
-        return FastChar.getDatabases().get(database);
+        if (databaseInfo == null) {
+            databaseInfo = FastChar.getDatabases().get(database);
+        }
+        return databaseInfo;
     }
 
     public Connection getConnection() throws SQLException {
         FastDatabaseInfo databaseInfo = getDatabaseInfo();
+        if (databaseInfo == null) {
+            return null;
+        }
         DataSource dataSource = databaseInfo.getDataSource();
         if (dataSource == null) {
             return null;
@@ -81,7 +91,9 @@ public class FastDb {
     }
 
     private String buildCacheTagBySql(String sqlStr) {
-        return buildCacheTag(getDatabaseInfo().getAllTables(sqlStr).toArray(new String[]{}));
+        List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
+        CACHE_TABLE.addAll(allTables);
+        return buildCacheTag(allTables.toArray(new String[]{}));
     }
 
 
@@ -96,7 +108,7 @@ public class FastDb {
         String cacheKey = null;
         String cacheTag = null;
         inTime = System.currentTimeMillis();
-        if (getDatabaseInfo().isCache() && isUseCache()) {
+        if ((getDatabaseInfo().isCache() || isCache()) && isUseCache()) {
             cacheKey = buildCacheKeyBySql(sqlStr, params);
             cacheTag = buildCacheTagBySql(sqlStr);
             IFastCache iFastCacheProvider = FastChar.getCache();
@@ -128,7 +140,7 @@ public class FastDb {
             }
             resultSet = preparedStatement.executeQuery();
             List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(this.ignoreCase).getListResult();
-            if (getDatabaseInfo().isCache() && isUseCache()) {
+            if ((getDatabaseInfo().isCache() || isCache()) && isUseCache()) {
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 iFastCacheProvider.set(cacheTag, cacheKey, listResult);
             }
@@ -191,7 +203,7 @@ public class FastDb {
         inTime = System.currentTimeMillis();
         String cacheKey = null;
         String cacheTag = null;
-        if (getDatabaseInfo().isCache() && isUseCache()) {
+        if ((getDatabaseInfo().isCache() || isCache()) && isUseCache()) {
             cacheKey = buildCacheKeyBySql(sqlStr, params);
             cacheTag = buildCacheTagBySql(sqlStr);
             IFastCache iFastCacheProvider = FastChar.getCache();
@@ -203,7 +215,7 @@ public class FastDb {
                 }
             }
         }
-
+        String type = getDatabaseInfo().getType();
 
         Connection connection = null;
         PreparedStatement preparedStatement = null;
@@ -224,7 +236,7 @@ public class FastDb {
             }
             resultSet = preparedStatement.executeQuery();
             FastEntity<?> firstResult = new FastResultSet(resultSet).setIgnoreCase(this.ignoreCase).getFirstResult();
-            if (getDatabaseInfo().isCache() && isUseCache()) {
+            if ((getDatabaseInfo().isCache() || isCache()) && isUseCache()) {
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 iFastCacheProvider.set(cacheTag, cacheKey, firstResult);
             }
@@ -247,7 +259,7 @@ public class FastDb {
         inTime = System.currentTimeMillis();
         String cacheKey = null;
         String cacheTag = null;
-        if (getDatabaseInfo().isCache() && isUseCache()) {
+        if ((getDatabaseInfo().isCache() || isCache()) && isUseCache()) {
             cacheKey = buildCacheKeyBySql(sqlStr, params);
             cacheTag = buildCacheTagBySql(sqlStr);
             IFastCache iFastCacheProvider = FastChar.getCache();
@@ -279,7 +291,7 @@ public class FastDb {
             }
             resultSet = preparedStatement.executeQuery();
             FastEntity<?> lastResult = new FastResultSet(resultSet).setIgnoreCase(this.ignoreCase).getLastResult();
-            if (getDatabaseInfo().isCache() && isUseCache()) {
+            if ((getDatabaseInfo().isCache() || isCache()) && isUseCache()) {
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 iFastCacheProvider.set(cacheTag, cacheKey, lastResult);
             }
@@ -300,13 +312,16 @@ public class FastDb {
      */
     public int update(String sqlStr, Object... params) throws Exception {
         inTime = System.currentTimeMillis();
-        if (getDatabaseInfo().isCache() && isUseCache()) {
+        if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-            IFastCache iFastCacheProvider = FastChar.getCache();
             for (String table : allTables) {
-                Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                for (String tag : tags) {
-                    iFastCacheProvider.delete(tag);
+                if (CACHE_TABLE.contains(table)) {
+                    IFastCache iFastCacheProvider = FastChar.getCache();
+                    Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
+                    for (String tag : tags) {
+                        iFastCacheProvider.delete(tag);
+                    }
+                    CACHE_TABLE.remove(table);
                 }
             }
         }
@@ -347,13 +362,16 @@ public class FastDb {
      */
     public int insert(String sqlStr, Object... params) throws Exception {
         inTime = System.currentTimeMillis();
-        if (getDatabaseInfo().isCache() && isUseCache()) {
+        if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-            IFastCache iFastCacheProvider = FastChar.getCache();
             for (String table : allTables) {
-                Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                for (String tag : tags) {
-                    iFastCacheProvider.delete(tag);
+                if (CACHE_TABLE.contains(table)) {
+                    IFastCache iFastCacheProvider = FastChar.getCache();
+                    Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
+                    for (String tag : tags) {
+                        iFastCacheProvider.delete(tag);
+                    }
+                    CACHE_TABLE.remove(table);
                 }
             }
         }
@@ -432,18 +450,22 @@ public class FastDb {
      */
     public int[] batch(List<String> sqlList, int batchSize) throws Exception {
         inTime = System.currentTimeMillis();
-        if (getDatabaseInfo().isCache() && isUseCache()) {
+        if (isUseCache()) {
             for (String sqlStr : sqlList) {
                 List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-                IFastCache iFastCacheProvider = FastChar.getCache();
                 for (String table : allTables) {
-                    Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                    for (String tag : tags) {
-                        iFastCacheProvider.delete(tag);
+                    if (CACHE_TABLE.contains(table)) {
+                        IFastCache iFastCacheProvider = FastChar.getCache();
+                        Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
+                        for (String tag : tags) {
+                            iFastCacheProvider.delete(tag);
+                        }
+                        CACHE_TABLE.remove(table);
                     }
                 }
             }
         }
+
         Connection connection = null;
         Statement statement = null;
         try {
@@ -490,13 +512,16 @@ public class FastDb {
      */
     public int[] batch(String sqlStr, List<Object[]> params, int batchSize) throws Exception {
         inTime = System.currentTimeMillis();
-        if (getDatabaseInfo().isCache() && isUseCache()) {
+        if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-            IFastCache iFastCacheProvider = FastChar.getCache();
             for (String table : allTables) {
-                Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                for (String tag : tags) {
-                    iFastCacheProvider.delete(tag);
+                if (CACHE_TABLE.contains(table)) {
+                    IFastCache iFastCacheProvider = FastChar.getCache();
+                    Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
+                    for (String tag : tags) {
+                        iFastCacheProvider.delete(tag);
+                    }
+                    CACHE_TABLE.remove(table);
                 }
             }
         }
@@ -972,5 +997,18 @@ public class FastDb {
     public FastDb setIgnoreCase(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
         return this;
+    }
+
+    public boolean isCache() {
+        return cache;
+    }
+
+    public FastDb setCache(boolean cache) {
+        this.cache = cache;
+        return this;
+    }
+
+    public void setDatabaseInfo(FastDatabaseInfo databaseInfo) {
+        this.databaseInfo = databaseInfo;
     }
 }

@@ -13,26 +13,47 @@ import java.util.Map;
 @SuppressWarnings("unchecked")
 public final class FastMapWrap {
 
-    public static FastMapWrap newInstance(Map map) {
+    public static FastMapWrap newInstance(Map<?,?> map) {
         return FastChar.getOverrides().newInstance(FastMapWrap.class).setMap(map);
     }
 
-    private Map map;
+    private Map<?,?> map;
+    private boolean ignoreCase;
+
     protected FastMapWrap() {
 
     }
-    public Map getMap() {
+    public Map<?,?> getMap() {
         return map;
     }
 
-    public FastMapWrap setMap(Map map) {
+    public FastMapWrap setMap(Map<?,?> map) {
         this.map = map;
         return this;
     }
 
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
+
+    public FastMapWrap setIgnoreCase(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
+        return this;
+    }
 
     public Object get(String attr) {
-        return map.get(attr);
+        return map.get(getRealAttr(attr));
+    }
+
+    private Object getRealAttr(String attr) {
+        if (ignoreCase) {
+            for (Object s : map.keySet()) {
+                if (s != null && s.toString().equalsIgnoreCase(attr)) {
+                    return s;
+                }
+            }
+        }
+        return attr;
     }
 
 
@@ -318,7 +339,7 @@ public final class FastMapWrap {
      * @param <T> 继承Enum的泛型类
      * @return 枚举值
      */
-    public <T extends Enum> T getEnum(String attr, Class<T> targetClass) {
+    public <T extends Enum<?>> T getEnum(String attr, Class<T> targetClass) {
         return getEnum(attr, targetClass, null);
     }
 
@@ -330,7 +351,7 @@ public final class FastMapWrap {
      * @param <T> 继承Enum的泛型类
      * @return 枚举值
      */
-    public <T extends Enum> T getEnum(String attr, Class<T> targetClass, Enum defaultEnum) {
+    public <T extends Enum<?>> T getEnum(String attr, Class<T> targetClass, Enum<?> defaultEnum) {
         return FastEnumUtils.formatToEnum(targetClass, getString(attr), defaultEnum);
     }
 

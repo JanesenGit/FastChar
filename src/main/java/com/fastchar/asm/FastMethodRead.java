@@ -31,7 +31,7 @@ public class FastMethodRead {
         final Type[] genericParameterTypes = method.getGenericParameterTypes();
         final Annotation[][] parameterAnnotations = method.getParameterAnnotations();
         String classPath = className.replace('.', '/') + ".class";
-        InputStream resourceAsStream = FastMethodRead.class.getClassLoader().getResourceAsStream(classPath);
+        InputStream resourceAsStream = method.getDeclaringClass().getClassLoader().getResourceAsStream(classPath);
         if (resourceAsStream == null) {
             return parameters;
         }
@@ -97,7 +97,7 @@ public class FastMethodRead {
         final List<MethodLine> numbers = new ArrayList<MethodLine>();
         String className = targetClass.getName();
         String classPath = className.replace('.', '/') + ".class";
-        InputStream resourceAsStream = FastMethodRead.class.getClassLoader().getResourceAsStream(classPath);
+        InputStream resourceAsStream = targetClass.getClassLoader().getResourceAsStream(classPath);
         if (resourceAsStream == null) {
             numbers.add(new MethodLine().setFirstLine(1).setLastLine(1));
             return numbers;

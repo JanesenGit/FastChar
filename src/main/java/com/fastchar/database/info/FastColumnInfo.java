@@ -221,12 +221,27 @@ public class FastColumnInfo<T> extends FastBaseInfo {
     }
 
 
+    public String getModifyTick() {
+        String tick = this.name
+                + this.type
+                + this.length
+                + this.nullable
+                + this.autoincrement
+                + this.index
+                + this.charset
+                + this.primary
+                + this.value
+                + this.comment;
+        return FastChar.getSecurity().MD5_Encrypt(tick);
+    }
+
+
     /**
      * 合并
      *
      * @param info
      */
-    public FastColumnInfo merge(FastColumnInfo info) {
+    public FastColumnInfo<?> merge(FastColumnInfo<?> info) {
         for (Object key : info.keySet()) {
             this.set(String.valueOf(key), info.get(key));
         }
@@ -240,14 +255,16 @@ public class FastColumnInfo<T> extends FastBaseInfo {
     }
 
 
-    public FastColumnInfo copy() {
-        FastColumnInfo fastColumnInfo = newInstance();
+    public FastColumnInfo<?> copy() {
+        FastColumnInfo<?> fastColumnInfo = newInstance();
         for (Object key : keySet()) {
             fastColumnInfo.set(String.valueOf(key), get(key));
         }
         fastColumnInfo.setFileName(this.getFileName());
         fastColumnInfo.setLineNumber(this.getLineNumber());
         fastColumnInfo.setTagName(this.getTagName());
+        fastColumnInfo.fromProperty();
         return fastColumnInfo;
     }
+
 }

@@ -6,8 +6,6 @@ import java.io.*;
 import java.nio.charset.Charset;
 
 public class FastOutPrintStream extends PrintStream {
-    static final Object PrintLock = new Object();
-
     /**
      * Creates a new print stream.  This stream will not flush automatically.
      *
@@ -242,9 +240,7 @@ public class FastOutPrintStream extends PrintStream {
         if (!FastChar.getConstant().isSystemOutPrint()) {
             return;
         }
-        synchronized (PrintLock) {
-            super.print(s);
-        }
+        super.print(s);
     }
 
 }

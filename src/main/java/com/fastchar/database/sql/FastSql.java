@@ -5,6 +5,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.interfaces.IFastColumnSecurity;
 import com.fastchar.utils.FastArrayUtils;
@@ -32,7 +33,11 @@ public abstract class FastSql {
 
         List<String> columns = new ArrayList<>();
         List<String> valueColumns = new ArrayList<>();
-        List<FastColumnInfo<?>> tableColumns = entity.getTable().getColumns();
+        FastTableInfo<?> table = entity.getTable();
+        if (table == null) {
+            return null;
+        }
+        List<FastColumnInfo<?>> tableColumns = table.getColumns();
         for (FastColumnInfo<?> column : tableColumns) {
             if (column.isPrimary()) {
                 continue;
@@ -126,11 +131,6 @@ public abstract class FastSql {
         if (entity == null) {
             return null;
         }
-        FastEntity<?> fastEntity = FastChar.getOverrides().newInstance(entity.getClass());
-        entity.markDefault();
-        entity.setDefaultValue();
-        entity.unmarkDefault();
-        fastEntity.putAll(entity);
 
         List<String> columns = new ArrayList<>();
         List<Object> values = new ArrayList<>();
@@ -142,7 +142,7 @@ public abstract class FastSql {
                     continue;
                 }
                 columns.add(key + " = ? ");
-                Object columnValue = getColumnValue(fastEntity, columnInfo);
+                Object columnValue = getColumnValue(entity, columnInfo);
                 values.add(columnValue);
             }
 
@@ -150,7 +150,6 @@ public abstract class FastSql {
         if (values.size() == 0) {
             return null;
         }
-        entity.getModified().clear();
         StringBuilder sqlBuilder = new StringBuilder("update " + entity.getTableName()
                 + " set " + FastStringUtils.join(columns, ",")
                 + " where 1=1 ");
@@ -210,7 +209,6 @@ public abstract class FastSql {
         if (values.size() == 0) {
             return null;
         }
-        entity.getModified().clear();
         StringBuilder sqlBuilder = new StringBuilder("update " + entity.getTableName()
                 + " set " + FastStringUtils.join(columns, ",")
                 + " where 1=1 ");
@@ -378,34 +376,34 @@ public abstract class FastSql {
         int tokenIndex = 0;
         int[] position = new int[]{-1, -1};
         StringBuilder stringBuilder = new StringBuilder();
-        int beginGroupChar = 0, endGroupChar = 0;
+        int beginGroupCharCount = 0, endGroupCharCount = 0;
         for (int i = 0; i < sql.length(); i++) {
             char chr = sql.charAt(i);
             if (chr == ' ') {
+                if (tokenIndex < tokens.length) {
+                    if (stringBuilder.toString().equalsIgnoreCase(tokens[tokenIndex])) {
+                        if (position[0] == -1) {
+                            position[0] = i - 1 - tokens[tokenIndex].length();
+                        }
+                        tokenIndex++;
+                    }
+                }
                 if (!FastArrayUtils.contains(endToken, stringBuilder.toString().toLowerCase().trim())) {
                     stringBuilder.delete(0, stringBuilder.length());
                     continue;
                 }
             }
             if (chr == '(') {
-                beginGroupChar++;
+                beginGroupCharCount++;
             } else if (chr == ')') {
-                endGroupChar++;
+                endGroupCharCount++;
             }
-            if (beginGroupChar != endGroupChar) {
+            if (beginGroupCharCount != endGroupCharCount) {
                 stringBuilder.delete(0, stringBuilder.length());
                 continue;
             }
             stringBuilder.append(sql.charAt(i));
-            if (tokenIndex < tokens.length) {
-                if (stringBuilder.toString().equalsIgnoreCase(tokens[tokenIndex])) {
-                    if (position[0] == -1) {
-                        position[0] = i - tokens[tokenIndex].length();
-                    }
-                    stringBuilder.delete(0, stringBuilder.length());
-                    tokenIndex++;
-                }
-            }
+
             if (FastArrayUtils.contains(endToken, stringBuilder.toString().toLowerCase())) {
                 position[1] = i - position[0] - stringBuilder.length();
                 break;
@@ -417,6 +415,7 @@ public abstract class FastSql {
         return position;
     }
 
+    //从主sql中获取token的位置
     protected String getTokenValue(String token, String sql) {
         StringBuilder stringBuilder = new StringBuilder();
         int beginGroupChar = 0, endGroupChar = 0;
@@ -634,6 +633,5 @@ public abstract class FastSql {
     public String getType() {
         return type;
     }
-
 
 }

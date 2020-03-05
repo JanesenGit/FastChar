@@ -16,12 +16,7 @@ import java.beans.PropertyVetoException;
 @AFastClassFind("com.mchange.v2.c3p0.ComboPooledDataSource")
 public class FastC3p0DataSourceProvider implements IFastDataSource {
     private ComboPooledDataSource dataSource = null;
-
-    public FastC3p0DataSourceProvider() {
-        if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "C3P0"));
-        }
-    }
+    private FastDatabaseInfo databaseInfo;
 
     @Override
     public DataSource getDataSource(FastDatabaseInfo databaseInfo) {
@@ -49,6 +44,12 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
                 dataSource.setDebugUnreturnedConnectionStackTraces(c3p0Config.isDebugUnreturnedConnectionStackTraces());
                 dataSource.setTestConnectionOnCheckin(c3p0Config.isTestConnectionOnCheckin());
                 dataSource.setTestConnectionOnCheckout(c3p0Config.isTestConnectionOnCheckout());
+                this.databaseInfo = databaseInfo;
+
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "C3P0 of " + databaseInfo.getName()));
+                }
+
             } catch (PropertyVetoException e) {
                 e.printStackTrace();
             }
@@ -74,7 +75,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "C3P0"));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "C3P0 of " + databaseInfo.getName()));
                 }
             }
         } finally {

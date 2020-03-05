@@ -4,6 +4,9 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
     private final String FastChar_Error1 = "{0}启动成功！耗时：{1}秒！";
 
+    private final String Date_Error1 = "今天";
+    private final String Date_Error2 = "昨天";
+    private final String Date_Error3 = "前天";
 
     //路由相关错误
     private final String Route_Error1 = "路由{0}没有响应结果！";
@@ -30,6 +33,8 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Scanner_Error1 = "加载{0}中……";
     private final String Scanner_Error2 = "加载{0}成功!";
     private final String Scanner_Error3 = "跳过{0}";
+    private final String Scanner_Error4 = "解压{0}中……";
+    private final String Scanner_Error5 = "解压{0}成功!";
 
     //数据库相关错误
     private final String Db_Error1 = "数据库名称{0}已存在！";
@@ -78,6 +83,8 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String File_Error6 = "上传文件保存的本地服务器路径没有权限写入！";
     private final String File_Error7 = "文件{0}不存在！";
     private final String File_Error8 = "文件{0}不可为文件夹！";
+    private final String File_Error9 = "文件{0}无法创建！";
+    private final String File_Error10 = "文件{0}无法没有操作权限！";
 
     //provider 相关错误
     private final String Provider_Error1 = "无法获得{0}对象！";
@@ -105,5 +112,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
     private final String Velocity_Error1 = "文件不存在于WebRoot目录下！{0}";
 
+
+    private final String Ticket_Error1 = "必读！此文件为FastChar配置文件！请勿轻易的删除！！！";
 
 }

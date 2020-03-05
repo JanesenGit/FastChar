@@ -1,10 +1,15 @@
 package com.fastchar.core;
 
+import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
+import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastDatabaseException;
 import com.fastchar.exception.FastDatabaseInfoException;
+import com.fastchar.interfaces.IFastDatabaseOperate;
+import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -20,6 +25,10 @@ public final class FastDatabases {
     private static final String SQL_SERVER_REG = "jdbc:sqlserver://(.*):(\\d{2,4});databaseName=([^?&;=]*)";
     private static final String ORACLE_REG = "jdbc:oracle:thin:@[/]{0,2}(.*):(\\d{2,4})[:/]([^?&;=]*)";
     private List<FastDatabaseInfo> databaseInfos = new ArrayList<>();
+
+    private List<String> modifyTicket;
+    private boolean firstTicket;
+
 
     FastDatabases() {
     }
@@ -156,6 +165,159 @@ public final class FastDatabases {
             return "oracle";
         }
         return null;
+    }
+
+
+
+
+    /**
+     * 刷新并同步数据库
+     * @throws Exception 异常信息
+     */
+    public synchronized void flushDatabase() throws Exception {
+        restoreTicket();
+        for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
+            IFastDatabaseOperate databaseOperate = databaseInfo.getOperate();
+            if (databaseOperate == null) {
+                continue;
+            }
+
+            //必要验证【重要】
+            List<FastTableInfo<?>> tables = new ArrayList<>(databaseInfo.getTables());
+            for (FastTableInfo<?> table : tables) {
+                for (FastColumnInfo<?> column : table.getColumns()) {
+                    if (column.isFromXml()) {
+                        column.validate();
+                    }
+                }
+                if (table.isFromXml()) {
+                    table.validate();
+                }
+            }
+
+            if (FastChar.getConstant().isSyncDatabaseXml()) {
+                if (databaseInfo.getBoolean("enable", true) && databaseInfo.isFromXml()) {
+                    databaseOperate.createDatabase(databaseInfo);
+
+                    for (FastTableInfo<?> table : databaseInfo.getTables()) {
+                        if (table.getBoolean("enable", true) && table.isFromXml()) {
+                            if (!databaseOperate.checkTableExists(databaseInfo, table)) {
+                                databaseOperate.createTable(databaseInfo, table);
+                                removeTicket(databaseInfo.getName(), table.getName());
+                            }
+                            for (FastColumnInfo<?> column : table.getColumns()) {
+                                if (column.getBoolean("enable", true) && table.isFromXml()) {
+                                    if (databaseOperate.checkColumnExists(databaseInfo, table, column)) {
+                                        if (checkIsModified(databaseInfo.getName(), table.getName(), column)) {
+                                            databaseOperate.alterColumn(databaseInfo, table, column);
+                                        }
+                                        continue;
+                                    }
+                                    databaseOperate.addColumn(databaseInfo, table, column);
+                                    checkIsModified(databaseInfo.getName(), table.getName(), column);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            databaseOperate.fetchDatabaseInfo(databaseInfo);
+        }
+        saveTicket();
+        for (FastDatabaseInfo fastDatabaseInfo : FastChar.getDatabases().getAll()) {
+            fastDatabaseInfo.tableToMap();
+        }
+        if (FastChar.getDatabases().getAll().size() > 0) {
+            FastChar.getObservable().notifyObservers("onDatabaseFinish");
+        }
+    }
+
+
+    private boolean checkIsModified(String databaseName, String tableName, FastColumnInfo<?> columnInfo) {
+        if (modifyTicket == null) {
+            return false;
+        }
+        String key = FastChar.getSecurity().MD5_Encrypt(databaseName)
+                + "@" + FastChar.getSecurity().MD5_Encrypt(tableName)
+                + "@" + FastChar.getSecurity().MD5_Encrypt(columnInfo.getName());
+
+        String value = columnInfo.getModifyTick();
+        boolean hasModified = true;
+        boolean hasAdded = false;
+        try {
+            if (!firstTicket) {
+                for (int i = 0; i < modifyTicket.size(); i++) {
+                    String string = modifyTicket.get(i);
+                    if (string.startsWith(key)) {
+                        hasAdded = true;
+                        if (string.equals(key + "@" + value)) {
+                            hasModified = false;
+                        } else {
+                            hasModified = true;
+                            modifyTicket.set(i, key + "@" + value);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (!hasAdded) {
+                modifyTicket.add(key + "@" + value);
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        return hasModified;
+    }
+
+
+    private void restoreTicket() {
+        try {
+            File file = new File(FastChar.getPath().getWebInfoPath(), ".fast_database");
+            if (!file.exists()) {
+                firstTicket = true;
+                if (!file.createNewFile()) {
+                    if (FastChar.getConstant().isDebug()) {
+                        FastChar.getLog().error(FastChar.getLocal().getInfo("File_Error9", file.getAbsolutePath()));
+                    }
+                }
+            } else {
+                firstTicket = false;
+            }
+            if (modifyTicket != null) {
+                modifyTicket.clear();
+            }
+            modifyTicket = FastFileUtils.readLines(file);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void saveTicket() {
+        try {
+            if (modifyTicket != null) {
+                if (firstTicket) {
+                    modifyTicket.add(0, FastChar.getLocal().getInfo("Ticket_Error1"));
+                }
+                File file = new File(FastChar.getPath().getWebInfoPath(), ".fast_database");
+                FastFileUtils.writeLines(file, modifyTicket);
+                modifyTicket.clear();
+                firstTicket = false;
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+
+    private void removeTicket(String databaseName, String tableName) {
+        String key = FastChar.getSecurity().MD5_Encrypt(databaseName)
+                + "@" + FastChar.getSecurity().MD5_Encrypt(tableName);
+        List<String> waitRemove = new ArrayList<>();
+        for (String string : modifyTicket) {
+            if (string.startsWith(key)) {
+                waitRemove.add(string);
+            }
+        }
+        modifyTicket.removeAll(waitRemove);
     }
 
 

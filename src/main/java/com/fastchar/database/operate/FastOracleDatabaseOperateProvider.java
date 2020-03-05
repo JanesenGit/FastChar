@@ -2,7 +2,10 @@ package com.fastchar.database.operate;
 
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
-import com.fastchar.database.*;
+import com.fastchar.database.FastDb;
+import com.fastchar.database.FastResultSet;
+import com.fastchar.database.FastScriptRunner;
+import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
@@ -17,16 +20,13 @@ import java.io.FileReader;
 import java.sql.*;
 import java.util.*;
 
-/**
- * MySql数据库操作
- */
-public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
+public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
 
     public static boolean isOverride(Object data) {
         if (data == null) {
             return false;
         }
-        return data.toString().equalsIgnoreCase("mysql");
+        return data.toString().equalsIgnoreCase("oracle");
     }
 
     private Set<String> tables = null;
@@ -46,7 +46,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             String userName = dmd.getUserName();
             databaseInfo.setUser(userName.split("@")[0]);
             databaseInfo.setHost(userName.split("@")[1]);
-            databaseInfo.setType("mysql");
+            databaseInfo.setType("oracle");
             databaseInfo.setName(connection.getCatalog());
             databaseInfo.setUrl(dmd.getURL());
 
@@ -66,9 +66,6 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                 List<FastEntity<?>> primaryKeys = new FastResultSet(keyRs).setIgnoreCase(true).getListResult();
                 for (FastEntity<?> primaryKey : primaryKeys) {
                     String column_name = primaryKey.getString("column_name");
-                    if (FastStringUtils.isEmpty(column_name)) {
-                        continue;
-                    }
                     FastColumnInfo<?> columnInfo = tableInfo.getColumnInfo(column_name);
                     if (columnInfo == null) {
                         columnInfo = FastColumnInfo.newInstance();
@@ -88,6 +85,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                     columnsRs = statement.executeQuery();
                     ResultSetMetaData data = columnsRs.getMetaData();
                     for (int i = 1; i < data.getColumnCount() + 1; i++) {
+
                         String columnName = data.getColumnName(i);
                         String type = data.getColumnTypeName(i).toLowerCase();
                         int displaySize = data.getColumnDisplaySize(i);
@@ -107,6 +105,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                             columnInfo = FastColumnInfo.newInstance();
                             columnInfo.setName(columnName);
                             columnInfo.setType(type);
+
                             columnInfo.setAutoincrement(String.valueOf(isAutoIncrement));
                             if (nullable == ResultSetMetaData.columnNoNulls) {
                                 columnInfo.setNullable("not null");
@@ -116,14 +115,17 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                             String index = getColumnIndex(databaseInfo.getName(), tableInfo.getName(), columnName);
                             columnInfo.setIndex(formatIndex(index));
                             columnInfo.fromProperty();
+
                             tableInfo.getColumns().add(columnInfo);
                         }
                     }
                 } finally {
                     fastDb.close(statement, columnsRs);
                 }
+
                 tableInfo.fromProperty();
             }
+
             databaseInfo.fromProperty();
         } finally {
             fastDb.close(connection, resultSet);
@@ -161,10 +163,9 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                 String databaseProductName = dmd.getDatabaseProductName();
                 databaseInfo.setProduct(databaseProductName);
                 databaseInfo.setVersion(dmd.getDatabaseProductVersion());
-                resultSet = dmd.getTables(null, null, null, new String[]{"table", "TABLE"});
-                List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
-                for (FastEntity<?> fastEntity : listResult) {
-                    String tableName = fastEntity.getString("table_name");
+                resultSet = dmd.getTables(null, null, null, new String[]{"TABLE"});
+                while (resultSet.next()) {
+                    String tableName = resultSet.getString("TABLE_NAME");
                     tables.add(tableName);
                 }
             }
@@ -454,7 +455,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
     }
 
     private String getType(FastColumnInfo<?> columnInfo) {
-        return FastType.convertType("mysql", columnInfo.getType());
+        return FastType.convertType("oracle", columnInfo.getType());
     }
 
 
@@ -472,6 +473,5 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         }
         return "(155)";
     }
-
 
 }

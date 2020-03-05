@@ -19,19 +19,19 @@ public class FastEntityParamConverter implements IFastParamConverter {
     public Object convertValue(FastAction action, FastParameter parameter, FastHandler handler) throws Exception {
         Object value = null;
         if (FastEntity.class.isAssignableFrom(parameter.getType())) {
-            value = action.getParamToEntity(parameter.getName(), (Class<? extends FastEntity>) parameter.getType());
+            value = action.getParamToEntity(parameter.getName(), (Class<? extends FastEntity<?>>) parameter.getType());
             handler.setCode(1);
         } else if (FastEntity[].class.isAssignableFrom(parameter.getType())) {
-            value = action.getParamToEntityArray(parameter.getName(),(Class<? extends FastEntity>) parameter.getType().getComponentType());
+            value = action.getParamToEntityArray(parameter.getName(),(Class<? extends FastEntity<?>>) parameter.getType().getComponentType());
             handler.setCode(1);
         }else if (Collection.class.isAssignableFrom(parameter.getType())) {
             if (parameter.getParameterizedType() instanceof ParameterizedType) {
                 ParameterizedType parameterizedType = (ParameterizedType) parameter.getParameterizedType();
                 Class<?> actualTypeArgument = (Class<?>) parameterizedType.getActualTypeArguments()[0];
                 if (FastEntity.class.isAssignableFrom(actualTypeArgument)) {
-                    Collection collection = FastTypeHelper.getCollectionInstance(parameter.getType());
+                    Collection<Object> collection = FastTypeHelper.getCollectionInstance(parameter.getType());
                     if (collection != null) {
-                        Object[] paramToEntityArray = action.getParamToEntityArray(parameter.getName(),(Class<? extends FastEntity>) actualTypeArgument);
+                        Object[] paramToEntityArray = action.getParamToEntityArray(parameter.getName(),(Class<? extends FastEntity<?>>) actualTypeArgument);
                         collection.addAll(Arrays.asList(paramToEntityArray));
                         value = collection;
                     }

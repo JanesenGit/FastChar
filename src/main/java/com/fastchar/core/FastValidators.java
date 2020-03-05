@@ -1,6 +1,7 @@
 package com.fastchar.core;
 
 import com.fastchar.annotation.AFastPriority;
+import com.fastchar.interfaces.IFastScannerAccepter;
 import com.fastchar.interfaces.IFastValidator;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.validators.FastRegularValidator;
@@ -75,6 +76,16 @@ public final class FastValidators {
             }
         }
         return keys;
+    }
+
+    public void flush() {
+        List<Class<? extends IFastValidator>> waitRemove = new ArrayList<>();
+        for (Class<? extends IFastValidator> validatorClass : validatorClasses) {
+            if (FastClassUtils.isRelease(validatorClass)) {
+                waitRemove.add(validatorClass);
+            }
+        }
+        validatorClasses.removeAll(waitRemove);
     }
 
 

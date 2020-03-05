@@ -10,7 +10,7 @@ import java.util.List;
  * FastAction插件
  */
 public final class FastActions {
-    private Class<? extends FastOut> defaultOut;
+    private Class<? extends FastOut<?>> defaultOut;
     private List<String> excludeUrls = new ArrayList<>();//排除拦截url
     private boolean excludeServlet = true;//排除拦截servlet
 
@@ -30,19 +30,19 @@ public final class FastActions {
         return this;
     }
 
-    public Class<? extends FastOut> getDefaultOut() {
+    public Class<? extends FastOut<?>> getDefaultOut() {
         return defaultOut;
     }
 
-    public FastActions setDefaultOut(Class<? extends FastOut> defaultOut) {
+    public FastActions setDefaultOut(Class<? extends FastOut<?>> defaultOut) {
         this.defaultOut = defaultOut;
         return this;
     }
 
     /**
      * 排除路径，例如：/druid/*,/user/servlet.action
-     * @param urlPatterns
-     * @return
+     * @param urlPatterns url匹配值
+     * @return 当前对象
      */
     public FastActions addExcludeUrls(String... urlPatterns) {
         this.excludeUrls.addAll(Arrays.asList(urlPatterns));

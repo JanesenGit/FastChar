@@ -111,12 +111,11 @@ public final class FastRequestLog {
                 }
 
                 if (FastChar.getConstant().isLogRemoteAddress()) {
-                    printRequestMap.put("RemoteAddress", action.getRemoveIp());
+                    printRequestMap.put("RemoteAddress", action.getRemoteIp());
                 }
                 printRequestMap.put("InTime", simpleDateFormat.format(inTime));
 
-
-                FastOut fastOut = action.getFastOut();
+                FastOut<?> fastOut = action.getFastOut();
                 LinkedHashMap<String, String> printResponseMap = new LinkedHashMap<>();
 
                 int afterIndex = 0;

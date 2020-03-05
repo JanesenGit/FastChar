@@ -167,6 +167,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
         for (FastColumnInfo<?> column : getColumns()) {
             fastTableInfo.getColumns().add(column.copy());
         }
+        fastTableInfo.fromProperty();
         return fastTableInfo;
     }
 

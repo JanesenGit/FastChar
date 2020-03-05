@@ -26,9 +26,19 @@ public class FastDatabaseInfo extends FastBaseInfo {
     private String product;
     private String url;
     private String cache;
+    private long lastModified;
 
     private List<FastTableInfo<?>> tables = new ArrayList<>();
     private Map<String, FastTableInfo<?>> mapTables = null;
+
+    public long getLastModified() {
+        return lastModified;
+    }
+
+    public FastDatabaseInfo setLastModified(long lastModified) {
+        this.lastModified = lastModified;
+        return this;
+    }
 
     public String getName() {
         return name;
@@ -176,7 +186,6 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return type.equals("oracle");
     }
 
-
     public DataSource getDataSource() {
         String databaseCode = FastChar.getSecurity().MD5_Encrypt("DataSource" + getName());
         return FastChar.getOverrides().singleInstance(databaseCode,
@@ -187,7 +196,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
         if (FastStringUtils.isEmpty(getType())) {
             return null;
         }
-        return FastChar.getOverrides().singleInstance(IFastDatabaseOperate.class, getType());
+        return FastChar.getOverrides().newInstance(IFastDatabaseOperate.class, getType());
     }
 
 
@@ -201,6 +210,10 @@ public class FastDatabaseInfo extends FastBaseInfo {
             }
         }
         return null;
+    }
+
+    public boolean existTable(String name) {
+        return getTableInfo(name) != null;
     }
 
     public LinkedHashMap<String, List<FastSqlInfo>> getDefaultData() {
@@ -236,8 +249,15 @@ public class FastDatabaseInfo extends FastBaseInfo {
                 tables.add(table.getName());
             }
         }
-        Collections.sort(tables);
         return tables;
+    }
+
+    public FastDatabaseInfo addTable(FastTableInfo<?> tableInfo) {
+        if (existTable(tableInfo.getName())) {
+            return this;
+        }
+        getTables().add(tableInfo);
+        return this;
     }
 
 
@@ -283,6 +303,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
         for (FastTableInfo<?> table : getTables()) {
             fastDatabaseInfo.getTables().add(table.copy());
         }
+        fastDatabaseInfo.fromProperty();
         return fastDatabaseInfo;
 
     }

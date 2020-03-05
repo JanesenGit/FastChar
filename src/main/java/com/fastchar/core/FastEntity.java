@@ -28,12 +28,14 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得实体对应的表格名称
+     *
      * @return 字符串
      */
     public abstract String getTableName();
 
     /**
      * 获得表格的描述
+     *
      * @return 字符串
      */
     public String getTableDetails() {
@@ -67,6 +69,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     private String error = "";
     private transient FastMapWrap mapWrap = null;
     private transient boolean markSetDefault = false;
+    private boolean ignoreCase;
 
     private boolean isDefaultMethodUse() {
         return markSetDefault;
@@ -74,6 +77,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取此实体类的数据操作对象
+     *
      * @return 数据操作对象
      */
     public FastData<E> getFastData() {
@@ -87,6 +91,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         if (mapWrap == null) {
             mapWrap = FastMapWrap.newInstance(this);
         }
+        mapWrap.setIgnoreCase(ignoreCase);
         return mapWrap;
     }
 
@@ -142,6 +147,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取当前entity绑定数据库的类型
+     *
      * @return 字符串
      */
     public String getDatabaseType() {
@@ -214,6 +220,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 添加属性
+     *
      * @param key   属性
      * @param value 值
      * @return Object
@@ -270,7 +277,18 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 当前类的新对象
      */
     public E selectById(Object... ids) {
-        return getFastData().selectById(ids);
+        return selectById(false, ids);
+    }
+
+    /**
+     * 根据主键查询数据
+     *
+     * @param cache 是否启用缓存
+     * @param ids   主键数组
+     * @return 当前类的新对象
+     */
+    public E selectById(boolean cache, Object... ids) {
+        return getFastData().selectById(cache, ids);
     }
 
 
@@ -282,7 +300,19 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 当前类的新对象
      */
     public E selectFirstBySql(String sqlStr, List<Object> params) {
-        return selectFirstBySql(sqlStr, params.toArray(new Object[]{}));
+        return selectFirstBySql(false, sqlStr, params);
+    }
+
+    /**
+     * 查询sql语句返回的第一条数据
+     *
+     * @param cache  是否启用缓存
+     * @param sqlStr sql语句
+     * @param params sql参数
+     * @return 当前类的新对象
+     */
+    public E selectFirstBySql(boolean cache, String sqlStr, List<Object> params) {
+        return selectFirstBySql(cache, sqlStr, params.toArray());
     }
 
     /**
@@ -293,7 +323,19 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 当前类的新对象
      */
     public E selectFirstBySql(String sqlStr, Object... params) {
-        return getFastData().selectFirstBySql(sqlStr, params);
+        return selectFirstBySql(false, sqlStr, params);
+    }
+
+    /**
+     * 查询sql语句返回的第一条数据
+     *
+     * @param cache  是否启用缓存
+     * @param sqlStr sql语句
+     * @param params sql参数
+     * @return 当前类的新对象
+     */
+    public E selectFirstBySql(boolean cache, String sqlStr, Object... params) {
+        return getFastData().selectFirstBySql(cache, sqlStr, params);
     }
 
     /**
@@ -314,8 +356,20 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 当前类的新对象
      */
     public E selectLastBySql(String sqlStr, List<Object> params) {
-        return selectLastBySql(sqlStr, params.toArray(new Object[]{}));
+        return selectLastBySql(false, sqlStr, params);
     }
+
+    /**
+     * 查询sql语句返回的最后一条数据
+     *
+     * @param sqlStr sql语句
+     * @param params sql参数
+     * @return 当前类的新对象
+     */
+    public E selectLastBySql(boolean cache, String sqlStr, List<Object> params) {
+        return selectLastBySql(cache, sqlStr, params.toArray());
+    }
+
     /**
      * 查询sql语句返回的最后一条数据
      *
@@ -324,7 +378,19 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 当前类的新对象
      */
     public E selectLastBySql(String sqlStr, Object... params) {
-        return getFastData().selectLastBySql(sqlStr, params);
+        return selectLastBySql(false, sqlStr, params);
+    }
+
+    /**
+     * 查询sql语句返回的最后一条数据
+     *
+     * @param cache  是否启用缓存
+     * @param sqlStr sql语句
+     * @param params sql参数
+     * @return 当前类的新对象
+     */
+    public E selectLastBySql(boolean cache, String sqlStr, Object... params) {
+        return getFastData().selectLastBySql(cache, sqlStr, params);
     }
 
     /**
@@ -345,7 +411,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 返回数据集合
      */
     public List<E> selectBySql(String sqlStr, List<Object> params) {
-        return selectBySql(sqlStr, params.toArray(new Object[]{}));
+        return selectBySql(false, sqlStr, params.toArray());
     }
 
     /**
@@ -356,7 +422,19 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 返回数据集合
      */
     public List<E> selectBySql(String sqlStr, Object... params) {
-        return getFastData().selectBySql(sqlStr, params);
+        return selectBySql(false, sqlStr, params);
+    }
+
+    /**
+     * 执行sql语句
+     *
+     * @param cache  是否启用缓存
+     * @param sqlStr sql语句
+     * @param params sql参数
+     * @return 返回数据集合
+     */
+    public List<E> selectBySql(boolean cache, String sqlStr, Object... params) {
+        return getFastData().selectBySql(cache, sqlStr, params);
     }
 
 
@@ -392,7 +470,21 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 分页数据
      */
     public FastPage<E> selectBySql(int page, int pageSize, String sqlStr, List<Object> params) {
-        return selectBySql(page, pageSize, sqlStr, params.toArray(new Object[]{}));
+        return selectBySql(false, page, pageSize, sqlStr, params);
+    }
+
+    /**
+     * 执行sql语句
+     *
+     * @param cache    是否启用缓存
+     * @param page     页数
+     * @param pageSize 每页大小
+     * @param sqlStr   sql语句
+     * @param params   参数
+     * @return 分页数据
+     */
+    public FastPage<E> selectBySql(boolean cache, int page, int pageSize, String sqlStr, List<Object> params) {
+        return selectBySql(cache, page, pageSize, sqlStr, params.toArray(new Object[]{}));
     }
 
     /**
@@ -405,12 +497,27 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 分页数据
      */
     public FastPage<E> selectBySql(int page, int pageSize, String sqlStr, Object... params) {
-        return getFastData().selectBySql(page, pageSize, sqlStr, params);
+        return selectBySql(false, page, pageSize, sqlStr, params);
+    }
+
+    /**
+     * 执行sql语句
+     *
+     * @param cache    是否启用缓存
+     * @param page     页数
+     * @param pageSize 每页大小
+     * @param sqlStr   sql语句
+     * @param params   参数
+     * @return 分页数据
+     */
+    public FastPage<E> selectBySql(boolean cache, int page, int pageSize, String sqlStr, Object... params) {
+        return getFastData().selectBySql(cache, page, pageSize, sqlStr, params);
     }
 
 
     /**
      * 根据主键值删除数据
+     *
      * @return 布尔值
      */
     public boolean delete() {
@@ -429,6 +536,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 根据指定主键值删除数据
+     *
      * @param ids 主键值，如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
      * @return 布尔值
      */
@@ -459,6 +567,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 复制一条数据并保存
+     *
      * @return 布尔值
      */
     public boolean copySave() {
@@ -468,7 +577,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 统计指定检测属性名的数量
-     * @param checks  检测属性名，用作where判断
+     *
+     * @param checks 检测属性名，用作where判断
      * @return 统计的数字
      */
     public int count(String... checks) {
@@ -477,7 +587,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 设置数据到数据库中，根据指定的检测属性，如果不存在则添加，存在则修改
-     * @param checks  检测属性名，用作where判断
+     *
+     * @param checks 检测属性名，用作where判断
      * @return 布尔值
      */
     public boolean push(String... checks) {
@@ -486,16 +597,18 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 设置数据到数据库中，根据指定的检测属性，如果不存在则添加，存在则修改
+     *
      * @param handler 操作句柄，可根据code判断数据最终是添加还是更新 0：添加 1：更新
      * @param checks  检测属性名，用作where判断
      * @return 布尔值
      */
-    public boolean push(FastHandler handler,String... checks) {
+    public boolean push(FastHandler handler, String... checks) {
         return getFastData().push(handler, checks);
     }
 
     /**
      * 更新数据
+     *
      * @return 布尔值
      */
     public boolean update() {
@@ -504,7 +617,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 更新到数据库中
-     * @param checks  检测属性名，用作where判断
+     *
+     * @param checks 检测属性名，用作where判断
      * @return 布尔值
      */
     public boolean update(String... checks) {
@@ -514,6 +628,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 更新到数据库中
+     *
      * @param ids 主键值，如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
      * @return 布尔值
      */
@@ -523,7 +638,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 执行sql语句
-     * @param sql sql语句
+     *
+     * @param sql    sql语句
      * @param params sql参数
      * @return 受影响的行数
      */
@@ -534,6 +650,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得被修改的属性
+     *
      * @return List&lt;String&gt;
      */
     public List<String> getModified() {
@@ -543,8 +660,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取任意对象值
+     *
      * @param attr 属性名称
-     * @param <T> 任意类
+     * @param <T>  任意类
      * @return 任意类
      */
     public <T> T getObject(String attr) {
@@ -553,6 +671,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取字符串类值
+     *
      * @param attr 属性名
      * @return 字符串
      */
@@ -562,7 +681,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取字符串类值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return 字符串
      */
@@ -572,6 +692,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取Long类值
+     *
      * @param attr 属性名
      * @return Long
      */
@@ -581,7 +702,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取Long值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return Long
      */
@@ -591,6 +713,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取int值
+     *
      * @param attr 属性名
      * @return int
      */
@@ -600,7 +723,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得int值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return int
      */
@@ -611,6 +735,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得short值
+     *
      * @param attr 属性名
      * @return short
      */
@@ -620,7 +745,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得short值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return short
      */
@@ -630,6 +756,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Boolean值
+     *
      * @param attr 属性名
      * @return Boolean
      */
@@ -639,7 +766,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Boolean值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return Boolean
      */
@@ -650,6 +778,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Float值
+     *
      * @param attr 属性名
      * @return Float
      */
@@ -659,7 +788,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Float值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return Float
      */
@@ -669,7 +799,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Float值
-     * @param attr 属性名
+     *
+     * @param attr  属性名
      * @param digit 精度
      * @return Float
      */
@@ -679,9 +810,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Float值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
-     * @param digit 精度
+     * @param digit        精度
      * @return Float
      */
     public float getFloat(String attr, float defaultValue, int digit) {
@@ -690,6 +822,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Double值
+     *
      * @param attr 属性名
      * @return Double
      */
@@ -699,7 +832,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Double值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return Double
      */
@@ -709,7 +843,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Double值
-     * @param attr 属性名
+     *
+     * @param attr  属性名
      * @param digit 精度
      * @return Double
      */
@@ -719,9 +854,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Double值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
-     * @param digit 精度
+     * @param digit        精度
      * @return Double
      */
     public double getDouble(String attr, double defaultValue, int digit) {
@@ -731,6 +867,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获得Date值
+     *
      * @param attr 属性名
      * @return Date
      */
@@ -740,6 +877,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取格式化后的Date字符串值，默认格式： FastChar.getConstant().getDateFormat()
+     *
      * @param attr 属性名
      * @return String
      */
@@ -749,7 +887,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取格式化后的Date字符串值
-     * @param attr 属性名
+     *
+     * @param attr    属性名
      * @param pattern 指定日期格式
      * @return String
      */
@@ -759,9 +898,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取枚举值
-     * @param attr 属性名
+     *
+     * @param attr        属性名
      * @param targetClass 枚举类型
-     * @param <T> 继承Enum的泛型类
+     * @param <T>         继承Enum的泛型类
      * @return 枚举值
      */
     public <T extends Enum<?>> T getEnum(String attr, Class<T> targetClass) {
@@ -770,18 +910,20 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取枚举值
-     * @param attr 属性名
+     *
+     * @param attr        属性名
      * @param targetClass 枚举类型
      * @param defaultEnum 默认枚举值
-     * @param <T> 继承Enum的泛型类
+     * @param <T>         继承Enum的泛型类
      * @return 枚举值
      */
     public <T extends Enum<?>> T getEnum(String attr, Class<T> targetClass, Enum<?> defaultEnum) {
-        return getMapWrap().getEnum(attr, targetClass,defaultEnum);
+        return getMapWrap().getEnum(attr, targetClass, defaultEnum);
     }
 
     /**
      * 获取Blob值
+     *
      * @param attr 属性名
      * @return Blob
      */
@@ -791,6 +933,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取Timestamp值
+     *
      * @param attr 属性名
      * @return Timestamp
      */
@@ -800,7 +943,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取Timestamp值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return Timestamp
      */
@@ -810,6 +954,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取BigDecimal值
+     *
      * @param attr 属性名
      * @return BigDecimal
      */
@@ -819,7 +964,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取BigDecimal值
-     * @param attr 属性名
+     *
+     * @param attr         属性名
      * @param defaultValue 默认值
      * @return BigDecimal
      */
@@ -829,11 +975,16 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 判断属性是否为表格中的列
+     *
      * @param attr 属性名
      * @return 布尔值
      */
     public boolean isColumn(String attr) {
-        FastTableInfo<?> tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
+        FastDatabaseInfo fastDatabaseInfo = FastChar.getDatabases().get(database);
+        if (fastDatabaseInfo == null) {
+            return false;
+        }
+        FastTableInfo<?> tableInfo = fastDatabaseInfo.getTableInfo(getTableName());
         if (tableInfo != null) {
             return tableInfo.checkColumn(attr);
         }
@@ -842,6 +993,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取表格列对象
+     *
      * @param attr 属性名
      * @return FastColumnInfo
      */
@@ -855,6 +1007,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取绑定的表格对象
+     *
      * @return FastTableInfo
      */
     public <T extends FastTableInfo<?>> T getTable() {
@@ -864,6 +1017,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取主键列集合
+     *
      * @return List&lt;FastColumnInfo&lt;?&gt;&gt;
      */
     public <T extends FastColumnInfo<?>> List<T> getPrimaries() {
@@ -871,11 +1025,12 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         if (tableInfo != null) {
             return tableInfo.getPrimaries();
         }
-        return null;
+        return new ArrayList<>();
     }
 
     /**
      * 是否为主键
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -890,6 +1045,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 是否为自增
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -902,9 +1058,20 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
 
+    /**
+     * 是否修改了属性
+     *
+     * @param attr 属性名称
+     * @return 布尔值
+     */
+    public boolean isModified(String attr) {
+        return modified.contains(attr);
+    }
+
 
     /**
      * 是否为空
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -915,6 +1082,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 是否不为空
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -925,6 +1093,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 是否为空白字符
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -934,6 +1103,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 是否不为空白字符
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -943,6 +1113,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 是否为null
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -952,6 +1123,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 是否为Timestamp类型
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -961,6 +1133,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 是否为BigDecimal类型
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -970,6 +1143,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取存在于表格列中的所有属性
+     *
      * @return Set&lt;String&gt;
      */
     public Set<String> getExistsColumn() {
@@ -986,6 +1160,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取所有属性名
+     *
      * @return Set&lt;String&gt;
      */
     public Set<String> allKeys() {
@@ -1000,6 +1175,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 获取sql操作对象
+     *
      * @return FastSql
      */
     public FastSql getSql() {
@@ -1008,6 +1184,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成select语句对象
+     *
      * @return FastSqlInfo
      */
     public FastSqlInfo toSelectSql() {
@@ -1016,6 +1193,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成select语句对象
+     *
      * @param sqlStr 指定sql语句
      * @return FastSqlInfo
      */
@@ -1025,6 +1203,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成select语句对象
+     *
      * @param ids 指定主键值 如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
      * @return FastSqlInfo
      */
@@ -1034,6 +1213,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成insert语句对象
+     *
      * @param checks 检测属性名，用作where判断，判断是否已存在，如果存在则不插入
      * @return FastSqlInfo
      */
@@ -1042,9 +1222,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
 
-
     /**
      * 将当前对象转换成update语句对象
+     *
      * @return FastSqlInfo
      */
     public FastSqlInfo toUpdateSql() {
@@ -1053,6 +1233,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成update语句对象
+     *
      * @param ids 指定主键值 如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
      * @return FastSqlInfo
      */
@@ -1062,6 +1243,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成update语句对象
+     *
      * @param checks 检测属性名，用作where判断
      * @return FastSqlInfo
      */
@@ -1071,6 +1253,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成delete语句对象
+     *
      * @return FastSqlInfo
      */
     public FastSqlInfo toDeleteSql() {
@@ -1079,15 +1262,17 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转换成delete语句对象
+     *
      * @param checks 检测属性名，用作where判断
      * @return FastSqlInfo
      */
     public FastSqlInfo toDeleteSql(String... checks) {
-        return FastSql.getInstance(FastChar.getDatabases().get(database).getType()).buildDeleteSql(this,checks);
+        return FastSql.getInstance(FastChar.getDatabases().get(database).getType()).buildDeleteSql(this, checks);
     }
 
     /**
      * 将当前对象转换成delete语句对象
+     *
      * @param ids 指定主键值 如果是复合主键，那么必须与主键顺序匹配，主键的顺序已表格中的列顺序为准
      * @return FastSqlInfo
      */
@@ -1098,8 +1283,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象里的属性转换成指定的实体类中，判断依据：该属性存在于目标实体类的表格列中
+     *
      * @param targetClass 目标实体类
-     * @param <T> 继承FastEntity的泛型类
+     * @param <T>         继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
     public <T extends FastEntity<?>> T toEntity(Class<T> targetClass) {
@@ -1108,9 +1294,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象里的属性转换成指定的实体类中，判断依据：该属性存在于目标实体类的表格列中
+     *
      * @param targetClass 目标实体类
-     * @param pluckAttr 是否分离符合条件的属性，true则移除当前对象里的离符合条件的属性值
-     * @param <T> 继承FastEntity的泛型类
+     * @param pluckAttr   是否分离符合条件的属性，true则移除当前对象里的离符合条件的属性值
+     * @param <T>         继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
     public <T extends FastEntity<?>> T toEntity(Class<T> targetClass, boolean pluckAttr) {
@@ -1119,9 +1306,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象里的属性转换成指定的实体类中，判断依据：该属性存在于目标实体类的表格列中
-     * @param alias 属性别名，符合：alias__attr 格式
+     *
+     * @param alias       属性别名，符合：alias__attr 格式
      * @param targetClass 目标实体类
-     * @param <T> 继承FastEntity的泛型类
+     * @param <T>         继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
     public <T extends FastEntity<?>> T toEntity(String alias, Class<T> targetClass) {
@@ -1130,10 +1318,11 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象里的属性转换成指定的实体类中，判断依据：该属性存在于目标实体类的表格列中
-     * @param alias 属性别名，符合：alias__attr 格式
+     *
+     * @param alias       属性别名，符合：alias__attr 格式
      * @param targetClass 目标实体类
-     * @param pluckAttr 是否分离符合条件的属性，true则移除当前对象里的离符合条件的属性值
-     * @param <T> 继承FastEntity的泛型类
+     * @param pluckAttr   是否分离符合条件的属性，true则移除当前对象里的离符合条件的属性值
+     * @param <T>         继承FastEntity的泛型类
      * @return &lt;T extends FastEntity&gt;
      */
     public <T extends FastEntity<?>> T toEntity(String alias, Class<T> targetClass, boolean pluckAttr) {
@@ -1147,7 +1336,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         String aliasHead = "";
         if (FastStringUtils.isEmpty(alias)) {
             alias = "";
-        }else{
+        } else {
             aliasHead = alias + "__";
         }
 
@@ -1176,6 +1365,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 将当前对象转成json字符串
+     *
      * @return 字符串
      */
     public String toJson() {
@@ -1185,7 +1375,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 格式化Date类型的属性值
-     * @param attr 属性名
+     *
+     * @param attr    属性名
      * @param pattern 日期格式
      * @return 当前对象
      */
@@ -1199,6 +1390,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 构造缓存代码运行
+     *
      * @param run 内部代码运行
      * @return 缓存对象
      */
@@ -1208,6 +1400,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 删除指定tag的缓存数据
+     *
      * @param tag 缓存标签
      * @return 当前对象
      */
@@ -1218,6 +1411,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 删除指定tag和key的缓存数据
+     *
      * @param tag 缓存标签
      * @param key 缓存的key
      * @return 当前对象
@@ -1229,7 +1423,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 构造查询指定列名的列名集合
-     * @param alias 指定列名的前缀
+     *
+     * @param alias    指定列名的前缀
      * @param excludes 排序指定属性名
      * @return List&lt;String&gt;
      */
@@ -1239,11 +1434,13 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
     /**
      * 构造查询指定列名的列名集合
-     * @param alias 指定列名的前缀
-     * @param excludes 排序指定属性名
+     *
+     * @param alias      指定列名的前缀
+     * @param asNickName 是否命名别名 符合：alias__attr 格式
+     * @param excludes   排序指定属性名
      * @return List&lt;String&gt;
      */
-    public List<String> toSelectColumns(String alias, boolean asNickName,String... excludes) {
+    public List<String> toSelectColumns(String alias, boolean asNickName, String... excludes) {
         if (FastStringUtils.isEmpty(alias)) {
             alias = "";
         } else {
@@ -1267,9 +1464,25 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         return columns;
     }
 
+    /**
+     * 是否忽略属性的大小写
+     *
+     * @return 布尔值
+     */
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
 
-
-
+    /**
+     * 设置是否忽略属性的大小写
+     *
+     * @param ignoreCase 布尔值
+     * @return 当前对象
+     */
+    public FastEntity<E> setIgnoreCase(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
+        return this;
+    }
 
     /**
      * FastEntity内部数据缓存类
@@ -1304,6 +1517,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
         /**
          * 运行，如果检测到缓存则直接返回缓存的数据，否则运行代码块并返回
+         *
          * @param <T> 任意类
          * @return T
          */

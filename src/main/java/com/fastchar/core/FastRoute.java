@@ -11,6 +11,7 @@ import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.out.FastOut;
 import com.fastchar.out.FastOutForward;
+import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,7 +35,7 @@ public final class FastRoute {
     int lastMethodLineNumber;
     long beforeInterceptorUseTotal;
     long afterInterceptorUseTotal;
-    Class<? extends FastOut> returnOut;
+    Class<? extends FastOut<?>> returnOut;
     List<FastParameter> methodParameter = new ArrayList<>();
     Class<? extends FastAction> actionClass;
     FastResponseCacheConfig responseCache;
@@ -58,6 +59,10 @@ public final class FastRoute {
     transient FastAction forwarder;
 
     FastRoute copy() {
+        if (this.actionClass == null || FastClassUtils.isRelease(this.actionClass)) {
+            return null;
+        }
+
         FastRoute fastRoute = new FastRoute();
         fastRoute.method = this.method;
         fastRoute.methodParameter = this.methodParameter;
@@ -165,7 +170,7 @@ public final class FastRoute {
 
 
             if (fastAction == null) {
-                fastAction = actionClass.newInstance();
+                fastAction = FastChar.getOverrides().newInstance(actionClass);
                 fastAction.request = request;
                 fastAction.response = response;
                 fastAction.servletContext = FastEngine.instance().getServletContext();
@@ -207,9 +212,9 @@ public final class FastRoute {
             Object invoke = method.invoke(fastAction, methodParams.toArray());
             if (invoke != null && fastAction.fastOut == null) {
                 if (invoke instanceof FastOut) {
-                    fastAction.response((FastOut) invoke);
+                    fastAction.response((FastOut<?>) invoke);
                 } else if (this.returnOut != null) {
-                    FastOut fastOut = FastChar.getOverrides().newInstance(this.returnOut);
+                    FastOut<?> fastOut = FastChar.getOverrides().newInstance(this.returnOut);
                     if (fastOut != null) {
                         fastOut.setData(invoke);
                         fastAction.response(fastOut);
@@ -332,7 +337,7 @@ public final class FastRoute {
             }
             responseInvoked = true;
             beforeInvoked = true;
-            FastOut outBase = fastAction.getFastOut();
+            FastOut<?> outBase = fastAction.getFastOut();
             if (outBase == null) {
                 responseNone();
                 return;

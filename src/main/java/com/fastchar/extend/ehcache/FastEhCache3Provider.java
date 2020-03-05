@@ -44,8 +44,8 @@ public class FastEhCache3Provider implements IFastCache {
         return cacheManager;
     }
 
-    private Cache getCache(String tag) {
-        Cache cache = getCacheManager().getCache(tag, String.class, Object.class);
+    private Cache<String,Object> getCache(String tag) {
+        Cache<String,Object> cache = getCacheManager().getCache(tag, String.class, Object.class);
         if (cache == null) {
             synchronized (locker) {
                 ResourcePoolsBuilder disk = ResourcePoolsBuilder.heap(10);
@@ -61,25 +61,35 @@ public class FastEhCache3Provider implements IFastCache {
 
     @Override
     public boolean exists(String tag, String key) {
-        Cache cache = getCache(tag);
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return false;
+        }
+        Cache<String,Object> cache = getCache(tag);
         return cache.containsKey(key);
     }
 
     @Override
     public Set<String> getTags(String pattern) {
-        Set<String> strings = new HashSet<>();
+        Set<String> tags = new HashSet<>();
+        if (FastStringUtils.isEmpty(pattern)) {
+            return tags;
+        }
+
         Set<String> cacheNames = getCacheManager().getRuntimeConfiguration().getCacheConfigurations().keySet();
         for (String cacheName : cacheNames) {
             if (FastStringUtils.matches(pattern, cacheName)) {
-                strings.add(cacheName);
+                tags.add(cacheName);
             }
         }
-        return strings;
+        return tags;
     }
 
     @Override
     public void set(String tag, String key, Object data) {
-        Cache cache = getCache(tag);
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return;
+        }
+        Cache<String,Object> cache = getCache(tag);
         if (data == null) {
             cache.remove(key);
         } else {
@@ -89,7 +99,10 @@ public class FastEhCache3Provider implements IFastCache {
 
     @Override
     public <T> T get(String tag, String key) {
-        Cache cache = getCache(tag);
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return null;
+        }
+        Cache<String,Object> cache = getCache(tag);
         return (T) cache.get(key);
     }
 
@@ -100,7 +113,10 @@ public class FastEhCache3Provider implements IFastCache {
 
     @Override
     public void delete(String tag, String key) {
-        Cache cache = getCache(tag);
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return;
+        }
+        Cache<String,Object> cache = getCache(tag);
         cache.remove(key);
     }
 

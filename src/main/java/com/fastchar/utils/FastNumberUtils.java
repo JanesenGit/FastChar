@@ -4,92 +4,29 @@
 package com.fastchar.utils;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class FastNumberUtils {
 
-    private static boolean isMatch(String regex, String value) {
-        if (value == null || value.trim().equals("")) {
-            return false;
-        }
-        Pattern pattern = Pattern.compile(regex);
-        Matcher isNum = pattern.matcher(value);
-        return isNum.matches();
+
+    public static boolean isNumber(Object value) {
+        return String.valueOf(value).matches("[-\\+]?\\d+[\\.]?\\d*");
     }
 
-    /**
-     * 是否是正整数
-     * @param value
-     * @return
-     */
-    public static boolean isPositiveInteger(String value) {
-        return isMatch("^\\+{0,1}[1-9]\\d*", value);
+    public static boolean isDecimalNumber(Object value) {
+        return String.valueOf(value).matches("[-\\+]?\\d+\\.\\d*");
     }
 
-    /**
-     * 是否是负整数
-     * @param value
-     * @return
-     */
-    public static boolean isNegativeInteger(String value) {
-        return isMatch("^-[1-9]\\d*", value);
+    public static boolean isIntegralNumber(Object value) {
+        return String.valueOf(value).matches("[-\\+]?\\d+");
     }
-
-    /**
-     * 是否是数字，不包含小数点
-     * @param value
-     * @return
-     */
-    public static boolean isWholeNumber(String value) {
-        return isMatch("[+-]{0,1}0", value) || isPositiveInteger(value) || isNegativeInteger(value);
-    }
-
-    /**
-     * 是否是含有小数点的正数字
-     * @param value
-     * @return
-     */
-    public static boolean isPositiveDecimal(String value) {
-        return isMatch("\\+{0,1}[0]\\.[1-9]*|\\+{0,1}[1-9]\\d*\\.\\d*", value);
-    }
-
-    /**
-     * 是否是含有小数点的负数字
-     * @param value
-     * @return
-     */
-    public static boolean isNegativeDecimal(String value) {
-        return isMatch("^-[0]\\.[1-9]*|^-[1-9]\\d*\\.\\d*", value);
-    }
-
-    /**
-     * 是否是含有小数点的数字
-     * @param value
-     * @return
-     */
-    public static boolean isDecimal(String value) {
-        return isMatch("[-+]{0,1}\\d+\\.\\d*|[-+]{0,1}\\d*\\.\\d+", value);
-    }
-
-    /**
-     * 是否是数字
-     * @param value
-     * @return
-     */
-    public static boolean isRealNumber(String value) {
-        return isWholeNumber(value) || isDecimal(value);
-    }
-
 
     /**
      * 字符转数字
+     *
      * @param value
      * @return
      */
@@ -100,6 +37,7 @@ public class FastNumberUtils {
 
     /**
      * 字符转数字
+     *
      * @param value
      * @return
      */
@@ -181,14 +119,12 @@ public class FastNumberUtils {
 
     public static float formatToFloat(Object value, float defaultValue, int digit) {
         try {
-            return new BigDecimal(Float.toString(formatToFloat(value,defaultValue))).setScale(digit,
+            return new BigDecimal(Float.toString(formatToFloat(value, defaultValue))).setScale(digit,
                     BigDecimal.ROUND_HALF_UP).floatValue();
         } catch (Exception e) {
             return 0;
         }
     }
-
-
 
 
     public static long formatToLong(Object value) {
@@ -202,6 +138,7 @@ public class FastNumberUtils {
 
     /**
      * 获取字符串中的所有数字
+     *
      * @param content
      * @return
      */
@@ -231,6 +168,7 @@ public class FastNumberUtils {
 
     /**
      * 数字格式化
+     *
      * @param value
      * @param pattern 规则 例如 ###.00、###,###.0
      * @return
@@ -241,11 +179,11 @@ public class FastNumberUtils {
     }
 
 
-
     /**
      * 计算需要显示的页码
-     * @param currPage 当前页
-     * @param totalPage 总页数
+     *
+     * @param currPage     当前页
+     * @param totalPage    总页数
      * @param visibleCount 显示页数数量
      * @return
      */
@@ -288,9 +226,9 @@ public class FastNumberUtils {
     }
 
 
-
     /**
      * 将数字转成字符串
+     *
      * @param number
      * @return
      */
@@ -305,6 +243,7 @@ public class FastNumberUtils {
 
     /**
      * 随机数
+     *
      * @param minValue
      * @param maxValue
      * @return
@@ -336,11 +275,12 @@ public class FastNumberUtils {
     }
 
 
-    static class FastNumber extends Number{
+    static class FastNumber extends Number {
         private static final long serialVersionUID = -380753666109976011L;
         String value;
         Number defaultValue = 0;
         boolean isNumber;
+        boolean isDecimal;
 
         public String getValue() {
             return value;
@@ -348,7 +288,8 @@ public class FastNumberUtils {
 
         public FastNumber setValue(Object value) {
             this.value = String.valueOf(value).replace(" ", "");
-            isNumber = isRealNumber(this.value);
+            isNumber = isNumber(this.value);
+            isDecimal = isDecimalNumber(this.value);
             return this;
         }
 
@@ -367,7 +308,7 @@ public class FastNumberUtils {
                 return defaultValue.intValue();
             }
             try {
-                if (isDecimal(this.value)) {
+                if (isDecimal) {
                     return (int) Float.parseFloat(this.value);
                 } else {
                     return Integer.parseInt(this.value);
@@ -383,7 +324,7 @@ public class FastNumberUtils {
                 return defaultValue.longValue();
             }
             try {
-                if (isDecimal(this.value)) {
+                if (isDecimal) {
                     return (long) Float.parseFloat(this.value);
                 } else {
                     return Long.parseLong(this.value);

@@ -17,12 +17,8 @@ import java.lang.reflect.Field;
 @AFastClassFind("org.apache.tomcat.jdbc.pool.DataSource")
 public class FastJdbcDataSourceProvider implements IFastDataSource {
     private DataSource datasource;
+    private FastDatabaseInfo databaseInfo;
 
-    public FastJdbcDataSourceProvider() {
-        if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "Tomcat jdbc pool"));
-        }
-    }
 
     @Override
     public DataSource getDataSource(FastDatabaseInfo databaseInfo) {
@@ -51,6 +47,11 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
                 e.printStackTrace();
             }
             datasource.setPoolProperties(poolProperties);
+            this.databaseInfo = databaseInfo;
+
+            if (FastChar.getConstant().isDebug()) {
+                FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "Tomcat jdbc pool of " + databaseInfo.getName()));
+            }
         }
         return datasource;
     }
@@ -73,7 +74,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
             if (datasource != null) {
                 datasource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "Tomcat jdbc pool"));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "Tomcat jdbc pool of " + databaseInfo.getName()));
                 }
             }
         } finally {

@@ -3,6 +3,7 @@ package com.fastchar.database.operate;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.FastDb;
+import com.fastchar.database.FastResultSet;
 import com.fastchar.database.FastScriptRunner;
 import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
@@ -32,7 +33,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         if (data == null) {
             return false;
         }
-        return data.toString().equals("sql_server");
+        return data.toString().equalsIgnoreCase("sql_server")||data.toString().equalsIgnoreCase("sqlserver");
     }
 
     private Set<String> tables = null;
@@ -54,9 +55,10 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             databaseInfo.setName(connection.getCatalog());
             databaseInfo.setUrl(dmd.getURL());
 
-            resultSet = dmd.getTables(null, null, null, new String[]{"TABLE"});
-            while (resultSet.next()) {
-                String table_name = resultSet.getString("TABLE_NAME");
+            resultSet = dmd.getTables(null, null, null, new String[]{"table","TABLE"});
+            List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
+            for (FastEntity<?> fastEntity : listResult) {
+                String table_name = fastEntity.getString("table_name");
                 FastTableInfo<?> tableInfo = databaseInfo.getTableInfo(table_name);
                 if (tableInfo == null) {
                     tableInfo = FastTableInfo.newInstance();
@@ -66,8 +68,9 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
 
                 //检索主键
                 ResultSet keyRs = dmd.getPrimaryKeys(null, null, tableInfo.getName());
-                while (keyRs.next()) {
-                    String column_name = keyRs.getString("COLUMN_NAME");
+                List<FastEntity<?>> primaryKeys = new FastResultSet(keyRs).setIgnoreCase(true).getListResult();
+                for (FastEntity<?> primaryKey : primaryKeys) {
+                    String column_name = primaryKey.getString("column_name");
                     FastColumnInfo<?> columnInfo = tableInfo.getColumnInfo(column_name);
                     if (columnInfo == null) {
                         columnInfo = FastColumnInfo.newInstance();
@@ -93,8 +96,8 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                         int displaySize = data.getColumnDisplaySize(i);
                         int nullable = data.isNullable(i);
                         boolean isAutoIncrement = data.isAutoIncrement(i);
-                        int precision = data.getPrecision(i);
-                        int scale = data.getScale(i);
+//                        int precision = data.getPrecision(i);
+//                        int scale = data.getScale(i);
 
                         if (displaySize >= 715827882) {
                             type = "ntext";
@@ -106,24 +109,20 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                         if (columnInfo == null) {
                             columnInfo = FastColumnInfo.newInstance();
                             columnInfo.setName(columnName);
+                            columnInfo.setType(type);
+                            columnInfo.setAutoincrement(String.valueOf(isAutoIncrement));
+                            if (nullable == ResultSetMetaData.columnNoNulls) {
+                                columnInfo.setNullable("not null");
+                            } else {
+                                columnInfo.setNullable("null");
+                            }
+                            String indexName = String.format("%s_%s_Index", tableInfo.getName(), columnName);
+                            boolean index = checkColumnIndex(databaseInfo.getName(), indexName);
+                            columnInfo.setIndex(String.valueOf(index));
+                            columnInfo.fromProperty();
+
                             tableInfo.getColumns().add(columnInfo);
                         }
-                        if (scale > 0) {
-                            columnInfo.setLength(precision + "," + scale);
-                        } else {
-                            columnInfo.setLength(String.valueOf(precision));
-                        }
-                        columnInfo.setType(type);
-                        columnInfo.setAutoincrement(String.valueOf(isAutoIncrement));
-                        if (nullable == ResultSetMetaData.columnNoNulls) {
-                            columnInfo.setNullable("not null");
-                        } else {
-                            columnInfo.setNullable("null");
-                        }
-                        String indexName = String.format("%s_%s_Index", tableInfo.getName(), columnName);
-                        boolean index = checkColumnIndex(databaseInfo.getName(), indexName);
-                        columnInfo.setIndex(String.valueOf(index));
-                        columnInfo.fromProperty();
                     }
                 } finally {
                     fastDb.close(statement, columnsRs);
@@ -413,7 +412,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         if (FastStringUtils.isNotEmpty(columnInfo.getValue())) {
             if (FastType.isNumberType(getType(columnInfo))) {
                 stringBuilder.append(" default ");
-                if (FastNumberUtils.isRealNumber(columnInfo.getValue())) {
+                if (FastNumberUtils.isNumber(columnInfo.getValue())) {
                     stringBuilder.append(columnInfo.getValue());
                 }
             } else if (FastType.isStringType(getType(columnInfo))) {

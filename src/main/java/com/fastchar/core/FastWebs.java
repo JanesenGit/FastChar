@@ -4,15 +4,16 @@ import com.fastchar.annotation.AFastPriority;
 import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.interfaces.IFastWebRun;
 import com.fastchar.utils.FastClassUtils;
+import javassist.tools.web.Webserver;
 
-import java.lang.reflect.Modifier;
 import java.util.*;
 
 final class FastWebs {
     private List<Class<? extends IFastWeb>> webs = new ArrayList<>();
-    private Set<String> inited = new HashSet<>();
+    private List<Class<? extends IFastWeb>> initialed =new ArrayList<>();
+    private List<Class<? extends IFastWeb>> ran = new ArrayList<>();
 
-    FastWebs addFastWeb(Class<? extends IFastWeb> webClass) {
+    FastWebs putFastWeb(Class<? extends IFastWeb> webClass) {
         if (!FastClassUtils.checkNewInstance(webClass)) {
             return this;
         }
@@ -21,6 +22,25 @@ final class FastWebs {
         }
         webs.add(webClass);
         return this;
+    }
+
+    public void flush() {
+        List<Class<? extends IFastWeb>> waitRemove = new ArrayList<>();
+        for (Class<? extends IFastWeb> aClass : webs) {
+            if (FastClassUtils.isRelease(aClass)) {
+                waitRemove.add(aClass);
+            }
+        }
+        try {
+            for (Class<? extends IFastWeb> aClass : waitRemove) {
+                IFastWeb iFastWeb = FastChar.getOverrides().singleInstance(aClass);
+                iFastWeb.onDestroy(FastEngine.instance());
+            }
+        } catch (Exception ignored) {}
+
+        webs.removeAll(waitRemove);
+        initialed.removeAll(waitRemove);
+        ran.removeAll(waitRemove);
     }
 
 
@@ -53,11 +73,12 @@ final class FastWebs {
 
     void initWeb(FastEngine engine) throws Exception {
         sortWeb();
-        for (Class<? extends IFastWeb> web : webs) {
-            if (inited.contains(web.getName())) {
+        ArrayList<Class<? extends IFastWeb>> doingArray = new ArrayList<>(webs);
+        for (Class<? extends IFastWeb> web : doingArray) {
+            if (initialed.contains(web) ) {
                 continue;
             }
-            inited.add(web.getName());
+            initialed.add(web);
             IFastWeb iFastWeb = FastChar.getOverrides().singleInstance(web);
             if (iFastWeb != null) {
                 iFastWeb.onInit(engine);
@@ -67,7 +88,12 @@ final class FastWebs {
 
     void runWeb(FastEngine engine) throws Exception {
         sortWeb();
-        for (Class<? extends IFastWeb> web : webs) {
+        ArrayList<Class<? extends IFastWeb>> doingArray = new ArrayList<>(webs);
+        for (Class<? extends IFastWeb> web : doingArray) {
+            if (ran.contains(web)) {
+                continue;
+            }
+            ran.add(web);
             IFastWeb iFastWeb = FastChar.getOverrides().singleInstance(web);
             if ((iFastWeb instanceof IFastWebRun)) {
                 ((IFastWebRun) iFastWeb).onRun(engine);
@@ -76,7 +102,8 @@ final class FastWebs {
     }
 
     void destroyWeb(FastEngine engine) throws Exception {
-        for (Class<? extends IFastWeb> web : webs) {
+        ArrayList<Class<? extends IFastWeb>> doingArray = new ArrayList<>(webs);
+        for (Class<? extends IFastWeb> web : doingArray) {
             IFastWeb iFastWeb = FastChar.getOverrides().singleInstance(web);
             if (iFastWeb != null) {
                 iFastWeb.onDestroy(engine);

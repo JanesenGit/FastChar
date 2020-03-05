@@ -4,6 +4,7 @@ import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.annotation.AFastObserver;
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.database.operate.FastMySqlDatabaseOperateProvider;
+import com.fastchar.database.operate.FastOracleDatabaseOperateProvider;
 import com.fastchar.database.operate.FastSqlServerDatabaseOperateProvider;
 import com.fastchar.database.sql.FastMySql;
 import com.fastchar.database.sql.FastOracle;
@@ -54,6 +55,7 @@ public final class FastOverrides {
         add(FastDruidDataSourceProvider.class);
 
         add(FastMySqlDatabaseOperateProvider.class);
+        add(FastOracleDatabaseOperateProvider.class);
         add(FastSqlServerDatabaseOperateProvider.class);
 
         add(FastGsonProvider.class);
@@ -86,32 +88,38 @@ public final class FastOverrides {
     }
 
     public FastOverrides add(Class<?> targetClass, int priority) {
-        if (getClassInfo(targetClass) != null) {
-            return this;
-        }
-        if (targetClass.isAnnotationPresent(AFastClassFind.class)) {
-            AFastClassFind fastFind = targetClass.getAnnotation(AFastClassFind.class);
-            for (String s : fastFind.value()) {
-                if (FastClassUtils.getClass(s, false) == null) {
-                    return this;
+        try {
+            if (getClassInfo(targetClass) != null) {
+                return this;
+            }
+            if (targetClass.isAnnotationPresent(AFastClassFind.class)) {
+                AFastClassFind fastFind = targetClass.getAnnotation(AFastClassFind.class);
+                for (String s : fastFind.value()) {
+                    if (FastClassUtils.getClass(s, false) == null) {
+                        return this;
+                    }
                 }
             }
+            ClassInfo classInfo = new ClassInfo();
+            classInfo.targetClass = targetClass;
+            classInfo.priority = priority;
+            classes.add(classInfo);
+        } finally {
+            sortClasses();
         }
-        ClassInfo classInfo = new ClassInfo();
-        classInfo.targetClass = targetClass;
-        classInfo.priority = priority;
-        classes.add(classInfo);
-        sortClasses();
         return this;
     }
 
     public FastOverrides setPriority(Class<?> targetClass, int priority) {
-        ClassInfo classInfo = getClassInfo(targetClass);
-        if (classInfo == null) {
-            return this;
+        try {
+            ClassInfo classInfo = getClassInfo(targetClass);
+            if (classInfo == null) {
+                return this;
+            }
+            classInfo.priority = priority;
+        } finally {
+            sortClasses();
         }
-        classInfo.priority = priority;
-        sortClasses();
         return this;
     }
 
@@ -159,12 +167,17 @@ public final class FastOverrides {
             classMap.put(targetClass.getName(), new HashSet<String>());
         }
         if (FastStringUtils.isEmpty(onlyCode)) {
-            onlyCode= FastMD5Utils.MD5(targetClass.getName() + Arrays.toString(constructorParams));
+            onlyCode = FastMD5Utils.MD5(targetClass.getName() + Arrays.toString(constructorParams));
         }
 
         classMap.get(targetClass.getName()).add(onlyCode);
         if (instanceMap.containsKey(onlyCode)) {
-            return (T) instanceMap.get(onlyCode);
+            Object instance = instanceMap.get(onlyCode);
+            if (instance.getClass() != targetClass) {
+                instanceMap.remove(onlyCode);
+            }else{
+                return (T) instance;
+            }
         }
         T t = newInstance(check, targetClass, constructorParams);
         if (t == null) {
@@ -296,6 +309,27 @@ public final class FastOverrides {
                 return Integer.compare(o1.priority, o2.priority);
             }
         });
+    }
+
+
+    public void flush() {
+        List<ClassInfo> waitRemove = new ArrayList<>();
+        for (ClassInfo aClass : classes) {
+            if (FastClassUtils.isRelease(aClass.targetClass)) {
+                waitRemove.add(aClass);
+            }
+        }
+        classes.removeAll(waitRemove);
+
+        List<String> waitRemoveInstance = new ArrayList<>();
+        for (String s : instanceMap.keySet()) {
+            if (FastClassUtils.isRelease(instanceMap.get(s))) {
+                waitRemoveInstance.add(s);
+            }
+        }
+        for (String s : waitRemoveInstance) {
+            instanceMap.remove(s);
+        }
     }
 
 

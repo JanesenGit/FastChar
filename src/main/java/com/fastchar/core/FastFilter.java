@@ -32,12 +32,16 @@ public final class FastFilter implements Filter {
                     fastWebException.printStackTrace();
                     throw fastWebException;
                 }
-                engine.getWebs().addFastWeb((Class<? extends IFastWeb>) aClass);
+                engine.getWebs().putFastWeb((Class<? extends IFastWeb>) aClass);
             }
             engine.run();
             engine.getLog().info(FastFilter.class, engine.getLog().lightStyle(FastChar.getLocal().getInfo("FastChar_Error1", FastChar.getConstant().getProjectName(), (System.currentTimeMillis() - time) / 1000.0)));
         } catch (Exception e) {
             e.printStackTrace();
+            try {
+                FastEngine.instance().destroy();
+            } catch (Exception ignored) {}
+
             throw new FastWebException(e);
         }
     }

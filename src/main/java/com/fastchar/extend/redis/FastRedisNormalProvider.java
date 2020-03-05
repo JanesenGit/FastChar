@@ -67,6 +67,9 @@ public class FastRedisNormalProvider implements IFastCache {
 
     @Override
     public boolean exists(String tag, String key) {
+        if (FastStringUtils.isEmpty(tag) || FastStringUtils.isEmpty(key)) {
+            return false;
+        }
         try (Jedis jedis = getJedis()) {
             return jedis.exists(wrapKey(tag, key));
         }
@@ -74,8 +77,11 @@ public class FastRedisNormalProvider implements IFastCache {
 
     @Override
     public Set<String> getTags(String pattern) {
+        Set<String> tags = new HashSet<>();
+        if (FastStringUtils.isEmpty(pattern)) {
+            return tags;
+        }
         try (Jedis jedis = getJedis()) {
-            Set<String> tags = new HashSet<>();
             Set<String> keys = jedis.keys(pattern);
             for (String key : keys) {
                 tags.add(key.split("#")[0]);
@@ -86,6 +92,9 @@ public class FastRedisNormalProvider implements IFastCache {
 
     @Override
     public void set(String tag, String key, Object data) throws Exception {
+        if (FastStringUtils.isEmpty(tag) || FastStringUtils.isEmpty(key)) {
+            return;
+        }
         try (Jedis jedis = getJedis()) {
             jedis.set(wrapKey(tag, key).getBytes(), FastSerializeUtils.serialize(data));
         }
@@ -93,6 +102,9 @@ public class FastRedisNormalProvider implements IFastCache {
 
     @Override
     public <T> T get(String tag, String key) throws Exception {
+        if (FastStringUtils.isEmpty(tag) || FastStringUtils.isEmpty(key)) {
+            return null;
+        }
         try (Jedis jedis = getJedis()) {
             Object deserialize = FastSerializeUtils.deserialize(jedis.get(wrapKey(tag, key).getBytes()));
             if (deserialize == null) {
@@ -105,14 +117,22 @@ public class FastRedisNormalProvider implements IFastCache {
 
     @Override
     public void delete(String tag) {
+        if (FastStringUtils.isEmpty(tag)) {
+            return;
+        }
         try (Jedis jedis = getJedis()) {
             Set<String> keys = jedis.keys(tag + "#*");
-            jedis.del(keys.toArray(new String[]{}));
+            if (keys.size() > 0) {
+                jedis.del(keys.toArray(new String[]{}));
+            }
         }
     }
 
     @Override
     public void delete(String tag, String key) {
+        if (FastStringUtils.isEmpty(tag) || FastStringUtils.isEmpty(key)) {
+            return;
+        }
         try (Jedis jedis = getJedis()) {
             jedis.del(wrapKey(tag, key));
         }

@@ -20,18 +20,18 @@ public class FastEnumParamConverter implements IFastParamConverter {
         Object value = null;
         if (parameter.getType().isEnum()) {
             handler.setCode(1);
-            value = action.getParamToEnum(parameter.getName(),(Class<? extends Enum>) parameter.getType());
+            value = action.getParamToEnum(parameter.getName(),(Class<? extends Enum<?>>) parameter.getType());
         } else if (Enum[].class.isAssignableFrom(parameter.getType())) {
             handler.setCode(1);
-            value = action.getParamToEnumArray(parameter.getName(),(Class<? extends Enum>) parameter.getType().getComponentType());
+            value = action.getParamToEnumArray(parameter.getName(),(Class<? extends Enum<?>>) parameter.getType().getComponentType());
         }else if (Collection.class.isAssignableFrom(parameter.getType())) {
             if (parameter.getParameterizedType() instanceof ParameterizedType) {
                 ParameterizedType parameterizedType = (ParameterizedType) parameter.getParameterizedType();
                 Class<?> actualTypeArgument = (Class<?>) parameterizedType.getActualTypeArguments()[0];
                 if (actualTypeArgument.isEnum()) {
-                    Collection collection = FastTypeHelper.getCollectionInstance(parameter.getType());
+                    Collection<Object> collection = FastTypeHelper.getCollectionInstance(parameter.getType());
                     if (collection != null) {
-                        Object[] paramToEnumArray = action.getParamToEnumArray(parameter.getName(),(Class<? extends Enum>) actualTypeArgument);
+                        Object[] paramToEnumArray = action.getParamToEnumArray(parameter.getName(),(Class<? extends Enum<?>>) actualTypeArgument);
                         collection.addAll(Arrays.asList(paramToEnumArray));
                         value = collection;
                     }

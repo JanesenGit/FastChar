@@ -19,16 +19,16 @@ public abstract class FastOut<T> {
 
     /**
      * 响应数据
-     * @param action
+     * @param action 控制器
      */
     public abstract void response(FastAction action) throws Exception;
 
     /**
      * 设置子类自定义的字段值
-     * @param fieldName
-     * @param fieldValue
+     * @param fieldName 字段名
+     * @param fieldValue 字段值
      */
-    public FastOut setFieldValue(String fieldName, Object fieldValue) {
+    public FastOut<?> setFieldValue(String fieldName, Object fieldValue) {
         try {
             Field declaredField = this.getClass().getDeclaredField(fieldName);
             if (declaredField == null) {
@@ -127,9 +127,11 @@ public abstract class FastOut<T> {
         FORWARD,
         XML,
         NOTNULL,
+        STATUS,
+        IMAGE
     }
 
-    public static Class<? extends FastOut> convertType(FastOut.Type type) {
+    public static Class<? extends FastOut<?>> convertType(FastOut.Type type) {
         if (type == Type.TEXT) {
             return FastOutText.class;
         }
@@ -166,6 +168,12 @@ public abstract class FastOut<T> {
         if (type == Type.NOTNULL) {
             return FastOutParamError.class;
         }
+        if (type == Type.STATUS) {
+            return FastOutStatus.class;
+        }
+        if (type == Type.IMAGE) {
+            return FastOutImage.class;
+        }
         return null;
     };
 
@@ -173,7 +181,7 @@ public abstract class FastOut<T> {
         return logged;
     }
 
-    public FastOut setLogged(boolean logged) {
+    public FastOut<?> setLogged(boolean logged) {
         this.logged = logged;
         return this;
     }

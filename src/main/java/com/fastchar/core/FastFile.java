@@ -236,4 +236,8 @@ public class FastFile<T> {
     public Object getAttr(String name) {
         return this.attrs.get(name);
     }
+
+    public ConcurrentHashMap<String, Object> getAttrs() {
+        return attrs;
+    }
 }

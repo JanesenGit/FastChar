@@ -10,12 +10,13 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 便捷的信息存储类
  */
 public class FastBaseInfo extends LinkedHashMap<String, Object> {
-    private static final long serialVersionUID = -8188484441789855067L;
+    private transient static final long serialVersionUID = -8188484441789855067L;
     private transient int lineNumber = 1;
     private transient List<Field> fields;
     private transient String tagName;
@@ -25,7 +26,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
     public FastBaseInfo() {
         try {
             fields = new ArrayList<>();
-            Class tempClass = this.getClass();
+            Class<?> tempClass = this.getClass();
             while (tempClass != null) {
                 Field[] fieldList = tempClass.getDeclaredFields();
                 for (Field field : fieldList) {
@@ -63,6 +64,16 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
         }
     }
 
+
+    /**
+     * 批量设置属性值
+     */
+    public void setAll(Map<String, Object> sources) {
+        for (String s : sources.keySet()) {
+            set(s, sources.get(s));
+        }
+    }
+
     /**
      * 设置属性值
      * @param attr 属性名
@@ -90,6 +101,36 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
             e.printStackTrace();
         }
     }
+
+    /**
+     * 删除属性
+     * @param attr 属性名
+     */
+    public void delete(String attr) {
+        try {
+            for (Field field : fields) {
+                if (Modifier.isTransient(field.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isFinal(field.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isStatic(field.getModifiers())) {
+                    continue;
+                }
+                if (field.getName().equals(attr)) {
+                    field.setAccessible(true);
+                    field.set(this, null);
+                    break;
+                }
+            }
+            remove(attr);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
     /**
      * 将自定义的属性填充到map中
@@ -228,5 +269,14 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
             mapWrap = FastMapWrap.newInstance(this);
         }
         return mapWrap;
+    }
+
+    public boolean isFromXml() {
+        return getBoolean("fromXml", false);
+    }
+
+    public FastBaseInfo setFromXml(boolean fromXml) {
+        put("fromXml", fromXml);
+        return this;
     }
 }

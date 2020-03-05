@@ -143,11 +143,11 @@ public class FastDateUtils {
         int subDay = diffDay(dateTime, new Date());
         switch (subDay) {
             case 0:
-                return "今天" + sdf2.format(dateTime);
+                return FastChar.getLocal().getInfo("Date_Error1") + sdf2.format(dateTime);
             case 1:
-                return "昨天" + sdf2.format(dateTime);
+                return FastChar.getLocal().getInfo("Date_Error2") + sdf2.format(dateTime);
             case 2:
-                return "前天" + sdf2.format(dateTime);
+                return FastChar.getLocal().getInfo("Date_Error3") + sdf2.format(dateTime);
         }
         return format(dateTime, "yyyy-MM-dd ") + sdf2.format(dateTime);
     }

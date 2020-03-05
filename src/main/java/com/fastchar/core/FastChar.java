@@ -51,6 +51,11 @@ public final class FastChar {
         return FastEngine.instance().getSecurity();
     }
 
+
+    public static FastScanner getScanner() {
+        return FastEngine.instance().getScanner();
+    }
+
     public static FastDb getDb() {
         return FastEngine.instance().getDb();
     }
@@ -98,7 +103,6 @@ public final class FastChar {
     public static IFastJson getJson() {
         return FastChar.getOverrides().singleInstance(IFastJson.class);
     }
-
 
     public static FastConfigs getConfigs() {
         return FastEngine.instance().getConfigs();

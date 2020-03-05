@@ -55,24 +55,33 @@ public class FastEhCache2Provider implements IFastCache {
 
     @Override
     public boolean exists(String tag, String key) {
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return false;
+        }
         Cache cache = getCache(tag);
         return cache.isKeyInCache(key);
     }
 
     @Override
     public Set<String> getTags(String pattern) {
-        Set<String> strings = new HashSet<>();
+        Set<String> tags = new HashSet<>();
+        if (FastStringUtils.isEmpty(pattern)) {
+            return tags;
+        }
         String[] cacheNames = getCacheManager().getCacheNames();
         for (String cacheName : cacheNames) {
             if (FastStringUtils.matches(pattern, cacheName)) {
-                strings.add(cacheName);
+                tags.add(cacheName);
             }
         }
-        return strings;
+        return tags;
     }
 
     @Override
     public void set(String tag, String key, Object data) {
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return;
+        }
         Cache cache = getCache(tag);
         Element element = new Element(key, data);
         cache.put(element);
@@ -80,6 +89,9 @@ public class FastEhCache2Provider implements IFastCache {
 
     @Override
     public <T> T get(String tag, String key) {
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return null;
+        }
         Cache cache = getCache(tag);
         Element element = cache.get(key);
         if (element != null) {
@@ -90,11 +102,17 @@ public class FastEhCache2Provider implements IFastCache {
 
     @Override
     public void delete(String tag) {
+        if (FastStringUtils.isEmpty(tag)) {
+            return;
+        }
         getCacheManager().removeCache(tag);
     }
 
     @Override
     public void delete(String tag, String key) {
+        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+            return;
+        }
         Cache cache = getCache(tag);
         cache.remove(key);
     }

@@ -11,8 +11,6 @@ import java.lang.reflect.Field;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -28,6 +26,10 @@ public final class FastScanner {
     private Set<Class<?>> scannedClass = new LinkedHashSet<>();
     private Set<String> scannedFile = new LinkedHashSet<>();
     private Set<String> scannedJar = new LinkedHashSet<>();
+    private Map<String, FastClassLoader> jarLoaders = new HashMap<>();
+
+    private List<String> modifyTicket;
+    private boolean firstTicket;
 
     private List<IFastScannerAccepter> accepterList = new ArrayList<>();
     private boolean printClassNotFound = false;
@@ -74,7 +76,7 @@ public final class FastScanner {
                 continue;
             }
             if (IFastWeb.class.isAssignableFrom(aClass) && aClass != IFastWeb.class) {
-                FastEngine.instance().getWebs().addFastWeb((Class<? extends IFastWeb>) aClass);
+                FastEngine.instance().getWebs().putFastWeb((Class<? extends IFastWeb>) aClass);
             }
         }
     }
@@ -93,43 +95,12 @@ public final class FastScanner {
         jars.clear();
     }
 
-
-    /**
-     * 扫码jar包，/WEB-INF/lib 目录下
-     * @param jarNames
-     * @return
-     */
-    public FastScanner includeJar(String... jarNames) throws Exception {
-        return includeJar(null, jarNames);
-    }
-
-    /**
-     * 扫码jar包 /WEB-INF/lib 目录下
-     * @param extract  是否解压
-     * @param jarNames
-     * @return
-     */
-    public FastScanner includeJar(Boolean extract, String... jarNames) throws Exception {
-        for (String jarName : jarNames) {
-            if (FastStringUtils.isEmpty(jarName)) {
-                continue;
-            }
-            if (!jarName.endsWith(".jar")) {
-                jarName += ".jar";
-            }
-            File file = new File(FastChar.getPath().getLibRootPath(), jarName);
-            includeJar(extract, file);
-        }
-        return this;
-    }
-
-    public FastScanner includeJar(File... jarFiles) throws Exception {
-        return includeJar(null, jarFiles);
-    }
-
-    public FastScanner includeJar(Boolean extract, File... jarFiles) throws Exception {
+    void resolveJar(boolean hasLoader, File... jarFiles) throws Exception {
         for (File jarFile : jarFiles) {
             if (jarFile == null) {
+                continue;
+            }
+            if (!jarFile.getName().toLowerCase().endsWith(".jar")) {
                 continue;
             }
             if (!jarFile.exists()) {
@@ -137,21 +108,65 @@ public final class FastScanner {
                 continue;
             }
 
-            if (!FastChar.getPath().existsJarRoot(jarFile)) {
-                FastJarLoader.addJar(jarFile);
-            }
-
             ScannerJar scannerJar = new ScannerJar();
-            scannerJar.setExtract(extract);
             scannerJar.setPath(formatPath(jarFile.getPath()));
             scannerJar.setName(jarFile.getName());
-
             String path = formatPath(jarFile.getPath()) + "!/";
             if (!path.startsWith("/")) {
                 path = "/" + path;
             }
+
+
+            if (!FastChar.getPath().existsJarRoot(jarFile) && !hasLoader) {
+                URL url = jarFile.toURI().toURL();
+                FastClassLoader classLoader = new FastClassLoader(new URL[]{url}, FastScanner.class.getClassLoader());
+                if (jarLoaders.containsKey(scannerJar.getPath())) {
+                    jarLoaders.get(scannerJar.getPath()).close();
+                }
+                jarLoaders.put(scannerJar.getPath(), classLoader);
+            }
+
             scannerJar.setUrl(new URL("jar:file:" + path));
             jars.add(scannerJar);
+        }
+    }
+
+    public FastScanner loadJar(File... jarFiles) throws Exception {
+        resolveJar(false, jarFiles);
+        return this;
+    }
+
+
+    public FastScanner updateJar(File... jarFiles) throws Exception {
+        try {
+            loadJar(jarFiles);
+            scannerJar();
+            registerWeb();
+            FastEngine.instance().getWebs().initWeb(FastEngine.instance());
+            notifyAccepter();
+            FastChar.getObservable().notifyObservers("onScannerFinish");
+            if (!FastChar.isMain()) {
+                FastEngine.instance().getWebs().runWeb(FastEngine.instance());
+            }
+        } finally {
+            FastEngine.instance().flush();
+        }
+        return this;
+    }
+
+    public FastScanner unloadJar(File... jarFiles) {
+        try {
+            for (File jarFile : jarFiles) {
+                String formatPath = formatPath(jarFile.getPath());
+                if (jarLoaders.containsKey(formatPath)) {
+                    FastClassLoader fastClassLoader = jarLoaders.get(formatPath);
+                    fastClassLoader.close();
+                    jarLoaders.remove(formatPath);
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            FastEngine.instance().flush();
         }
         return this;
     }
@@ -223,11 +238,11 @@ public final class FastScanner {
                         String webClass = mainAttributes.getValue("FastChar-Web");
                         Class<?> aClass = FastClassUtils.getClass(webClass, false);
                         if (aClass != null && IFastWeb.class.isAssignableFrom(aClass)) {
-                            FastEngine.instance().getWebs().addFastWeb((Class<? extends IFastWeb>) aClass);
+                            FastEngine.instance().getWebs().putFastWeb((Class<? extends IFastWeb>) aClass);
                         }
                         boolean scanner = FastBooleanUtils.formatToBoolean(mainAttributes.getValue("FastChar-Scanner"), false);
                         if (scanner) {
-                            includeJar(file);
+                            resolveJar(true, file);
                         }
                     }
                 }
@@ -236,21 +251,22 @@ public final class FastScanner {
     }
 
     private void scannerJar() throws Exception {
-
-        for (ScannerJar jar : jars) {
-            if (scannedJar.contains(jar.getName())) {
+        restoreTicket();
+        for (ScannerJar scannerJar : jars) {
+            if (scannedJar.contains(scannerJar.getName())) {
                 continue;
             }
-            if (jar.getUrl() == null) {
+            if (scannerJar.getUrl() == null) {
                 continue;
             }
-            scannedJar.add(jar.getName());
+            scannedJar.add(scannerJar.getName());
 
-            JarURLConnection jarURLConnection = (JarURLConnection) jar.getUrl().openConnection();
+            JarURLConnection jarURLConnection = (JarURLConnection) scannerJar.getUrl().openConnection();
             try (JarFile jarFile = jarURLConnection.getJarFile()) {
                 boolean extract = false;
                 String version = "1.0";
                 String[] excludes = new String[0];
+                String[] extractFiles = new String[0];
                 Manifest manifest = jarFile.getManifest();
                 if (manifest != null) {
                     Attributes mainAttributes = manifest.getMainAttributes();
@@ -261,6 +277,10 @@ public final class FastScanner {
                     }
                     extract = FastBooleanUtils.formatToBoolean(mainAttributes.getValue("FastChar-Extract"), false);
 
+                    String extractFilesConfig = mainAttributes.getValue("FastChar-Extract-File");
+                    if (FastStringUtils.isNotEmpty(extractFilesConfig)) {
+                        extractFiles = extractFilesConfig.split(",");
+                    }
                 }
 
                 int array1Length = excludes.length;
@@ -268,17 +288,18 @@ public final class FastScanner {
                 excludes = Arrays.copyOf(excludes, excludes.length + EXCLUDE.length);
                 System.arraycopy(EXCLUDE, 0, excludes, array1Length, array2Length);
 
-                if (jar.getExtract() != null) {
-                    extract = jar.getExtract();
+                if (scannerJar.getExtract() != null) {
+                    extract = scannerJar.getExtract();
                 }
                 if (extract) {
-                    String logInfo = FastChar.getLocal().getInfo("Scanner_Error1", jar.getName());
+                    String logInfo = FastChar.getLocal().getInfo("Scanner_Error1", scannerJar.getName());
                     FastChar.getLog().info(logInfo);
                 }
 
                 Enumeration<JarEntry> jarEntries = jarFile.entries();
 
                 while (jarEntries.hasMoreElements()) {
+                    boolean extractFile = false;
                     JarEntry jarEntry = jarEntries.nextElement();
                     String jarEntryName = jarEntry.getName();
                     if (jarEntryName.startsWith(".")) continue;
@@ -302,7 +323,31 @@ public final class FastScanner {
                     if (isExclude) {
                         continue;
                     }
-                    if (extract) {
+
+                    for (String file : extractFiles) {
+                        if (FastStringUtils.matches(file, jarEntryName)) {
+                            extractFile = true;
+                            break;
+                        }
+                    }
+
+                    if (jarEntryName.endsWith(".class")) {
+                        Class<?> aClass;
+                        if (jarLoaders.containsKey(scannerJar.getPath())) {
+                            aClass = FastClassUtils.getClass(jarLoaders.get(scannerJar.getPath()), jarRealName, true);
+                        } else {
+                            aClass = FastClassUtils.getClass(jarRealName, false);
+                        }
+                        scannedClass.add(aClass);
+                        continue;
+                    }
+
+                    if (extractFile) {
+                        String logInfo = FastChar.getLocal().getInfo("Scanner_Error4", jarEntryName);
+                        FastChar.getLog().info(logInfo);
+                    }
+
+                    if (extractFile || extract) {
                         boolean isWebSource = false;
                         for (String web : WEB) {
                             if (jarEntryName.startsWith(web)) {
@@ -311,7 +356,10 @@ public final class FastScanner {
                                     break;
                                 }
                                 InputStream inputStream = jarFile.getInputStream(jarEntry);
-                                saveJarEntry(inputStream, jarEntry, FastChar.getPath().getWebRootPath(), version);
+                                File file = saveJarEntry(scannerJar.getName(), inputStream, jarEntry, FastChar.getPath().getWebRootPath(), version);
+                                if (file != null) {
+                                    scannedFile.add(file.getAbsolutePath());
+                                }
                                 if (FastChar.getConstant().isLogExtract()) {
                                     FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error2", jarEntryName));
                                 }
@@ -320,23 +368,26 @@ public final class FastScanner {
                         }
                         if (!isWebSource) {
                             InputStream inputStream = jarFile.getInputStream(jarEntry);
-                            saveJarEntry(inputStream, jarEntry, FastChar.getPath().getClassRootPath(), version);
+                            File file = saveJarEntry(scannerJar.getName(), inputStream, jarEntry, FastChar.getPath().getClassRootPath(), version);
+                            if (file != null) {
+                                scannedFile.add(file.getAbsolutePath());
+                            }
                             if (FastChar.getConstant().isLogExtract()) {
                                 FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error2", jarEntryName));
                             }
                         }
-                    } else {
-                        if (jarEntryName.endsWith(".class")) {
-                            Class<?> aClass = FastClassUtils.getClass(jarRealName, false);
-                            scannedClass.add(aClass);
+                        if (extractFile) {
+                            String logInfo = FastChar.getLocal().getInfo("Scanner_Error5", jarEntryName);
+                            FastChar.getLog().info(logInfo);
                         }
                     }
                 }
                 if (extract) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error2", jar.getName()));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo("Scanner_Error2", scannerJar.getName()));
                 }
             }
         }
+        saveTicket();
     }
 
 
@@ -393,7 +444,7 @@ public final class FastScanner {
                 forFiles(path, file);
             } else {
                 if (file.getName().endsWith(".class")) {
-                    Class convertClass = convertClass(path, file);
+                    Class<?> convertClass = convertClass(path, file);
                     if (convertClass != null) {
                         scannedClass.add(convertClass);
                     }
@@ -405,7 +456,7 @@ public final class FastScanner {
     }
 
 
-    private Class convertClass(String path, File file) {
+    private Class<?> convertClass(String path, File file) {
         String filePath = file.getAbsolutePath().replace(FastStringUtils.stripEnd(path, File.separator) + File.separator, "");
         String className = filePath.replace(File.separator, ".").replace(".class", "");
         return FastClassUtils.getClass(className, printClassNotFound);
@@ -413,8 +464,8 @@ public final class FastScanner {
 
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private boolean saveJarEntry(InputStream inputStream, JarEntry jarEntry,
-                                 String targetPath, String version) {
+    private File saveJarEntry(String jarName, InputStream inputStream, JarEntry jarEntry,
+                              String targetPath, String version) {
         try {
             String jarEntryName = jarEntry.getName();
             if (jarEntryName.startsWith("WebRoot")) {
@@ -425,16 +476,16 @@ public final class FastScanner {
             if (jarEntryName.startsWith(".")
                     || jarEntryName.contains("private")
                     || jarEntryName.endsWith(".java")) {
-                return false;
+                return null;
             }
             File file = new File(targetPath, jarEntryName);
             if (file.exists()) {
-                return false;
+                if (!checkIsModified(file.getAbsolutePath(), jarName)) {
+                    return file;
+                }
             }
 
-            if (jarEntry.isDirectory()) {
-                file.mkdirs();
-            } else {
+            if (!jarEntry.isDirectory()) {
                 if (!file.getParentFile().exists()) {
                     file.getParentFile().mkdirs();
                 }
@@ -448,62 +499,94 @@ public final class FastScanner {
                 inputStream.close();
                 outputStream.close();
             }
+            return file;
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
         } finally {
             try {
                 inputStream.close();
             } catch (Exception ignored) {
             }
         }
-        return true;
+        return null;
+    }
+
+    private void restoreTicket() {
+        try {
+            File file = new File(FastChar.getPath().getWebInfoPath(), ".fast_jar");
+            if (!file.exists()) {
+                firstTicket = true;
+                if (!file.createNewFile()) {
+                    if (FastChar.getConstant().isDebug()) {
+                        FastChar.getLog().error(FastChar.getLocal().getInfo("File_Error9", file.getAbsolutePath()));
+                    }
+                }
+            }
+            modifyTicket = FastFileUtils.readLines(file);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void saveTicket() {
+        try {
+            if (modifyTicket != null) {
+                if (firstTicket) {
+                    modifyTicket.add(0, FastChar.getLocal().getInfo("Ticket_Error1"));
+                }
+                File file = new File(FastChar.getPath().getWebInfoPath(), ".fast_jar");
+                FastFileUtils.writeLines(file, modifyTicket);
+                modifyTicket.clear();
+            }
+        } catch (Exception ignored) {
+        }
     }
 
 
     /**
      * 检测Jar包版本是否已更新
      *
-     * @return
+     * @return 布尔值
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private boolean checkIsModified(String jarName, String jarVersion) {
-        String key = FastChar.getSecurity().MD5_Encrypt(jarName);
-        String value = FastChar.getSecurity().MD5_Encrypt(jarVersion);
+    private boolean checkIsModified(String filePath, String jarName) {
+        if (modifyTicket == null) {
+            return false;
+        }
+        String key = FastChar.getSecurity().MD5_Encrypt(filePath);
+        String value = FastChar.getSecurity().MD5_Encrypt(jarName + filePath);
         boolean hasModified = true;
-        boolean hasAdded = false;
         try {
-            File file = new File(FastChar.getPath().getLibRootPath() + File.separator + ".fast_jar");
-            List<String> strings = new ArrayList<>();
-            if (file.exists()) {
-                strings = FastFileUtils.readLines(file);
-            } else if (file.createNewFile()) {
-                try {
-                    String string = " attrib +H " + file.getAbsolutePath(); //设置文件属性为隐藏
-                    Runtime.getRuntime().exec(string);
-                } catch (Exception ignored) {
-                }
-            }
-            for (String string : strings) {
+            boolean hasAdded = false;
+            for (String string : modifyTicket) {
                 if (string.startsWith(key)) {
                     hasAdded = true;
                     if (string.equals(key + "@" + value)) {
                         hasModified = false;
                     } else {
                         hasModified = true;
-                        Collections.replaceAll(strings, string, key + "@" + value);
+                        Collections.replaceAll(modifyTicket, string, key + "@" + value);
                     }
                     break;
                 }
             }
             if (!hasAdded) {
-                strings.add(key + "@" + value);
+                modifyTicket.add(key + "@" + value);
             }
-            FastFileUtils.writeLines(file, strings);
         } catch (Exception e) {
             return false;
         }
         return hasModified;
+    }
+
+
+    public void flush() {
+        List<IFastScannerAccepter> waitRemove = new ArrayList<>();
+        for (IFastScannerAccepter iFastScannerAccepter : accepterList) {
+            if (FastClassUtils.isRelease(iFastScannerAccepter)) {
+                waitRemove.add(iFastScannerAccepter);
+            }
+        }
+        accepterList.removeAll(waitRemove);
     }
 
 

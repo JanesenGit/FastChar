@@ -15,6 +15,7 @@ public final class FastPath {
     private String classRootPath;
     private String webRootPath;
     private String libRootPath;
+    private String webInfoPath;
 
     FastPath() {
     }
@@ -66,6 +67,18 @@ public final class FastPath {
             libRootPath = getClassRootPath().replace("classes", "lib");
         }
         return libRootPath;
+    }
+
+    public String getWebInfoPath() {
+        if (webInfoPath == null) {
+            webInfoPath = new File(getClassRootPath().split("WEB-INF")[0], "WEB-INF").getAbsolutePath();
+        }
+        return webInfoPath;
+    }
+
+    public FastPath setWebInfoPath(String webInfoPath) {
+        this.webInfoPath = webInfoPath;
+        return this;
     }
 
     FastPath setLibRootPath(String libRootPath) {

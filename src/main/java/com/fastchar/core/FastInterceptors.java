@@ -43,7 +43,7 @@ public final class FastInterceptors {
 
 
     private boolean isRootInterceptor(String className, String url) {
-        for (InterceptorInfo interceptorInfo : rootInterceptors) {
+        for (InterceptorInfo<?> interceptorInfo : rootInterceptors) {
             if (interceptorInfo.interceptor.getName().equals(className)
                     && interceptorInfo.url.equals(url)) {
                 return true;
@@ -97,7 +97,7 @@ public final class FastInterceptors {
     }
 
     void sortRootInterceptor() {
-        Comparator<InterceptorInfo> comparator = new Comparator<InterceptorInfo>() {
+        Comparator<InterceptorInfo<?>> comparator = new Comparator<InterceptorInfo<?>>() {
             @Override
             public int compare(InterceptorInfo o1, InterceptorInfo o2) {
                 if (o1.priority > o2.priority) {
@@ -143,6 +143,32 @@ public final class FastInterceptors {
         return interceptorInfos;
     }
 
+
+    public void flush() {
+        List<InterceptorInfo<IFastRootInterceptor>> waitRemoveA = new ArrayList<>();
+        for (InterceptorInfo<IFastRootInterceptor> rootInterceptor : rootInterceptors) {
+            if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
+                waitRemoveA.add(rootInterceptor);
+            }
+        }
+
+        List<InterceptorInfo<IFastInterceptor>> waitRemoveB = new ArrayList<>();
+        for (InterceptorInfo<IFastInterceptor> rootInterceptor : beforeInterceptors) {
+            if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
+                waitRemoveB.add(rootInterceptor);
+            }
+        }
+        for (InterceptorInfo<IFastInterceptor> rootInterceptor : afterInterceptors) {
+            if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
+                waitRemoveB.add(rootInterceptor);
+            }
+        }
+        rootInterceptors.removeAll(waitRemoveA);
+        beforeInterceptors.removeAll(waitRemoveB);
+        afterInterceptors.removeAll(waitRemoveB);
+    }
+
+
     public static class InterceptorInfo<T> {
         private String url;
         private Class<? extends T> interceptor;
@@ -152,7 +178,7 @@ public final class FastInterceptors {
             return url;
         }
 
-        public InterceptorInfo setUrl(String url) {
+        public InterceptorInfo<T> setUrl(String url) {
             this.url = url;
             return this;
         }
@@ -170,7 +196,7 @@ public final class FastInterceptors {
             return priority;
         }
 
-        public InterceptorInfo setPriority(int priority) {
+        public InterceptorInfo<T> setPriority(int priority) {
             this.priority = priority;
             return this;
         }

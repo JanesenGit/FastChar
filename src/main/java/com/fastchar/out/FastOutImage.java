@@ -8,7 +8,9 @@ import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
+import java.io.File;
 
 public class FastOutImage  extends FastOut<FastOutImage>  {
     private String formatName = "jpg";
@@ -33,8 +35,13 @@ public class FastOutImage  extends FastOut<FastOutImage>  {
         response.setStatus(getStatus());
         response.setContentType(getContentType());
         try (ServletOutputStream outputStream = response.getOutputStream()) {
-            RenderedImage data = (RenderedImage) getData();
-            ImageIO.write(data, formatName, outputStream);
+            if (data instanceof RenderedImage) {
+                RenderedImage renderedImage = (RenderedImage) getData();
+                ImageIO.write(renderedImage, formatName, outputStream);
+            }else if (data instanceof File) {
+                File file = (File) getData();
+                ImageIO.write(ImageIO.read(file), formatName, outputStream);
+            }
             outputStream.flush();
         }
     }

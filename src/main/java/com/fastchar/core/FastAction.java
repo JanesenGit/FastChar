@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 public abstract class FastAction {
     private static ConcurrentHashMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<String, ReentrantLock>();
 
-
     HttpServletRequest request;
     HttpServletResponse response;
     ServletContext servletContext;
@@ -48,7 +47,6 @@ public abstract class FastAction {
     private volatile boolean log = true;
     private volatile boolean logResponse = false;
     private volatile int status = 200;
-
 
     void release() {
         fastRoute = null;
@@ -1914,6 +1912,15 @@ public abstract class FastAction {
         return this;
     }
 
+    /**
+     * 获取Request属性值
+     * @param attr 属性名
+     * @return 属性值
+     */
+    public Object getRequesetAttr(String attr) {
+        return request.getAttribute(attr);
+    }
+
 
     /**
      * 删除Request属性
@@ -1921,6 +1928,33 @@ public abstract class FastAction {
      */
     public void removeRequestAttr(String attr) {
         request.removeAttribute(attr);
+    }
+
+
+    /**
+     * 获取请求的头信息
+     * @param name 名称
+     * @return 字符串
+     */
+    public String getRequestHeader(String name) {
+        return getRequest().getHeader(name);
+    }
+
+    /**
+     * 获取请求的头信息
+     * @param name 名称
+     * @return Enumeration&lt;String&gt;
+     */
+    public Enumeration<String> getRequestHeaders(String name) {
+        return getRequest().getHeaders(name);
+    }
+
+    /**
+     * 获取请求的头信息
+     * @return Enumeration&lt;String&gt;
+     */
+    public Enumeration<String> getRequestHeaderNames() {
+        return getRequest().getHeaderNames();
     }
 
 
@@ -2152,6 +2186,53 @@ public abstract class FastAction {
     }
 
     /**
+     * 删除cookie
+     *
+     * @param name 名称
+     * @param path 相对路径
+     * @param domain domain
+     * @return 当前对象
+     */
+    public FastAction removeCookie(String name) {
+        return removeCookie(name, null, null);
+    }
+
+    /**
+     * 删除cookie
+     *
+     * @param name 名称
+     * @param path 相对路径
+     * @param domain domain
+     * @return 当前对象
+     */
+    public FastAction removeCookie(String name, String path) {
+        return removeCookie(name, path, null);
+    }
+
+    /**
+     * 删除cookie
+     *
+     * @param name 名称
+     * @param path 相对路径
+     * @param domain domain
+     * @return 当前对象
+     */
+    public FastAction removeCookie(String name, String path, String domain) {
+        Cookie cookie = new Cookie(name, null);
+        cookie.setMaxAge(0);
+        if (path == null) {
+            path = "/";
+        }
+        cookie.setPath(path);
+
+        if (domain != null) {
+            cookie.setDomain(domain);
+        }
+        response.addCookie(cookie);
+        return this;
+    }
+
+    /**
      * 获得cookie数组
      * @return Cookie[]
      */
@@ -2270,7 +2351,7 @@ public abstract class FastAction {
      * 获取对方的ip地址
      * @return String
      */
-    public String getRemoveIp() {
+    public String getRemoteIp() {
         String ip = request.getHeader("x-forwarded-for");
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");

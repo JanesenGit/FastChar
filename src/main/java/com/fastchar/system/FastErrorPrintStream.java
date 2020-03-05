@@ -2,6 +2,8 @@ package com.fastchar.system;
 
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastRequestLog;
+import com.fastchar.interfaces.IFastException;
+import com.fastchar.utils.FastClassUtils;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -156,6 +158,17 @@ public class FastErrorPrintStream extends PrintStream {
         super(file, csn);
     }
 
+    @Override
+    public void println(Object x) {
+        if (x instanceof Throwable) {
+            Throwable throwable = (Throwable) x;
+            IFastException iFastException = FastChar.getOverrides().newInstance(false, IFastException.class);
+            if (iFastException != null && iFastException.onPrintException(throwable)) {
+                return;
+            }
+        }
+        super.println(x);
+    }
 
     @Override
     public void print(String s) {

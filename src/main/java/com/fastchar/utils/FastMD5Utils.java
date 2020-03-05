@@ -1,6 +1,3 @@
-/**
- * 安徽创息软件科技有限公司版权所有 http://www.croshe.com
- **/
 package com.fastchar.utils;
 
 import java.nio.charset.StandardCharsets;

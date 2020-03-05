@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class FastResultSet {
+public class FastResultSet {
 
     private ResultSet resultSet;
     private boolean ignoreCase;
@@ -18,28 +18,25 @@ class FastResultSet {
         this.resultSet = resultSet;
     }
 
-    public FastEntity getFirstResult() {
+    public FastEntity<?> getFirstResult() {
         if (resultSet != null) {
             try {
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 final String tableName = resultSetMetaData.getTableName(1);
                 if (resultSet.next()) {
-                    FastRecord fastEntity = new FastRecord();
-                    fastEntity.setTableName(tableName);
+                    FastRecord fastRecord = new FastRecord();
+                    fastRecord.setTableName(tableName);
+                    fastRecord.setIgnoreCase(this.ignoreCase);
                     int columnCount = resultSetMetaData.getColumnCount();
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
                             Object value = resultSet.getObject(key);
-                            if (isIgnoreCase()) {
-                                fastEntity.put(key.toLowerCase(), value);
-                            } else {
-                                fastEntity.put(key, value);
-                            }
+                            fastRecord.put(key, value);
                         } catch (Exception ignored) {
                         }
                     }
-                    return fastEntity;
+                    return fastRecord;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -49,24 +46,28 @@ class FastResultSet {
     }
 
 
-    public FastEntity getLastResult() {
+    public FastEntity<?> getLastResult() {
         if (resultSet != null) {
             try {
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 final String tableName = resultSetMetaData.getTableName(1);
                 if (resultSet.last()) {
-                    FastRecord fastEntity = new FastRecord();
-                    fastEntity.setTableName(tableName);
+                    FastRecord fastRecord = new FastRecord();
+                    fastRecord.setTableName(tableName);
                     int columnCount = resultSetMetaData.getColumnCount();
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
                             Object value = resultSet.getObject(key);
-                            fastEntity.put(key, value);
+                            if (isIgnoreCase()) {
+                                fastRecord.put(key.toLowerCase(), value);
+                            } else {
+                                fastRecord.put(key, value);
+                            }
                         } catch (Exception ignored) {
                         }
                     }
-                    return fastEntity;
+                    return fastRecord;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -84,8 +85,9 @@ class FastResultSet {
                 final String tableName = resultSetMetaData.getTableName(1);
                 int columnCount = resultSetMetaData.getColumnCount();
                 while (resultSet.next()) {
-                    FastRecord fastEntity = new FastRecord();
-                    fastEntity.setTableName(tableName);
+                    FastRecord fastRecord = new FastRecord();
+                    fastRecord.setTableName(tableName);
+                    fastRecord.setIgnoreCase(this.ignoreCase);
                     Map<String, Integer> keyCount = new HashMap<>();
                     for (int i = 1; i <= columnCount; i++) {
                         try {
@@ -97,12 +99,11 @@ class FastResultSet {
                             } else {
                                 keyCount.put(key, 0);
                             }
-
-                            fastEntity.put(key, value);
+                            fastRecord.put(key, value);
                         } catch (Exception ignored) {
                         }
                     }
-                    list.add(fastEntity);
+                    list.add(fastRecord);
                 }
                 return list;
             } catch (Exception e) {

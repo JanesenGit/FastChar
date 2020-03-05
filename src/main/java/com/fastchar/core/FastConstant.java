@@ -10,7 +10,7 @@ public final class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FastCharVersion = "1.1.7";
+    public static final String FastCharVersion = "1.2.3";
 
     /**
      * mysql数据库类型
@@ -33,7 +33,6 @@ public final class FastConstant {
     private String encoding = "utf-8";//编码格式
     private boolean encryptDatabaseXml;//是否加密数据库的配置xml
     private String encryptPassword = "FAST_CHAR";//加密的密码
-    private boolean readDatabaseXml;//是否已读取database.xml
     private boolean syncDatabaseXml = true;//是否同步xml到数据库中
     private boolean testEnvironment;//是否测试环境，一般在main方法中使用
     private boolean crossDomain = false;//是否允许跨域
@@ -324,25 +323,6 @@ public final class FastConstant {
         return this;
     }
 
-    /**
-     * 是否已读取fast-database.xml相关数据配置文件
-     *
-     * @return 布尔值
-     */
-    public boolean isReadDatabaseXml() {
-        return readDatabaseXml;
-    }
-
-    /**
-     * 设置是否已读取fast-database.xml相关数据配置文件
-     *
-     * @param readDatabaseXml 布尔值
-     * @return 当前对象
-     */
-    public FastConstant setReadDatabaseXml(boolean readDatabaseXml) {
-        this.readDatabaseXml = readDatabaseXml;
-        return this;
-    }
 
     /**
      * 在系统解析路由地址时，是否打印路由信息

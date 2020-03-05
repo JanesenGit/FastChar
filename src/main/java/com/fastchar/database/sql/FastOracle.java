@@ -38,7 +38,7 @@ public class FastOracle extends FastSql {
 
         TreeSet<String> treeKeys = new TreeSet<>(entity.allKeys());
         for (String key : treeKeys) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 if (column.isNotNull() && columnValue == null) {
@@ -53,7 +53,7 @@ public class FastOracle extends FastSql {
             return null;
         }
         for (String key : checks) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 values.add(columnValue);

@@ -39,7 +39,7 @@ public class FastSqlServer extends FastSql {
 
         TreeSet<String> treeKeys = new TreeSet<>(entity.allKeys());
         for (String key : treeKeys) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 if (column.isNotNull() && columnValue == null) {
@@ -55,7 +55,7 @@ public class FastSqlServer extends FastSql {
         }
         List<Object> checkValues = new ArrayList<>();
         for (String key : checks) {
-            FastColumnInfo column = entity.getColumn(key);
+            FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 checkValues.add(columnValue);

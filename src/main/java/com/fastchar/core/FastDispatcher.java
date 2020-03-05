@@ -13,6 +13,7 @@ import com.fastchar.interfaces.IFastRootInterceptor;
 
 import com.fastchar.out.FastOut;
 import com.fastchar.response.FastResponseCacheConfig;
+import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastMethodUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -149,7 +150,7 @@ public final class FastDispatcher {
             return true;
         }
         RESOLVED.add(actionClass.getName());
-        Class<? extends FastOut> defaultOut = FastEngine.instance().getActions().getDefaultOut();
+        Class<? extends FastOut<?>> defaultOut = FastEngine.instance().getActions().getDefaultOut();
 
         FastMethodRead parameterConverter = new FastMethodRead();
 
@@ -191,8 +192,13 @@ public final class FastDispatcher {
                 FastRoute fastRoute = new FastRoute();
                 fastRoute.actionClass = actionClass;
                 fastRoute.method = declaredMethod;
-                fastRoute.firstMethodLineNumber = lines.get(methodCount.get(declaredMethod.getName()) - 1).getFirstLine() - 1;
-                fastRoute.lastMethodLineNumber = lines.get(methodCount.get(declaredMethod.getName()) - 1).getLastLine();
+                if (lines.size() > 0) {
+                    fastRoute.firstMethodLineNumber = lines.get(methodCount.get(declaredMethod.getName()) - 1).getFirstLine() - 1;
+                    fastRoute.lastMethodLineNumber = lines.get(methodCount.get(declaredMethod.getName()) - 1).getLastLine();
+                }else{
+                    fastRoute.firstMethodLineNumber = 1;
+                    fastRoute.lastMethodLineNumber = 1;
+                }
                 fastRoute.methodParameter = parameter;
                 fastRoute.route = classMethodRoute;
                 fastRoute.crossAllowDomains = new HashSet<>(FastChar.getConstant().getCrossAllowDomains());
@@ -268,24 +274,27 @@ public final class FastDispatcher {
 
                 if (FAST_ROUTE_MAP.containsKey(classMethodRoute)) {
                     FastRoute existFastRoute = FAST_ROUTE_MAP.get(classMethodRoute);
-                    StackTraceElement newStack = new StackTraceElement(actionClass.getName(), fastRoute.getMethod().getName(),
-                            actionClass.getSimpleName() + ".java", fastRoute.firstMethodLineNumber);
+                    if (!FastClassUtils.isSameRefined(actionClass, existFastRoute.getActionClass())) {
 
-                    StackTraceElement currStack = new StackTraceElement(existFastRoute.getActionClass().getName(), existFastRoute.getMethod().getName(),
-                            existFastRoute.getActionClass().getSimpleName() + ".java", existFastRoute.firstMethodLineNumber);
-                    if (fastRoute.getPriority() == existFastRoute.getPriority()) {
-                        throw new FastActionException(FastChar.getLocal().getInfo("Action_Error2", "'" + classMethodRoute + "'") +
-                                "\n\tat " + newStack +
-                                "\n\tat " + currStack
-                        );
-                    }
-                    if (fastRoute.getPriority() > existFastRoute.getPriority()) {
-                        FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3",
-                                "'" + classMethodRoute + "'") + "\n\t\tnew at " + newStack + "\n\t\told at " + currStack));
-                    } else {
-                        FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3",
-                                "'" + classMethodRoute + "'") + "\n\t\tnew at " + currStack + "\n\t\told at " + newStack));
-                        continue;
+                        StackTraceElement newStack = new StackTraceElement(actionClass.getName(), fastRoute.getMethod().getName(),
+                                actionClass.getSimpleName() + ".java", fastRoute.firstMethodLineNumber);
+
+                        StackTraceElement currStack = new StackTraceElement(existFastRoute.getActionClass().getName(), existFastRoute.getMethod().getName(),
+                                existFastRoute.getActionClass().getSimpleName() + ".java", existFastRoute.firstMethodLineNumber);
+                        if (fastRoute.getPriority() == existFastRoute.getPriority()) {
+                            throw new FastActionException(FastChar.getLocal().getInfo("Action_Error2", "'" + classMethodRoute + "'") +
+                                    "\n\tat " + newStack +
+                                    "\n\tat " + currStack
+                            );
+                        }
+                        if (fastRoute.getPriority() > existFastRoute.getPriority()) {
+                            FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3",
+                                    "'" + classMethodRoute + "'") + "\n\t\tnew at " + newStack + "\n\t\told at " + currStack));
+                        } else {
+                            FastChar.getLog().warn(FastAction.class, FastChar.getLog().warnStyle(FastChar.getLocal().getInfo("Action_Error3",
+                                    "'" + classMethodRoute + "'") + "\n\t\tnew at " + currStack + "\n\t\told at " + newStack));
+                            continue;
+                        }
                     }
                 }
                 fastRoute.sortInterceptors();
@@ -439,8 +448,8 @@ public final class FastDispatcher {
     /**
      * 验证路径是否可被转发到FastChar
      *
-     * @param contentPath
-     * @return
+     * @param contentPath 路径
+     * @return 布尔值
      */
     private boolean validateUrl(String contentPath) {
         List<String> excludeUrls = FastChar.getActions().getExcludeUrls();
@@ -452,6 +461,18 @@ public final class FastDispatcher {
         return true;
     }
 
+
+    public static void flush() {
+        List<String> waitRemove = new ArrayList<>();
+        for (String s : FAST_ROUTE_MAP.keySet()) {
+            if (FastClassUtils.isRelease(FAST_ROUTE_MAP.get(s).actionClass)) {
+                waitRemove.add(s);
+            }
+        }
+        for (String s : waitRemove) {
+            FAST_ROUTE_MAP.remove(s);
+        }
+    }
 
     public void invoke() throws FastWebException {
         try {
@@ -509,6 +530,9 @@ public final class FastDispatcher {
                 FastUrl fastUrl = parse.get(i);
                 if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRoute())) {
                     FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute()).copy();
+                    if (fastRoute == null) {
+                        continue;
+                    }
                     try {
                         if (!fastRoute.checkMethod(request.getMethod())) {
                             response404(inTime);
@@ -532,6 +556,9 @@ public final class FastDispatcher {
                 }
                 if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRouteIndex())) {
                     FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRouteIndex()).copy();
+                    if (fastRoute == null) {
+                        continue;
+                    }
                     try {
                         fastRoute.inTime = inTime;
                         fastRoute.request = request;
