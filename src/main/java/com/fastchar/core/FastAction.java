@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 /**
  * Request请求处理类，FastChar核心类
+ * @author 沈建（Janesen）
  */
 @SuppressWarnings("all")
 public abstract class FastAction {
@@ -1115,6 +1116,10 @@ public abstract class FastAction {
     public Map<String, Object> getParamToMap(String prefix, boolean notNull) {
         fastCheck.setHold(true);
         Map<String, Object> mapParam = new HashMap<>();
+
+        //2020-3-13 新增
+        mapParam.put("^prefix", prefix);
+
         Set<String> paramNames = getParamNames();
 
         for (String paramName : paramNames) {
@@ -2382,6 +2387,8 @@ public abstract class FastAction {
         }
         return ip;
     }
+
+
 
     /**
      * 获得request的user-agent

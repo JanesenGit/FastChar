@@ -1,19 +1,16 @@
 package com.fastchar.core;
 
-import com.fastchar.utils.FastBooleanUtils;
-import com.fastchar.utils.FastNumberUtils;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Properties;
 
-public class FastProperties {
+public class FastProperties  extends FastMapWrap{
 
     private String filePath;
-    private Properties properties;
 
     public FastProperties() {
     }
@@ -32,47 +29,18 @@ public class FastProperties {
         return this;
     }
 
-
-    public Properties getProperties() {
+    @Override
+    public Map<?, ?> getMap() {
         try {
-            if (properties == null) {
-                properties = new Properties();
+            if (map == null) {
+                Properties properties = new Properties();
                 properties.load(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8));
+                setMap(properties);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return properties;
+        return map;
     }
-
-    public String getString(String key) {
-        return getProperties().getProperty(key);
-    }
-
-    public int getInt(String key) {
-        return FastNumberUtils.formatToInt(getString(key));
-    }
-
-    public int getInt(String key, int defaultValue) {
-        return FastNumberUtils.formatToInt(getString(key), defaultValue);
-    }
-
-    public boolean getBoolean(String key) {
-        return FastBooleanUtils.formatToBoolean(getString(key));
-    }
-
-    public boolean getBoolean(String key, boolean defaultValue) {
-        return FastBooleanUtils.formatToBoolean(getString(key), defaultValue);
-    }
-
-
-    public double getDouble(String key) {
-        return FastNumberUtils.formatToDouble(getString(key));
-    }
-
-    public double getDouble(String key, double defaultValue) {
-        return FastNumberUtils.formatToDouble(getString(key), defaultValue);
-    }
-
 
 }

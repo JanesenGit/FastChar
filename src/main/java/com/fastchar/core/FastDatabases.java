@@ -3,6 +3,7 @@ package com.fastchar.core;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastTableInfo;
+import com.fastchar.enums.FastObservableEvent;
 import com.fastchar.exception.FastDatabaseException;
 import com.fastchar.exception.FastDatabaseInfoException;
 import com.fastchar.interfaces.IFastDatabaseOperate;
@@ -17,6 +18,7 @@ import java.util.regex.Pattern;
 
 /**
  * 数据库操作
+ * @author 沈建（Janesen）
  */
 public final class FastDatabases {
     private static final ThreadLocal<String> LOCKER_DATABASE_NAME = new ThreadLocal<String>();
@@ -24,7 +26,7 @@ public final class FastDatabases {
     private static final String MYSQL_REG = "jdbc:mysql://(.*):(\\d{2,4})/([^?&;=]*)";
     private static final String SQL_SERVER_REG = "jdbc:sqlserver://(.*):(\\d{2,4});databaseName=([^?&;=]*)";
     private static final String ORACLE_REG = "jdbc:oracle:thin:@[/]{0,2}(.*):(\\d{2,4})[:/]([^?&;=]*)";
-    private List<FastDatabaseInfo> databaseInfos = new ArrayList<>();
+    private final List<FastDatabaseInfo> databaseInfos = new ArrayList<>();
 
     private List<String> modifyTicket;
     private boolean firstTicket;
@@ -50,12 +52,12 @@ public final class FastDatabases {
     }
 
     public synchronized FastDatabases add(FastDatabaseInfo databaseInfo) throws Exception {
-        databaseInfo.fromProperty();
         for (FastDatabaseInfo info : databaseInfos) {
             if (info.getName().equals(databaseInfo.getName())) {
                 throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Error1", databaseInfo.getName()));
             }
         }
+        databaseInfo.fromProperty();
         databaseInfos.add(databaseInfo);
         return this;
     }
@@ -104,6 +106,9 @@ public final class FastDatabases {
 
 
     private String getHost(String url) {
+        if (FastStringUtils.isEmpty(url)) {
+            return null;
+        }
         Matcher matcher = Pattern.compile(MYSQL_REG).matcher(url);
         if (matcher.find()) {
             return matcher.group(1);
@@ -120,6 +125,9 @@ public final class FastDatabases {
     }
 
     private String getPort(String url) {
+        if (FastStringUtils.isEmpty(url)) {
+            return null;
+        }
         Matcher matcher = Pattern.compile(MYSQL_REG).matcher(url);
         if (matcher.find()) {
             return matcher.group(2);
@@ -136,6 +144,9 @@ public final class FastDatabases {
     }
 
     private String getName(String url) {
+        if (FastStringUtils.isEmpty(url)) {
+            return null;
+        }
         Matcher matcher = Pattern.compile(MYSQL_REG).matcher(url);
         if (matcher.find()) {
             return matcher.group(3);
@@ -152,6 +163,9 @@ public final class FastDatabases {
     }
 
     private String getType(String url) {
+        if (FastStringUtils.isEmpty(url)) {
+            return null;
+        }
         Matcher matcher = Pattern.compile(MYSQL_REG).matcher(url);
         if (matcher.find()) {
             return "mysql";
@@ -177,23 +191,14 @@ public final class FastDatabases {
     public synchronized void flushDatabase() throws Exception {
         restoreTicket();
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
+            databaseInfo.validate();
+
             IFastDatabaseOperate databaseOperate = databaseInfo.getOperate();
             if (databaseOperate == null) {
+                FastChar.getLog().error(FastDatabases.class, FastChar.getLocal().getInfo("DataSource_Info3", databaseInfo.getName()));
                 continue;
             }
 
-            //必要验证【重要】
-            List<FastTableInfo<?>> tables = new ArrayList<>(databaseInfo.getTables());
-            for (FastTableInfo<?> table : tables) {
-                for (FastColumnInfo<?> column : table.getColumns()) {
-                    if (column.isFromXml()) {
-                        column.validate();
-                    }
-                }
-                if (table.isFromXml()) {
-                    table.validate();
-                }
-            }
 
             if (FastChar.getConstant().isSyncDatabaseXml()) {
                 if (databaseInfo.getBoolean("enable", true) && databaseInfo.isFromXml()) {
@@ -228,7 +233,7 @@ public final class FastDatabases {
             fastDatabaseInfo.tableToMap();
         }
         if (FastChar.getDatabases().getAll().size() > 0) {
-            FastChar.getObservable().notifyObservers("onDatabaseFinish");
+            FastChar.getObservable().notifyObservers(FastObservableEvent.onDatabaseFinish.name());
         }
     }
 
@@ -319,6 +324,7 @@ public final class FastDatabases {
         }
         modifyTicket.removeAll(waitRemove);
     }
+
 
 
 }

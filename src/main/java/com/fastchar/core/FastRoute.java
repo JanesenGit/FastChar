@@ -12,6 +12,7 @@ import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.out.FastOut;
 import com.fastchar.out.FastOutForward;
 import com.fastchar.utils.FastClassUtils;
+import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -59,7 +60,7 @@ public final class FastRoute {
     transient FastAction forwarder;
 
     FastRoute copy() {
-        if (this.actionClass == null || FastClassUtils.isRelease(this.actionClass)) {
+        if (this.actionClass == null) {
             return null;
         }
 
@@ -183,6 +184,7 @@ public final class FastRoute {
                 if (this.forwarder != null) {
                     fastAction.params.addAll(forwarder.params);
                 }
+                FastChar.setThreadLocalAction(fastAction);
             }
             if (responseInvoked) {
                 response();

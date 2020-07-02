@@ -2,6 +2,7 @@ package com.fastchar.core;
 
 /**
  * Http的方法属性
+ * @author 沈建（Janesen）
  */
 public  class  FastHttpMethod {
     public static final String POST = "post";

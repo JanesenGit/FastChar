@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * MySql数据库操作
@@ -43,11 +44,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             String databaseProductName = dmd.getDatabaseProductName();
             databaseInfo.setProduct(databaseProductName);
             databaseInfo.setVersion(dmd.getDatabaseProductVersion());
-            String userName = dmd.getUserName();
-            databaseInfo.setUser(userName.split("@")[0]);
-            databaseInfo.setHost(userName.split("@")[1]);
             databaseInfo.setType("mysql");
-            databaseInfo.setName(connection.getCatalog());
             databaseInfo.setUrl(dmd.getURL());
 
             resultSet = dmd.getTables(null, null, null, new String[]{"table", "TABLE"});
@@ -137,10 +134,17 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         try {
             String driverClassName = databaseInfo.getDriver();
             Class.forName(driverClassName);
-
-            connection = DriverManager.getConnection("jdbc:mysql://" + databaseInfo.getHost()
-                            + ":" + databaseInfo.getPort() + "/mysql", databaseInfo.getUser(),
+            String url = "jdbc:mysql://" + databaseInfo.getHost()
+                    + ":" + databaseInfo.getPort()
+                    + "/mysql?rewriteBatchedStatements=true" +
+                    "&useUnicode=true" +
+                    "&characterEncoding=utf-8" +
+                    "&serverTimezone=GMT" +
+                    "&allowPublicKeyRetrieval=true" +
+                    "&useSSL=false";
+            connection = DriverManager.getConnection(url, databaseInfo.getUser(),
                     databaseInfo.getPassword());
+
             statement = connection.createStatement();
             String sqlStr = String.format("create database if not exists %s default character set utf8 collate utf8_general_ci", databaseInfo.getName());
             statement.executeUpdate(sqlStr);
@@ -158,9 +162,6 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             if (tables == null) {
                 tables = new HashSet<>();
                 DatabaseMetaData dmd = connection.getMetaData();
-                String databaseProductName = dmd.getDatabaseProductName();
-                databaseInfo.setProduct(databaseProductName);
-                databaseInfo.setVersion(dmd.getDatabaseProductVersion());
                 resultSet = dmd.getTables(null, null, null, new String[]{"table", "TABLE"});
                 List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
                 for (FastEntity<?> fastEntity : listResult) {
@@ -171,7 +172,6 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         } finally {
             fastDb.close(connection, resultSet);
         }
-
         return tables.contains(tableInfo.getName());
     }
 
@@ -206,7 +206,6 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                     scriptRunner.closeConnection();
                 }
             }
-
         } finally {
             FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo("Db_Table_Info1", databaseInfo.getName(), tableInfo.getName()));
         }
@@ -289,6 +288,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                             tableInfo.getName(), columnInfo.getName()));
         }
     }
+
 
     private void alterColumnIndex(FastDatabaseInfo databaseInfo, String tableName, FastColumnInfo<?> columnInfo) throws Exception {
         String convertIndex = convertIndex(columnInfo);

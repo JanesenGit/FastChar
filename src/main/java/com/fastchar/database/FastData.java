@@ -1,5 +1,6 @@
 package com.fastchar.database;
 
+import com.alibaba.druid.sql.ast.expr.SQLFlashbackExpr;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.core.FastHandler;
@@ -355,6 +356,7 @@ public class FastData<T extends FastEntity<?>> {
         try {
             FastSqlInfo sqlInfo = FastSql.getInstance(getDatabaseType()).buildUpdateSql(target, checks);
             if (sqlInfo == null) {
+                target.getModified().clear();
                 target.setError(FastChar.getLocal().getInfo("Entity_Error3"));
                 return false;
             }
@@ -376,6 +378,8 @@ public class FastData<T extends FastEntity<?>> {
         try {
             FastSqlInfo sqlInfo = FastSql.getInstance(getDatabaseType()).buildUpdateSqlByIds(target, ids);
             if (sqlInfo == null) {
+                target.getModified().clear();
+                target.setError(FastChar.getLocal().getInfo("Entity_Error3"));
                 return false;
             }
             boolean result = FastChar.getDb()

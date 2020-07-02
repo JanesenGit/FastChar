@@ -32,7 +32,7 @@ public class FastOutJson extends FastOut<FastOutJson> {
                 this.contentType = "text/html";
             }
         }
-        response.setContentType(toContentType());
+        response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
         try (PrintWriter writer = response.getWriter()) {
             if (data instanceof File) {

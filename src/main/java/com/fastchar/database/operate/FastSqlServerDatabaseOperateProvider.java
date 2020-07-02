@@ -50,9 +50,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             String databaseProductName = dmd.getDatabaseProductName();
             databaseInfo.setProduct(databaseProductName);
             databaseInfo.setVersion(dmd.getDatabaseProductVersion());
-            databaseInfo.setUser(dmd.getUserName());
             databaseInfo.setType("sql_server");
-            databaseInfo.setName(connection.getCatalog());
             databaseInfo.setUrl(dmd.getURL());
 
             resultSet = dmd.getTables(null, null, null, new String[]{"table","TABLE"});

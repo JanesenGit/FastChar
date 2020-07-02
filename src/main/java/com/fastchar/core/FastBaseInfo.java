@@ -1,6 +1,5 @@
 package com.fastchar.core;
 
-import com.fastchar.interfaces.IFastJson;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
@@ -14,8 +13,10 @@ import java.util.Map;
 
 /**
  * 便捷的信息存储类
+ * @author 沈建（Janesen）
  */
 public class FastBaseInfo extends LinkedHashMap<String, Object> {
+
     private transient static final long serialVersionUID = -8188484441789855067L;
     private transient int lineNumber = 1;
     private transient List<Field> fields;
@@ -275,8 +276,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
         return getBoolean("fromXml", false);
     }
 
-    public FastBaseInfo setFromXml(boolean fromXml) {
+    public void setFromXml(boolean fromXml) {
         put("fromXml", fromXml);
-        return this;
     }
 }

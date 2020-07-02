@@ -7,8 +7,11 @@ import javax.servlet.ServletContext;
 
 /**
  * FastChar全局工具类，涵盖了所有FastChar提供功能
+ * @author 沈建（Janesen）
  */
 public final class FastChar {
+    private static ThreadLocal<FastAction> THREAD_LOCAL_ACTION = new ThreadLocal<FastAction>();
+
 
     private FastChar() {
     }
@@ -30,6 +33,19 @@ public final class FastChar {
         }
         return false;
     }
+
+    public static FastAction getThreadLocalAction() {
+        return THREAD_LOCAL_ACTION.get();
+    }
+
+    public static void setThreadLocalAction(FastAction threadLocalAction) {
+        THREAD_LOCAL_ACTION.set(threadLocalAction);
+    }
+
+    public static void removeThreadLocalAction() {
+        THREAD_LOCAL_ACTION.remove();
+    }
+
 
     public static ServletContext getServletContext() {
         return FastEngine.instance().getServletContext();

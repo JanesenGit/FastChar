@@ -9,8 +9,10 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Date_Error3 = "前天";
 
     //路由相关错误
-    private final String Route_Error1 = "路由{0}没有响应结果！";
-
+    private final String Route_Error1 = "路由 {0} 未响应！";
+    private final String Route_Error2 = "路由 {0} 无效！";
+    private final String Route_Error3 = "路由 {0} 不支持HTTP方法：{1} ！";
+    private final String Route_Error4 = "移除被释放的路由 {0} ";
 
     //参数相关错误
     private final String Param_Error1 = "参数{0}不可为空！";
@@ -18,7 +20,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
     private final String Interceptor_Error1 = "请求前置的拦截器{0}没有执行response或invoke方法！";
     private final String Interceptor_Error2 = "请求后置的拦截器{0}没有执行response或invoke方法！";
-
+    private final String Interceptor_Error3 = "移除被释放的拦截器类 {0} ";
 
     private final String Class_Error1 = "类{0}必须实现{1}接口！";
     private final String Class_Error2 = "类{0}实例化失败！";
@@ -35,6 +37,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Scanner_Error3 = "跳过{0}";
     private final String Scanner_Error4 = "解压{0}中……";
     private final String Scanner_Error5 = "解压{0}成功!";
+    private final String Scanner_Error6 = "移除被释放的扫描接收器类 {0} ";
 
     //数据库相关错误
     private final String Db_Error1 = "数据库名称{0}已存在！";
@@ -64,15 +67,19 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
     //Action相关错误
     private final String Action_Error1 = "Action的路由不可为空！";
-    private final String Action_Error2 = "路由{0}不唯一！";
-    private final String Action_Error3 = "路由{0}已被重写！";
+    private final String Action_Error2 = "路由 {0} 已存在！";
+    private final String Action_Error3 = "路由 {0} 已被重写！";
     private final String Action_Error4 = "路由 {0} 的前缀 {1} 是WebRoot下的文件夹！不可与WebRoot下的文件夹重复！";
+    private final String Action_Error5 = "Action {0} 已被禁用！";
+
 
     //Entity相关错误
-    private final String Entity_Error1 = "Entity的表格名称不可为空！";
-    private final String Entity_Error2 = "Entity的表格{0}不存在！";
-    private final String Entity_Error3 = "未检测到被修改的数据！";
+    private final String Entity_Error1 = "Entity的关联的表格名称不可为空！";
+    private final String Entity_Error2 = "Entity的所关联的表格{0}不存在！";
+    private final String Entity_Error3 = "未检测到被修改的属性数据！";
     private final String Entity_Error4 = "执行replace操作时，必须指定属性名！";
+    private final String Entity_Error5 = "移除被释放的实体类 {0} ";
+
 
     //文件相关错误
     private final String File_Error1 = "目录{0}无法创建！";
@@ -91,8 +98,9 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
 
     //Override 相关错误
-    private final String Override_Error1 = "无法获得{0}的覆盖类对象！";
+    private final String Override_Error1 = "无法获得{0}的代理类对象！";
     private final String Override_Error2 = "类{0}，返回{1}对象！";
+    private final String Override_Error3 = "移除被释放的代理器类 {0} ";
 
     //redis相关错误
     private final String Redis_Error1 = "Redis的服务器地址不可为空！";
@@ -103,16 +111,30 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     //数据源相关消息
     private final String DataSource_Info1 = "已启用{0}数据源！";
     private final String DataSource_Info2 = "已关闭{0}数据源！";
-
+    private final String DataSource_Info3 = "未获取到{0}数据源！";
 
     //cglib相关错误
     private final String CGLib_Error1 = "被代理的类不可以为空！";
     private final String CGLib_Error2 = "代理拦截器不可为空！";
 
 
+    //velocity的错误
     private final String Velocity_Error1 = "文件不存在于WebRoot目录下！{0}";
 
-
+    //ticket的错误
     private final String Ticket_Error1 = "必读！此文件为FastChar配置文件！请勿轻易的删除！！！";
+
+    //观察者类
+    private final String Observable_Error1 = "移除被释放的观察者类 {0} ";
+
+    //验证器类
+    private final String Validator_Error1 = "移除被释放的验证器类 {0} ";
+
+    //转换器
+    private final String Converter_Error1 = "移除被释放的转换器 {0} ";
+
+
+    //IFastWeb
+    private final String Web_Error1 = "移除被释放的IFastWeb类 {0} ";
 
 }

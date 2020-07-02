@@ -9,6 +9,14 @@ import java.security.MessageDigest;
  */
 public class FastMD5Utils {
 
+    public static String MD5To16(Object data) {
+        return MD5(data).substring(8, 24);
+    }
+
+
+    public static String MD5(Object data, int md5Length) {
+        return MD5(data).substring(0, Math.min(md5Length, 32));
+    }
     public static String MD5(Object data) {
         String s = String.valueOf(data);
         char[] hexDigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
@@ -34,5 +42,4 @@ public class FastMD5Utils {
         }
         return data.toString();
     }
-
 }

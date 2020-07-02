@@ -12,6 +12,9 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.File;
 
+/**
+ * 响应图片
+ */
 public class FastOutImage  extends FastOut<FastOutImage>  {
     private String formatName = "jpg";
 

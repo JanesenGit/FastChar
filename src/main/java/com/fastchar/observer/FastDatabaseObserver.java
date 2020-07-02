@@ -9,5 +9,4 @@ public class FastDatabaseObserver {
         FastChar.getDatabases().flushDatabase();
     }
 
-
 }

@@ -105,6 +105,9 @@ public class FastDb {
      * @return FastEntity集合
      */
     public List<FastEntity<?>> select(String sqlStr, Object... params) throws Exception {
+        if (FastStringUtils.isEmpty(sqlStr)) {
+            return new ArrayList<>();
+        }
         String cacheKey = null;
         String cacheTag = null;
         inTime = System.currentTimeMillis();
@@ -146,8 +149,15 @@ public class FastDb {
             }
             return listResult;
         } finally {
+            int fetchSize = 0;
+            if (resultSet != null) {
+                if (FastChar.getConstant().isLogSql() && isLog()) {
+                    resultSet.last();
+                    fetchSize= resultSet.getRow();
+                }
+            }
             close(connection, preparedStatement, resultSet);
-            log(sqlStr, params);
+            log(sqlStr, params, fetchSize);
         }
     }
 
@@ -163,6 +173,9 @@ public class FastDb {
      * @throws Exception 异常信息
      */
     public FastPage<FastEntity<?>> select(int page, int pageSize, String sqlStr, Object... params) throws Exception {
+        if (FastStringUtils.isEmpty(sqlStr)) {
+            return new FastPage<>();
+        }
         inTime = System.currentTimeMillis();
         FastPage<FastEntity<?>> fastPage = new FastPage<>();
         String type = getDatabaseInfo().getType();
@@ -200,6 +213,9 @@ public class FastDb {
      * @return FastEntity
      */
     public FastEntity<?> selectFirst(String sqlStr, Object... params) throws Exception {
+        if (FastStringUtils.isEmpty(sqlStr)) {
+            return null;
+        }
         inTime = System.currentTimeMillis();
         String cacheKey = null;
         String cacheTag = null;
@@ -242,8 +258,15 @@ public class FastDb {
             }
             return firstResult;
         } finally {
+            int fetchSize = 0;
+            if (resultSet != null) {
+                if (FastChar.getConstant().isLogSql() && isLog()) {
+                    resultSet.last();
+                    fetchSize= resultSet.getRow();
+                }
+            }
             close(connection, preparedStatement, resultSet);
-            log(sqlStr, params);
+            log(sqlStr, params,fetchSize);
         }
     }
 
@@ -256,6 +279,9 @@ public class FastDb {
      * @return FastEntity
      */
     public FastEntity<?> selectLast(String sqlStr, Object... params) throws Exception {
+        if (FastStringUtils.isEmpty(sqlStr)) {
+            return null;
+        }
         inTime = System.currentTimeMillis();
         String cacheKey = null;
         String cacheTag = null;
@@ -297,8 +323,15 @@ public class FastDb {
             }
             return lastResult;
         } finally {
+            int fetchSize = 0;
+            if (resultSet != null) {
+                if (FastChar.getConstant().isLogSql() && isLog()) {
+                    resultSet.last();
+                    fetchSize= resultSet.getRow();
+                }
+            }
             close(connection, preparedStatement, resultSet);
-            log(sqlStr, params);
+            log(sqlStr, params,fetchSize);
         }
     }
 
@@ -311,6 +344,9 @@ public class FastDb {
      * @return 更新成功的数量
      */
     public int update(String sqlStr, Object... params) throws Exception {
+        if (FastStringUtils.isEmpty(sqlStr)) {
+            return 0;
+        }
         inTime = System.currentTimeMillis();
         if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
@@ -326,7 +362,7 @@ public class FastDb {
             }
         }
 
-        int count;
+        int count = 0;
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         try {
@@ -347,7 +383,7 @@ public class FastDb {
             count = preparedStatement.executeUpdate();
         } finally {
             close(connection, preparedStatement);
-            log(sqlStr, params);
+            log(sqlStr, params,count);
         }
         return count;
     }
@@ -361,6 +397,9 @@ public class FastDb {
      * @return 主键
      */
     public int insert(String sqlStr, Object... params) throws Exception {
+        if (FastStringUtils.isEmpty(sqlStr)) {
+            return 0;
+        }
         inTime = System.currentTimeMillis();
         if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
@@ -401,8 +440,15 @@ public class FastDb {
                 primary = resultSet.getInt(1);
             }
         } finally {
+            int fetchSize = 0;
+            if (resultSet != null) {
+                if (FastChar.getConstant().isLogSql() && isLog()) {
+                    resultSet.last();
+                    fetchSize= resultSet.getRow();
+                }
+            }
             close(connection, preparedStatement, resultSet);
-            log(sqlStr, params);
+            log(sqlStr, params,fetchSize);
         }
         return primary;
     }
@@ -419,6 +465,7 @@ public class FastDb {
         inTime = System.currentTimeMillis();
         Connection connection = null;
         Statement statement = null;
+        int count = 0;
         try {
             connection = getConnection();
             if (connection == null) {
@@ -428,7 +475,7 @@ public class FastDb {
             return statement.execute(sql);
         } finally {
             close(connection, statement);
-            log(sql, null);
+            log(sql, null, -1);
         }
     }
 
@@ -449,6 +496,9 @@ public class FastDb {
      * @return 执行结果
      */
     public int[] batch(List<String> sqlList, int batchSize) throws Exception {
+        if (sqlList == null) {
+            return new int[0];
+        }
         inTime = System.currentTimeMillis();
         if (isUseCache()) {
             for (String sqlStr : sqlList) {
@@ -499,7 +549,7 @@ public class FastDb {
             return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
         } finally {
             close(connection, statement);
-            log(sqlList, null);
+            log(sqlList, null, -1);
         }
     }
 
@@ -511,6 +561,9 @@ public class FastDb {
      * @param params 参数数据的数组
      */
     public int[] batch(String sqlStr, List<Object[]> params, int batchSize) throws Exception {
+        if (FastStringUtils.isEmpty(sqlStr)) {
+            return new int[0];
+        }
         inTime = System.currentTimeMillis();
         if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
@@ -571,7 +624,7 @@ public class FastDb {
             return FastArrayUtils.toPrimitive(result.toArray(new Integer[]{}));
         } finally {
             close(connection, preparedStatement);
-            log(sqlStr, params);
+            log(sqlStr, params, -1);
         }
     }
 
@@ -599,7 +652,7 @@ public class FastDb {
      * @throws Exception 异常信息
      */
     public int[] batchSaveEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
-        if (entities.size() == 0) {
+        if (entities == null || entities.size() == 0) {
             return new int[0];
         }
         if (staticSql) {
@@ -663,7 +716,7 @@ public class FastDb {
      * @throws Exception 异常信息
      */
     public int[] batchUpdateEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
-        if (entities.size() == 0) {
+        if (entities == null || entities.size() == 0) {
             return new int[0];
         }
         if (staticSql) {
@@ -727,7 +780,7 @@ public class FastDb {
      * @throws Exception 异常信息
      */
     public int[] batchDeleteEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
-        if (entities.size() == 0) {
+        if (entities == null || entities.size() == 0) {
             return new int[0];
         }
         if (staticSql) {
@@ -776,7 +829,7 @@ public class FastDb {
      * @throws Exception 异常信息
      */
     public int[] batchUpdate(List<FastSqlInfo> sqlInfos, int batchSize) throws Exception {
-        if (sqlInfos.size() == 0) {
+        if (sqlInfos == null || sqlInfos.size() == 0) {
             return new int[0];
         }
         firstBuildTime = System.currentTimeMillis();
@@ -874,7 +927,7 @@ public class FastDb {
     }
 
 
-    public void log(Object sql, Object params) {
+    public void log(Object sql, Object params, int resultCount) {
         if (FastChar.getConstant().isLogSql() && isLog()) {
             if (FastStringUtils.isEmpty(String.valueOf(sql))) {
                 return;
@@ -920,6 +973,9 @@ public class FastDb {
             if (buildTotal > 0) {
                 printMap.put("Build-Total", buildTotal + " seconds");
                 printMap.put("Run-Total", useTotal + " seconds");
+            }
+            if (resultCount >= 0) {
+                printMap.put("Result", String.valueOf(resultCount));
             }
             printMap.put("Total", FastNumberUtils.formatToFloat((useTotal + buildTotal), 6) + " seconds");
             printMap.put("Time", FastDateUtils.getDateString("yyyy-MM-dd HH:mm:ss:SSS"));

@@ -1,10 +1,10 @@
 package com.fastchar.asm;
 
 
-import com.sun.xml.internal.ws.org.objectweb.asm.ClassReader;
-import com.sun.xml.internal.ws.org.objectweb.asm.ClassWriter;
-import com.sun.xml.internal.ws.org.objectweb.asm.Label;
-import com.sun.xml.internal.ws.org.objectweb.asm.MethodVisitor;
+import jdk.internal.org.objectweb.asm.ClassReader;
+import jdk.internal.org.objectweb.asm.ClassWriter;
+import jdk.internal.org.objectweb.asm.Label;
+import jdk.internal.org.objectweb.asm.MethodVisitor;
 
 import java.io.InputStream;
 import java.lang.annotation.Annotation;

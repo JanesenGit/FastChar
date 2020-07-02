@@ -21,6 +21,10 @@ public class FastRedisConfig implements IFastConfig {
     private int maxAttempts = 5;
     private JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
 
+    public FastRedisConfig() {
+        jedisPoolConfig.setSoftMinEvictableIdleTimeMillis(1800000);
+    }
+
     public String getPassword() {
         return password;
     }

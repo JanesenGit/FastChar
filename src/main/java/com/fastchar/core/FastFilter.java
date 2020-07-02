@@ -13,6 +13,7 @@ import java.io.IOException;
 
 /**
  * FastChar核心拦截器
+ * @author 沈建（Janesen）
  */
 @SuppressWarnings("unchecked")
 public final class FastFilter implements Filter {

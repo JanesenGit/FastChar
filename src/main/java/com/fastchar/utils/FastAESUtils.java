@@ -3,14 +3,11 @@
  **/
 package com.fastchar.utils;
 
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.annotation.HttpMethodConstraint;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
@@ -37,7 +34,7 @@ public class FastAESUtils {
             cipher.init(Cipher.ENCRYPT_MODE, key);
             byte[] byte_encode = content.getBytes(StandardCharsets.UTF_8);
             byte[] byte_AES = cipher.doFinal(byte_encode);
-            return new BASE64Encoder().encode(byte_AES);
+            return FastBase64Utils.encode(byte_AES);
         } catch (Exception ignored) {
         }
         return null;
@@ -61,7 +58,7 @@ public class FastAESUtils {
             SecretKey key = new SecretKeySpec(raw, "AES");
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, key);
-            byte[] byte_content = new BASE64Decoder().decodeBuffer(content);
+            byte[] byte_content = FastBase64Utils.decodeToBytes(content);
             byte[] byte_decode = cipher.doFinal(byte_content);
             return new String(byte_decode, StandardCharsets.UTF_8);
         } catch (Exception ignored) {}

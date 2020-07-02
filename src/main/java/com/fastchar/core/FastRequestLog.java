@@ -101,7 +101,8 @@ public final class FastRequestLog {
                     printRequestMap.put("HttpHeader", stringBuilder.toString());
                 }
                 printRequestMap.put("ContentType", action.getContentType());
-                printRequestMap.put("Url", action.getFastRoute().getRoute());
+                printRequestMap.put("Host", FastStringUtils.strip(action.getProjectHost(), "/"));
+                printRequestMap.put("Route", action.getFastRoute().getRoute());
                 if (action.getUrlParams().size() > 0) {
                     printRequestMap.put("UrlParams", Arrays.toString(action.getUrlParams().toArray()));
                 }
@@ -139,7 +140,7 @@ public final class FastRequestLog {
                     printResponseMap.put("Out-Content", String.valueOf(fastOut.getData()));
                 }
 
-                printResponseMap.put("ContentType", fastOut.toContentType());
+                printResponseMap.put("ContentType", fastOut.toContentType(action));
                 printResponseMap.put("Status", String.valueOf(fastOut.getStatus()));
 
                 if (FastStringUtils.isNotEmpty(fastOut.getDescription())) {

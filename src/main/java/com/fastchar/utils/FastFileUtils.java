@@ -1,15 +1,17 @@
 package com.fastchar.utils;
 
 
+import com.fastchar.core.FastChar;
+
+import javax.activation.MimetypesFileTypeMap;
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -45,6 +47,10 @@ public class FastFileUtils {
         return isTargetFile(fileName, ".mp4");
     }
 
+    public static boolean isMOVFile(String fileName) {
+        return isTargetFile(fileName, ".mov");
+    }
+
     public static boolean isAVIFile(String fileName) {
         return isTargetFile(fileName, ".avi");
     }
@@ -70,11 +76,100 @@ public class FastFileUtils {
     }
 
 
+
+    public static boolean isImageFileByMimeType(String mimeType) {
+        String[] mimeTypes = new String[]{
+                "image/bmp",
+                "image/gif",
+                "image/png",
+                "image/jpeg",
+                "image/jpg",
+                "image/pipeg",
+                "image/tiff",
+                "image/x-icon",
+                "image/tiff",
+                "image/svg+xml"
+        };
+
+        return isTargetFileByMimeType(mimeType, mimeTypes);
+    }
+    public static boolean isMP4FileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "video/mp4"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+
+    public static boolean isMOVFileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "video/quicktime"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+
+
+    public static boolean isAVIFileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "video/x-msvideo"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+
+    public static boolean isTxtFileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "text/plain"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+    public static boolean isExcelFileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+    public static boolean isWordFileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+
+    public static boolean isPPTFileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "application/vnd.ms-powerpoint",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+
+    public static boolean isPDFFileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
+
     public static boolean isTargetFile(String fileName, String... extensions) {
+        if (FastStringUtils.isEmpty(fileName)) {
+            return false;
+        }
         String regex = ".+(" + FastStringUtils.join(extensions, "|") + ")$";
         return Pattern.matches(regex, fileName
                 .toLowerCase());
     }
+
+    public static boolean isTargetFileByMimeType(String mimeType, String... mimeTypes) {
+        if (FastStringUtils.isEmpty(mimeType)) {
+            return false;
+        }
+        String regex = FastStringUtils.join(mimeTypes, "|");
+        return Pattern.matches(regex, mimeType
+                .toLowerCase());
+    }
+
 
 
     public static FileInputStream openInputStream(File file) throws IOException {
@@ -375,7 +470,7 @@ public class FastFileUtils {
     }
 
 
-    public static void moveFile(File srcFile, File destFile,boolean force) throws IOException {
+    public static void moveFile(File srcFile, File destFile, boolean force) throws IOException {
         if (srcFile == null) {
             throw new NullPointerException("Source must not be null");
         } else if (destFile == null) {
@@ -459,14 +554,11 @@ public class FastFileUtils {
         if (file.isDirectory()) {
             deleteDirectory(file);
         } else {
-            boolean filePresent = file.exists();
-            if (!file.delete()) {
-                if (!filePresent) {
-                    throw new FileNotFoundException("File does not exist: " + file);
+            if (file.exists()) {
+                if (!file.delete()) {
+                    String message = "Unable to delete file: " + file;
+                    throw new IOException(message);
                 }
-
-                String message = "Unable to delete file: " + file;
-                throw new IOException(message);
             }
         }
     }
@@ -483,8 +575,6 @@ public class FastFileUtils {
             }
         }
     }
-
-
 
 
     public static void copyFileToDirectory(File srcFile, File destDir) throws IOException {
@@ -548,7 +638,7 @@ public class FastFileUtils {
     }
 
     public static void copyDirectory(File srcDir, File destDir, boolean preserveFileDate) throws IOException {
-        copyDirectory(srcDir, destDir, (FileFilter)null, preserveFileDate);
+        copyDirectory(srcDir, destDir, (FileFilter) null, preserveFileDate);
     }
 
     public static void copyDirectory(File srcDir, File destDir, FileFilter filter) throws IOException {
@@ -575,7 +665,7 @@ public class FastFileUtils {
                     File[] arr$ = srcFiles;
                     int len$ = srcFiles.length;
 
-                    for(int i$ = 0; i$ < len$; ++i$) {
+                    for (int i$ = 0; i$ < len$; ++i$) {
                         File srcFile = arr$[i$];
                         File copiedFile = new File(destDir, srcFile.getName());
                         exclusionList.add(copiedFile.getCanonicalPath());
@@ -606,7 +696,7 @@ public class FastFileUtils {
                 File[] arr$ = srcFiles;
                 int len$ = srcFiles.length;
 
-                for(int i$ = 0; i$ < len$; ++i$) {
+                for (int i$ = 0; i$ < len$; ++i$) {
                     File srcFile = arr$[i$];
                     File dstFile = new File(destDir, srcFile.getName());
                     if (exclusionList == null || !exclusionList.contains(srcFile.getCanonicalPath())) {
@@ -625,7 +715,6 @@ public class FastFileUtils {
             }
         }
     }
-
 
 
     public static void copyURLToFile(URL source, File destination) throws IOException {
@@ -658,8 +747,6 @@ public class FastFileUtils {
     }
 
 
-
-
     public static boolean isSymlink(File file) throws IOException {
         if (file == null) {
             throw new NullPointerException("File must not be null");
@@ -681,6 +768,7 @@ public class FastFileUtils {
 
     /**
      * 压缩文件夹或文件 zip格式
+     *
      * @param resourcesPath
      * @return
      */
@@ -723,5 +811,49 @@ public class FastFileUtils {
             fis.close();
         }
     }
+
+
+    public static String guessMimeType(String url) {
+        if (FastStringUtils.isEmpty(url)) {
+            return null;
+        }
+        String fileName = url.substring(url.lastIndexOf("/") + 1);
+        String urlType = HttpURLConnection.guessContentTypeFromName(fileName);
+        try {
+            URL fileURL = new URL(url);
+            URLConnection conn = fileURL.openConnection();
+            if (conn == null) {
+                return urlType;
+            }
+            InputStream inputStream = conn.getInputStream();
+            String guessType = HttpURLConnection.guessContentTypeFromStream( new BufferedInputStream(inputStream));
+            if (FastStringUtils.isEmpty(guessType)) {
+                return urlType;
+            }
+            return guessType;
+        } catch (Exception ignored) {
+        }
+        return urlType;
+    }
+
+
+
+
+    public static void writeByteArrayToFile(File file, byte[] data) throws IOException {
+        writeByteArrayToFile(file, data, false);
+    }
+
+    public static void writeByteArrayToFile(File file, byte[] data, boolean append) throws IOException {
+        FileOutputStream out = null;
+
+        try {
+            out = openOutputStream(file, append);
+            out.write(data);
+            out.close();
+        } finally {
+            FastIOUtils.closeQuietly(out);
+        }
+    }
+
 
 }

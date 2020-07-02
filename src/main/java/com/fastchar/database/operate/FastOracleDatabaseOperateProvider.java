@@ -43,11 +43,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
             String databaseProductName = dmd.getDatabaseProductName();
             databaseInfo.setProduct(databaseProductName);
             databaseInfo.setVersion(dmd.getDatabaseProductVersion());
-            String userName = dmd.getUserName();
-            databaseInfo.setUser(userName.split("@")[0]);
-            databaseInfo.setHost(userName.split("@")[1]);
             databaseInfo.setType("oracle");
-            databaseInfo.setName(connection.getCatalog());
             databaseInfo.setUrl(dmd.getURL());
 
             resultSet = dmd.getTables(null, null, null, new String[]{"table", "TABLE"});
@@ -290,6 +286,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                             tableInfo.getName(), columnInfo.getName()));
         }
     }
+
 
     private void alterColumnIndex(FastDatabaseInfo databaseInfo, String tableName, FastColumnInfo<?> columnInfo) throws Exception {
         String convertIndex = convertIndex(columnInfo);

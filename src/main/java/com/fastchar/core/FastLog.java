@@ -2,6 +2,10 @@ package com.fastchar.core;
 
 import com.fastchar.utils.FastDateUtils;
 
+/**
+ * 日志操作类
+ * @author 沈建（Janesen）
+ */
 public final class FastLog {
 
     FastLog() {

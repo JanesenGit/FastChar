@@ -35,7 +35,7 @@ import java.util.jar.JarFile;
  */
 public final class FastDatabaseXml {
 
-    private SAXParserFactory factory = SAXParserFactory.newInstance();
+    private final SAXParserFactory factory = SAXParserFactory.newInstance();
     private SAXParser parser;
 
     /**
@@ -63,8 +63,8 @@ public final class FastDatabaseXml {
                 hasDatabaseMatch = true;
             }
         }
-        if (!hasDatabaseMatch && !FastChar.getConstant().isSyncDatabaseXml()) {
-            databaseInfoHandler.databaseInfo.setName(String.valueOf(System.currentTimeMillis()));
+        if (!hasDatabaseMatch) {
+            databaseInfoHandler.databaseInfo.setName(name);
             FastChar.getDatabases().add(databaseInfoHandler.databaseInfo);
         }
 
@@ -91,7 +91,7 @@ public final class FastDatabaseXml {
         writeDatabaseXml(file, databaseInfoHandler.databaseInfo);
     }
 
-    private void writeDatabaseXml(File file, FastDatabaseInfo databaseInfo) throws Exception {
+    public void writeDatabaseXml(File file, FastDatabaseInfo databaseInfo) throws Exception {
         SAXTransformerFactory factory = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
         TransformerHandler handler = factory.newTransformerHandler();
         Transformer info = handler.getTransformer();
@@ -106,43 +106,43 @@ public final class FastDatabaseXml {
 
         handler.startDocument();
         AttributesImpl impl = new AttributesImpl();
-        for (String attr : databaseInfo.keySet()) {
+        for (Object attr : databaseInfo.keySet()) {
             Object attrValue = databaseInfo.get(attr);
             if (attrValue instanceof String) {
                 String content = attrValue.toString();
                 if (FastStringUtils.isEmpty(content)) {
                     continue;
                 }
-                String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(),content);
-                impl.addAttribute("", "", attr, "", encrypt);
+                String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
+                impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
             }
         }
         handler.startElement("", "", databaseInfo.getTagName(), impl);
         for (FastTableInfo<?> table : databaseInfo.getTables()) {
             impl.clear();
-            for (String attr : table.keySet()) {
+            for (Object attr : table.keySet()) {
                 Object attrValue = table.get(attr);
                 if (attrValue instanceof String) {
                     String content = attrValue.toString();
                     if (FastStringUtils.isEmpty(content)) {
                         continue;
                     }
-                    String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(),content);
-                    impl.addAttribute("", "", attr, "", encrypt);
+                    String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
+                    impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
                 }
             }
             handler.startElement("", "", table.getTagName(), impl);
             for (FastColumnInfo<?> column : table.getColumns()) {
                 impl.clear();
-                for (String attr : column.keySet()) {
+                for (Object attr : column.keySet()) {
                     Object attrValue = column.get(attr);
                     if (attrValue instanceof String) {
                         String content = attrValue.toString();
                         if (FastStringUtils.isEmpty(content)) {
                             continue;
                         }
-                        String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(),content);
-                        impl.addAttribute("", "", attr, "", encrypt);
+                        String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
+                        impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
                     }
                 }
                 handler.startElement("", "", column.getTagName(), impl);

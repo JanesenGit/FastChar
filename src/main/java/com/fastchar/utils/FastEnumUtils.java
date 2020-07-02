@@ -31,7 +31,7 @@ public class FastEnumUtils {
 
     public static <T extends Enum> T formatToEnum(Class<T> clazz, String name, Enum defaultValue) {
         try {
-            if (name == null) {
+            if (FastStringUtils.isEmpty(name) || clazz == null) {
                 return (T) defaultValue;
             }
             int index = FastNumberUtils.formatToInt(name, -1);
@@ -45,11 +45,11 @@ public class FastEnumUtils {
         return (T) defaultValue;
     }
 
-    public static <T extends Enum> T[] getEnumValues(Class<T> targetClass) {
+    public static <T extends Enum<?>> T[] getEnumValues(Class<T> targetClass) {
         return targetClass.getEnumConstants();
     }
 
-    public static <T extends Enum> T[] getEnumValues(Class<T> targetClass, String... keys) {
+    public static <T extends Enum<?>> T[] getEnumValues(Class<T> targetClass, String... keys) {
         List<T> enumList = new ArrayList<>();
         T[] enumConstants = targetClass.getEnumConstants();
         for (T enumConstant : enumConstants) {
@@ -63,7 +63,26 @@ public class FastEnumUtils {
         return enumList.toArray((T[]) Array.newInstance(targetClass, enumList.size()));
     }
 
-    public static Integer[] getEnumOrdinals(Class<? extends  Enum> targetClass, String... keys) {
+
+    public static <T extends Enum<?>> T[] getEnumValuesAnd(Class<T> targetClass, String... keys) {
+        List<T> enumList = new ArrayList<>();
+        T[] enumConstants = targetClass.getEnumConstants();
+        for (T enumConstant : enumConstants) {
+            boolean hasKey = true;
+            for (String key : keys) {
+                if (!enumConstant.name().contains(key)) {
+                    hasKey = false;
+                    break;
+                }
+            }
+            if (hasKey) {
+                enumList.add(enumConstant);
+            }
+        }
+        return enumList.toArray((T[]) Array.newInstance(targetClass, enumList.size()));
+    }
+
+    public static Integer[] getEnumOrdinals(Class<? extends  Enum<?>> targetClass, String... keys) {
         List<Integer> enumList = new ArrayList<>();
         Enum[] enumConstants = targetClass.getEnumConstants();
         for (Enum enumConstant : enumConstants) {
@@ -73,6 +92,26 @@ public class FastEnumUtils {
                     break;
                 }
             }
+        }
+        return enumList.toArray(new Integer[]{});
+    }
+
+
+    public static Integer[] getEnumOrdinalsAnd(Class<? extends  Enum<?>> targetClass, String... keys) {
+        List<Integer> enumList = new ArrayList<>();
+        Enum[] enumConstants = targetClass.getEnumConstants();
+        for (Enum enumConstant : enumConstants) {
+            boolean hasKey = true;
+            for (String key : keys) {
+                if (!enumConstant.name().contains(key)) {
+                    hasKey = false;
+                    break;
+                }
+            }
+            if (hasKey) {
+                enumList.add(enumConstant.ordinal());
+            }
+
         }
         return enumList.toArray(new Integer[]{});
     }

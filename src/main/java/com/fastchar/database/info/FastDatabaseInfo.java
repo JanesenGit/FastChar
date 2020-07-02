@@ -2,6 +2,7 @@ package com.fastchar.database.info;
 
 import com.fastchar.core.*;
 
+import com.fastchar.exception.FastDatabaseException;
 import com.fastchar.interfaces.IFastDataSource;
 import com.fastchar.interfaces.IFastDatabaseOperate;
 import com.fastchar.utils.FastBooleanUtils;
@@ -12,8 +13,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FastDatabaseInfo extends FastBaseInfo {
-    private static final long serialVersionUID = 7200502359495751886L;
-    private transient LinkedHashMap<String, List<FastSqlInfo>> defaultData = new LinkedHashMap<>();
+    private final transient LinkedHashMap<String, List<FastSqlInfo>> defaultData = new LinkedHashMap<>();
 
     private String name;
     private String host;
@@ -27,9 +27,10 @@ public class FastDatabaseInfo extends FastBaseInfo {
     private String url;
     private String cache;
     private long lastModified;
+    private boolean ignoreCase = true;
 
     private List<FastTableInfo<?>> tables = new ArrayList<>();
-    private Map<String, FastTableInfo<?>> mapTables = null;
+    private FastMapWrap mapTable;
 
     public long getLastModified() {
         return lastModified;
@@ -173,6 +174,15 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return this;
     }
 
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
+
+    public FastDatabaseInfo setIgnoreCase(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
+        return this;
+    }
+
     public boolean isMySql() {
         return type.equals("mysql");
     }
@@ -201,10 +211,15 @@ public class FastDatabaseInfo extends FastBaseInfo {
 
 
     public FastTableInfo<?> getTableInfo(String name) {
-        if (mapTables != null) {
-            return mapTables.get(name);
+        if (mapTable != null) {
+            return mapTable.getObject(name);
         }
         for (FastTableInfo<?> table : this.tables) {
+            if (isIgnoreCase()) {
+                if (table.getName().equalsIgnoreCase(name)) {
+                    return table;
+                }
+            }
             if (table.getName().equals(name)) {
                 return table;
             }
@@ -231,6 +246,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
                     "?rewriteBatchedStatements=true" +
                     "&useUnicode=true" +
                     "&characterEncoding=utf-8" +
+                    "&allowPublicKeyRetrieval=true" +
                     "&serverTimezone=GMT" +
                     "&useSSL=false";
         } else if (isSqlServer()) {
@@ -266,7 +282,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
      */
     public FastDatabaseInfo merge(FastDatabaseInfo info) {
         for (String key : info.keySet()) {
-            if (key.equals("tables")) {
+            if (String.valueOf(key).equals("tables")) {
                 continue;
             }
             this.set(key, info.get(key));
@@ -292,7 +308,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
     public FastDatabaseInfo copy() {
         FastDatabaseInfo fastDatabaseInfo = FastChar.getOverrides().newInstance(FastDatabaseInfo.class);
         for (String key : keySet()) {
-            if (key.equals("tables")) {
+            if (String.valueOf(key).equals("tables")) {
                 continue;
             }
             fastDatabaseInfo.set(key, get(key));
@@ -309,11 +325,27 @@ public class FastDatabaseInfo extends FastBaseInfo {
     }
 
     public void tableToMap() {
-        mapTables = new ConcurrentHashMap<>();
+        mapTable = FastMapWrap.newInstance(new ConcurrentHashMap<>());
+        mapTable.setIgnoreCase(isIgnoreCase());
         for (FastTableInfo<?> table : this.tables) {
+            table.setIgnoreCase(isIgnoreCase());
             table.columnToMap();
-            this.mapTables.put(table.getName(), table);
+            this.mapTable.set(table.getName(), table);
         }
     }
 
+
+    public void validate() throws FastDatabaseException {
+        List<FastTableInfo<?>> tables = new ArrayList<>(getTables());
+        for (FastTableInfo<?> table : tables) {
+            for (FastColumnInfo<?> column : table.getColumns()) {
+                if (column.isFromXml()) {
+                    column.validate();
+                }
+            }
+            if (table.isFromXml()) {
+                table.validate();
+            }
+        }
+    }
 }

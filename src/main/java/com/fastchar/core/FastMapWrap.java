@@ -8,26 +8,32 @@ import com.fastchar.utils.FastStringUtils;
 import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
-@SuppressWarnings("unchecked")
-public final class FastMapWrap {
+@SuppressWarnings({"unchecked", "rawtypes"})
+public class FastMapWrap {
 
     public static FastMapWrap newInstance(Map<?,?> map) {
         return FastChar.getOverrides().newInstance(FastMapWrap.class).setMap(map);
     }
 
-    private Map<?,?> map;
-    private boolean ignoreCase;
+    protected Map<?,?> map;
+    protected boolean ignoreCase;
 
     protected FastMapWrap() {
 
     }
-    public Map<?,?> getMap() {
+    public Map<?, ?> getMap() {
+        if (map == null) {
+            map = new HashMap<>();
+        }
         return map;
     }
 
-    public FastMapWrap setMap(Map<?,?> map) {
+    public FastMapWrap setMap(Map<?, ?> map) {
         this.map = map;
         return this;
     }
@@ -36,19 +42,38 @@ public final class FastMapWrap {
         return ignoreCase;
     }
 
+    /**
+     * 设置忽略大小写
+     * @param ignoreCase 布尔值
+     * @return 当前对象
+     */
     public FastMapWrap setIgnoreCase(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
-        return this;
+        return  this;
     }
 
+    /**
+     * 获取Object对象值
+     * @param attr 属性名称
+     * @return Object对象
+     */
+    public Object get(Object attr) {
+        return getMap().get(getRealAttr(attr));
+    }
+
+    /**
+     * 获取Object对象值
+     * @param attr 属性名称
+     * @return Object对象
+     */
     public Object get(String attr) {
-        return map.get(getRealAttr(attr));
+        return getMap().get(getRealAttr(attr));
     }
 
-    private Object getRealAttr(String attr) {
+    private Object getRealAttr(Object attr) {
         if (ignoreCase) {
-            for (Object s : map.keySet()) {
-                if (s != null && s.toString().equalsIgnoreCase(attr)) {
+            for (Object s : getMap().keySet()) {
+                if (s != null && s.toString().equalsIgnoreCase(String.valueOf(attr))) {
                     return s;
                 }
             }
@@ -413,4 +438,79 @@ public final class FastMapWrap {
     }
 
 
+    /**
+     * 设置属性值
+     * @param attr 属性名称
+     * @param value 属性值
+     * @return 当前对象
+     */
+    public FastMapWrap set(Object attr, Object value) {
+        Map map = getMap();
+        if (map != null) {
+            map.put(attr, value);
+        }
+        return this;
+    }
+
+    /**
+     * 设置属性
+     *
+     * @param data 属性集合
+     * @return 当前对象
+     */
+    public FastMapWrap setAll(Map data) {
+        getMap().putAll(data);
+        return this;
+    }
+
+    /**
+     * 检测属性是否存在
+     * @param attr 属性名称
+     * @return 布尔值
+     */
+    public boolean containsAttr(String attr) {
+        return getMap().containsKey(getRealAttr(attr));
+    }
+
+    /**
+     * 所有值集合
+     * @return 集合数据
+     */
+    public Collection<?> values() {
+        return getMap().values();
+    }
+
+
+    /**
+     * 删除属性
+     * @param attr 属性名称
+     * @return 被删除的数据
+     */
+    public Object removeAttr(String attr) {
+        return getMap().remove(getRealAttr(attr));
+    }
+
+
+    /**
+     * key集合
+     * @return Set
+     */
+    public Set<?> keySet() {
+        return  getMap().keySet();
+    }
+
+    /**
+     * 清空属性值
+     */
+    public void clear() {
+        getMap().clear();
+    }
+
+
+    public void put(Object attr, Object value) {
+        Map map = getMap();
+        if (map != null) {
+            map.put(attr, value);
+        }
+    }
 }

@@ -19,7 +19,7 @@ public class FastOutXml extends FastOut<FastOutXml> {
         response.setHeader("Cache-Control", "no-cache");
         response.setDateHeader("Expires", 0);
         response.setStatus(getStatus());
-        response.setContentType(toContentType());
+        response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
 
         try (PrintWriter writer = response.getWriter()){

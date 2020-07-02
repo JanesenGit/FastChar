@@ -5,7 +5,7 @@ import java.util.*;
 
 /**
  * 参数校验器
- * @param <T>
+ * @author 沈建（Janesen）
  */
 final class FastCheck<T> {
     private T target;

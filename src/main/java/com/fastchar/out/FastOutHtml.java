@@ -24,7 +24,7 @@ public class FastOutHtml extends FastOut<FastOutHtml> {
         response.setDateHeader("Expires", 0);
         response.setStatus(getStatus());
 
-        response.setContentType(toContentType());
+        response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
 
         try (PrintWriter writer = response.getWriter()){

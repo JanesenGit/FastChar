@@ -20,6 +20,7 @@ import com.fastchar.utils.FastStringUtils;
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.PrintWriter;
 import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.Method;
@@ -29,12 +30,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * FastChar核心路由转发器
+ * @author 沈建（Janesen）
  */
 @SuppressWarnings("unchecked")
 public final class FastDispatcher {
 
-    private static final ConcurrentHashMap<String, FastRoute> FAST_ROUTE_MAP = new ConcurrentHashMap<>();
-    private static final Set<String> RESOLVED = new HashSet<>();
+    static final ConcurrentHashMap<String, FastRoute> FAST_ROUTE_MAP = new ConcurrentHashMap<>();
+    private static final Set<Class<?>> RESOLVED = new HashSet<>();
 
     static void initDispatcher() {
         FastEngine.instance().getInterceptors().sortRootInterceptor();
@@ -146,10 +148,10 @@ public final class FastDispatcher {
         if (FastChar.getServletContext() == null) {
             return false;
         }
-        if (RESOLVED.contains(actionClass.getName())) {
+        if (RESOLVED.contains(actionClass)) {
             return true;
         }
-        RESOLVED.add(actionClass.getName());
+        RESOLVED.add(actionClass);
         Class<? extends FastOut<?>> defaultOut = FastEngine.instance().getActions().getDefaultOut();
 
         FastMethodRead parameterConverter = new FastMethodRead();
@@ -157,6 +159,9 @@ public final class FastDispatcher {
         if (actionClass.isAnnotationPresent(AFastAction.class)) {
             AFastAction annotation = actionClass.getAnnotation(AFastAction.class);
             if (!annotation.value()) {//被禁止
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastChar.getLocal().getInfo("Action_Error5", actionClass));
+                }
                 return false;
             }
         }
@@ -195,7 +200,7 @@ public final class FastDispatcher {
                 if (lines.size() > 0) {
                     fastRoute.firstMethodLineNumber = lines.get(methodCount.get(declaredMethod.getName()) - 1).getFirstLine() - 1;
                     fastRoute.lastMethodLineNumber = lines.get(methodCount.get(declaredMethod.getName()) - 1).getLastLine();
-                }else{
+                } else {
                     fastRoute.firstMethodLineNumber = 1;
                     fastRoute.lastMethodLineNumber = 1;
                 }
@@ -467,11 +472,17 @@ public final class FastDispatcher {
         for (String s : FAST_ROUTE_MAP.keySet()) {
             if (FastClassUtils.isRelease(FAST_ROUTE_MAP.get(s).actionClass)) {
                 waitRemove.add(s);
+
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastDispatcher.class,
+                            FastChar.getLocal().getInfo("Route_Error4", s));
+                }
             }
         }
         for (String s : waitRemove) {
             FAST_ROUTE_MAP.remove(s);
         }
+        RESOLVED.clear();
     }
 
     public void invoke() throws FastWebException {
@@ -480,6 +491,7 @@ public final class FastDispatcher {
                 doFilter();
                 return;
             }
+
             List<FastUrl> parse = FastUrlParser.parse(contentUrl);
             if (request.getMethod().equalsIgnoreCase("options")) {
                 if (FastChar.getConstant().isDebug()) {
@@ -488,14 +500,17 @@ public final class FastDispatcher {
                 boolean hasCross = false;
                 boolean hasRoute = false;
                 for (FastUrl fastUrl : parse) {
-                    if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRoute())) {
-                        FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute());
+                    FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute());
+                    if (fastRoute != null) {
                         hasCross = initCrossDomain(fastRoute);
                         hasRoute = true;
-                    } else if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRouteIndex())) {
-                        FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRouteIndex());
+                        break;
+                    }
+                    fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRouteIndex());
+                    if (fastRoute != null) {
                         hasCross = initCrossDomain(fastRoute);
                         hasRoute = true;
+                        break;
                     }
                 }
                 if (!hasCross) {
@@ -528,13 +543,22 @@ public final class FastDispatcher {
             Date inTime = new Date();
             for (int i = 0; i < parse.size(); i++) {
                 FastUrl fastUrl = parse.get(i);
-                if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRoute())) {
-                    FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute()).copy();
+                FastRoute baseRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute());
+                if (baseRoute != null) {
+                    FastRoute fastRoute = baseRoute.copy();
                     if (fastRoute == null) {
+                        if (FastChar.getConstant().isDebug()) {
+                            FastChar.getLog().warn(FastDispatcher.class,
+                                    FastChar.getLocal().getInfo("Route_Error2", fastUrl.getMethodRoute()));
+                        }
                         continue;
                     }
                     try {
                         if (!fastRoute.checkMethod(request.getMethod())) {
+                            if (FastChar.getConstant().isDebug()) {
+                                FastChar.getLog().warn(FastDispatcher.class,
+                                        FastChar.getLocal().getInfo("Route_Error3", fastUrl.getMethodRoute(), request.getMethod()));
+                            }
                             response404(inTime);
                             return;
                         }
@@ -554,9 +578,12 @@ public final class FastDispatcher {
                     }
                     return;
                 }
-                if (FAST_ROUTE_MAP.containsKey(fastUrl.getMethodRouteIndex())) {
-                    FastRoute fastRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRouteIndex()).copy();
+                FastRoute baseRouteIndex = FAST_ROUTE_MAP.get(fastUrl.getMethodRouteIndex());
+                if (baseRouteIndex != null) {
+                    FastRoute fastRoute = baseRouteIndex.copy();
                     if (fastRoute == null) {
+                        FastChar.getLog().warn(FastDispatcher.class,
+                                FastChar.getLocal().getInfo("Route_Error2", fastUrl.getMethodRouteIndex()));
                         continue;
                     }
                     try {
@@ -593,6 +620,8 @@ public final class FastDispatcher {
                 return;
             }
             throw new FastWebException(e);
+        } finally {
+            FastChar.removeThreadLocalAction();
         }
     }
 

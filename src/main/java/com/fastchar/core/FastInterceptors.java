@@ -10,10 +10,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * FastChar核心类，拦截器
+ * @author 沈建（Janesen）
+ */
 public final class FastInterceptors {
-    private List<InterceptorInfo<IFastRootInterceptor>> rootInterceptors = new ArrayList<>();
-    private List<InterceptorInfo<IFastInterceptor>> beforeInterceptors = new ArrayList<>();
-    private List<InterceptorInfo<IFastInterceptor>> afterInterceptors = new ArrayList<>();
+    private final List<InterceptorInfo<IFastRootInterceptor>> rootInterceptors = new ArrayList<>();
+    private final List<InterceptorInfo<IFastInterceptor>> beforeInterceptors = new ArrayList<>();
+    private final List<InterceptorInfo<IFastInterceptor>> afterInterceptors = new ArrayList<>();
 
 
     FastInterceptors() {
@@ -149,6 +153,11 @@ public final class FastInterceptors {
         for (InterceptorInfo<IFastRootInterceptor> rootInterceptor : rootInterceptors) {
             if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
                 waitRemoveA.add(rootInterceptor);
+
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastInterceptors.class,
+                            FastChar.getLocal().getInfo("Interceptor_Error3",rootInterceptor.interceptor));
+                }
             }
         }
 
@@ -156,11 +165,21 @@ public final class FastInterceptors {
         for (InterceptorInfo<IFastInterceptor> rootInterceptor : beforeInterceptors) {
             if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
                 waitRemoveB.add(rootInterceptor);
+
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastInterceptors.class,
+                            FastChar.getLocal().getInfo("Interceptor_Error3",rootInterceptor.interceptor));
+                }
             }
         }
         for (InterceptorInfo<IFastInterceptor> rootInterceptor : afterInterceptors) {
             if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
                 waitRemoveB.add(rootInterceptor);
+
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastInterceptors.class,
+                            FastChar.getLocal().getInfo("Interceptor_Error3",rootInterceptor.interceptor));
+                }
             }
         }
         rootInterceptors.removeAll(waitRemoveA);

@@ -7,8 +7,11 @@ import com.fastchar.utils.FastClassUtils;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.util.List;
 
 public class FastErrorPrintStream extends PrintStream {
+    private boolean fireListener = true;
+
     /**
      * Creates a new print stream.  This stream will not flush automatically.
      *
@@ -160,11 +163,21 @@ public class FastErrorPrintStream extends PrintStream {
 
     @Override
     public void println(Object x) {
-        if (x instanceof Throwable) {
-            Throwable throwable = (Throwable) x;
-            IFastException iFastException = FastChar.getOverrides().newInstance(false, IFastException.class);
-            if (iFastException != null && iFastException.onPrintException(throwable)) {
-                return;
+        if (isFireListener()) {
+            if (x instanceof Throwable) {
+                try {
+                    Throwable throwable = (Throwable) x;
+                    List<IFastException> iFastExceptions = FastChar.getOverrides().newInstances(false, IFastException.class);
+                    for (IFastException iFastException : iFastExceptions) {
+                        if (iFastException != null && iFastException.onPrintException(throwable)) {
+                            return;
+                        }
+                    }
+                } catch (Throwable e) {
+                    FastErrorPrintStream errorPrintStream = new FastErrorPrintStream(System.out, true);
+                    errorPrintStream.setFireListener(false);
+                    e.printStackTrace(errorPrintStream);
+                }
             }
         }
         super.println(x);
@@ -173,6 +186,15 @@ public class FastErrorPrintStream extends PrintStream {
     @Override
     public void print(String s) {
         super.print(FastChar.getLog().errorStyle(s));
+    }
+
+    public boolean isFireListener() {
+        return fireListener;
+    }
+
+    public FastErrorPrintStream setFireListener(boolean fireListener) {
+        this.fireListener = fireListener;
+        return this;
     }
 
 }

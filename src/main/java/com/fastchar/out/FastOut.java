@@ -9,23 +9,25 @@ import java.util.Date;
 
 public abstract class FastOut<T> {
     protected Object data;
-    protected  Date outTime;
-    protected  String contentType;
-    protected  String charset = FastChar.getConstant().getEncoding();
-    protected  String description;
-    protected  int status = 200;
+    protected Date outTime;
+    protected String contentType;
+    protected String charset = FastChar.getConstant().getEncoding();
+    protected String description;
+    protected int status = 200;
     private transient boolean logged;
 
 
     /**
      * 响应数据
+     *
      * @param action 控制器
      */
     public abstract void response(FastAction action) throws Exception;
 
     /**
      * 设置子类自定义的字段值
-     * @param fieldName 字段名
+     *
+     * @param fieldName  字段名
      * @param fieldValue 字段值
      */
     public FastOut<?> setFieldValue(String fieldName, Object fieldValue) {
@@ -41,10 +43,16 @@ public abstract class FastOut<T> {
         return this;
     }
 
-    public String toContentType() {
+    public String toContentType(FastAction action) {
+        //通过参数强制设置contentType
+        if (action.isParamNotEmpty("__accept")) {
+            this.contentType = action.getParam("__accept");
+        }
+
         if (FastStringUtils.isEmpty(contentType)) {
             return null;
         }
+
         StringBuilder stringBuilder = new StringBuilder(contentType);
         if (FastStringUtils.isNotEmpty(charset)) {
             if (!contentType.endsWith(";")) {
@@ -175,7 +183,9 @@ public abstract class FastOut<T> {
             return FastOutImage.class;
         }
         return null;
-    };
+    }
+
+    ;
 
     public boolean isLogged() {
         return logged;

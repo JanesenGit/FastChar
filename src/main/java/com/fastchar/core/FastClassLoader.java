@@ -1,13 +1,16 @@
 package com.fastchar.core;
 
-import net.sf.cglib.reflect.FastClass;
-
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLStreamHandlerFactory;
+import java.util.Arrays;
 
+/**
+ * 类加载器
+ * @author 沈建（Janesen）
+ */
 public final class FastClassLoader extends URLClassLoader {
 
     private boolean closed;
@@ -57,8 +60,8 @@ public final class FastClassLoader extends URLClassLoader {
      * @param targetClass 目标Class
      * @return 布尔值
      */
-    public static boolean isRdefined(Class<?> targetClass) {
-        return isRdefined(targetClass, targetClass.getName());
+    public static boolean isRedefined(Class<?> targetClass) {
+        return isRedefined(targetClass, targetClass.getName());
     }
 
     /**
@@ -67,7 +70,7 @@ public final class FastClassLoader extends URLClassLoader {
      * @param targetClass 目标Class
      * @return 布尔值
      */
-    public static boolean isRdefined(Class<?> targetClass, String targetClassName) {
+    public static boolean isRedefined(Class<?> targetClass, String targetClassName) {
         ClassLoader classLoader = targetClass.getClassLoader();
         try {
             Method findLoadedClass = ClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);

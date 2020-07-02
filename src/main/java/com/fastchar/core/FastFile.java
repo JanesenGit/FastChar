@@ -15,13 +15,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * FastChar核心文件操作类
- *
+ * @author 沈建（Janesen）
  * @param <T>
  */
 @SuppressWarnings("unchecked")
 public class FastFile<T> {
 
-    public static FastFile newInstance(String paramName, String attachDirectory, String fileName, String originalFileName, String contentType) {
+    public static FastFile<?> newInstance(String paramName, String attachDirectory, String fileName, String originalFileName, String contentType) {
         return FastChar.getOverrides().newInstance(FastFile.class)
                 .setParamName(paramName)
                 .setAttachDirectory(attachDirectory)
@@ -30,9 +30,20 @@ public class FastFile<T> {
                 .setContentType(contentType);
     }
 
-    public static FastFile newInstance(String attachDirectory, String fileName) {
+    public static FastFile<?> newInstance(String attachDirectory, String fileName) {
         return FastChar.getOverrides().newInstance(FastFile.class)
                 .setAttachDirectory(attachDirectory).setFileName(fileName);
+    }
+    public static FastFile<?> newInstance( String fileName) {
+        return FastChar.getOverrides().newInstance(FastFile.class)
+                .setAttachDirectory(FastChar.getConstant().getAttachDirectory())
+                .setFileName(fileName);
+    }
+
+    public static FastFile<?> newInstance(File file) {
+        return FastChar.getOverrides().newInstance(FastFile.class)
+                .setAttachDirectory(file.getParent())
+                .setFileName(file.getName());
     }
 
     protected FastFile() {
@@ -131,33 +142,50 @@ public class FastFile<T> {
 
 
     public boolean isImageFile() {
-        return FastFileUtils.isImageFile(uploadFileName);
+        return FastFileUtils.isImageFile(uploadFileName)||
+                FastFileUtils.isImageFileByMimeType(contentType);
     }
     public boolean isTxtFile() {
-        return FastFileUtils.isTxtFile(uploadFileName);
+        return FastFileUtils.isTxtFile(uploadFileName)||
+                FastFileUtils.isTxtFileByMimeType(contentType);
     }
     public boolean isExcelFile() {
-        return FastFileUtils.isExcelFile(uploadFileName);
+        return FastFileUtils.isExcelFile(uploadFileName)||
+                FastFileUtils.isExcelFileByMimeType(contentType);
     }
     public boolean isWordFile() {
-        return FastFileUtils.isWordFile(uploadFileName);
+        return FastFileUtils.isWordFile(uploadFileName)||
+                FastFileUtils.isWordFileByMimeType(contentType);
     }
     public boolean isPDFFile() {
-        return FastFileUtils.isPDFFile(uploadFileName);
+        return FastFileUtils.isPDFFile(uploadFileName)||
+                FastFileUtils.isPDFFileByMimeType(contentType);
     }
     public boolean isPPTFile() {
-        return FastFileUtils.isPPTFile(uploadFileName);
+        return FastFileUtils.isPPTFile(uploadFileName)||
+                FastFileUtils.isPPTFileByMimeType(contentType);
     }
     public boolean isMP4File() {
-        return FastFileUtils.isMP4File(uploadFileName);
+        return FastFileUtils.isMP4File(uploadFileName)||
+                FastFileUtils.isMP4FileByMimeType(contentType);
+    }
+
+    public boolean isMOVFile() {
+        return FastFileUtils.isMOVFile(uploadFileName)||
+                FastFileUtils.isMOVFileByMimeType(contentType);
     }
 
     public boolean isAVIFile() {
-        return FastFileUtils.isAVIFile(uploadFileName);
+        return FastFileUtils.isAVIFile(uploadFileName)||
+                FastFileUtils.isAVIFileByMimeType(contentType);
     }
 
     public boolean isTargetFile(String... extensions) {
         return FastFileUtils.isTargetFile(uploadFileName, extensions);
+    }
+
+    public boolean isTargetFileByMimeType(String... mimeTypes) {
+        return FastFileUtils.isTargetFileByMimeType(contentType, mimeTypes);
     }
 
     public File getFile() {
@@ -220,6 +248,9 @@ public class FastFile<T> {
 
 
     public String getUrl() throws Exception {
+        if (getFile() == null) {
+            return null;
+        }
         String replace = getFile().getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
         return FastStringUtils.strip(replace, "/");
     }

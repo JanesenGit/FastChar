@@ -2,21 +2,17 @@ package com.fastchar.database.info;
 
 import com.fastchar.core.FastBaseInfo;
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastMapWrap;
 import com.fastchar.exception.FastDatabaseException;
 
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unchecked")
 public class FastTableInfo<T> extends FastBaseInfo {
-
-    private static final long serialVersionUID = -2159853999174029952L;
 
     public static FastTableInfo<?> newInstance() {
         return FastChar.getOverrides().newInstance(FastTableInfo.class);
@@ -29,9 +25,11 @@ public class FastTableInfo<T> extends FastBaseInfo {
     private String name;
     private String comment = "";
     private String data;
+    private boolean ignoreCase = true;
+
     private List<FastColumnInfo<?>> columns = new ArrayList<>();
-    private Map<String, FastColumnInfo<?>> mapColumns = null;
-    private Map<String, FastColumnInfo<?>> primaryColumns = null;
+    private FastMapWrap mapColumn;
+    private FastMapWrap mapPrimary;
 
     public String getName() {
         return name;
@@ -64,10 +62,15 @@ public class FastTableInfo<T> extends FastBaseInfo {
         if (FastStringUtils.isEmpty(name)) {
             return null;
         }
-        if (mapColumns != null) {
-            return (E) mapColumns.get(name);
+        if (mapColumn != null) {
+            return mapColumn.getObject(name);
         }
         for (FastColumnInfo<?> column : this.columns) {
+            if (isIgnoreCase()) {
+                if (column.getName().equalsIgnoreCase(name)) {
+                    return (E) column;
+                }
+            }
             if (column.getName().equals(name)) {
                 return (E) column;
             }
@@ -93,10 +96,20 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return this;
     }
 
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
+
+    public FastTableInfo<T> setIgnoreCase(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
+        return this;
+    }
+
     public <E extends FastColumnInfo<?>> List<E> getPrimaries() {
-        if (primaryColumns != null) {
-            return (List<E>) new ArrayList<>(primaryColumns.values());
+        if (mapPrimary != null) {
+            return new ArrayList<E>((Collection<? extends E>) mapPrimary.getMap().values());
         }
+
         List<FastColumnInfo<?>> primaries = new ArrayList<>();
         for (FastColumnInfo<?> column : this.columns) {
             if (column.isPrimary()) {
@@ -108,10 +121,15 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
 
     public boolean checkColumn(String name) {
-        if (mapColumns != null) {
-            return mapColumns.containsKey(name);
+        if (mapColumn != null) {
+            return mapColumn.containsAttr(name);
         }
         for (FastColumnInfo<?> column : this.columns) {
+            if (isIgnoreCase()) {
+                if (column.getName().equalsIgnoreCase(name)) {
+                    return true;
+                }
+            }
             if (column.getName().equals(name)) {
                 return true;
             }
@@ -130,7 +148,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
     public FastTableInfo<?> merge(FastTableInfo<?> info) {
         for (String key : info.keySet()) {
-            if (key.equals("columns")) {
+            if (String.valueOf(key).equals("columns")) {
                 continue;
             }
             this.set(key, info.get(key));
@@ -156,7 +174,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
     public FastTableInfo<?> copy() {
         FastTableInfo<?> fastTableInfo = newInstance();
         for (String key : keySet()) {
-            if (key.equals("columns")) {
+            if (String.valueOf(key).equals("columns")) {
                 continue;
             }
             fastTableInfo.set(key, get(key));
@@ -173,12 +191,14 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
 
     public void columnToMap() {
-        mapColumns = new ConcurrentHashMap<>();
-        primaryColumns = new ConcurrentHashMap<>();
+        mapColumn = FastMapWrap.newInstance(new ConcurrentHashMap<>());
+        mapColumn.setIgnoreCase(isIgnoreCase());
+        mapPrimary = FastMapWrap.newInstance(new ConcurrentHashMap<>());
+        mapPrimary.setIgnoreCase(isIgnoreCase());
         for (FastColumnInfo<?> column : this.columns) {
-            mapColumns.put(column.getName(), column);
+            mapColumn.set(column.getName(), column);
             if (column.isPrimary()) {
-                primaryColumns.put(column.getName(), column);
+                mapPrimary.set(column.getName(), column);
             }
         }
     }

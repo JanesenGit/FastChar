@@ -8,7 +8,7 @@ public final class FastHandler extends FastBaseInfo {
     }
 
     public FastHandler setCode(int code) {
-        put("code", code);
+        set("code", code);
         return this;
     }
 
@@ -17,7 +17,7 @@ public final class FastHandler extends FastBaseInfo {
     }
 
     public FastHandler setError(String error) {
-        put("error", error);
+        set("error", error);
         return this;
     }
 

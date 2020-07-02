@@ -13,10 +13,11 @@ import java.util.List;
 
 /**
  * FastEntity实体类集合
+ * @author 沈建（Janesen）
  */
 public final class FastEntities {
-    private FastMethodRead methodConverter = new FastMethodRead();
-    private List<EntityInfo> entityInfos = new ArrayList<>();
+    private final FastMethodRead methodConverter = new FastMethodRead();
+    private final List<EntityInfo> entityInfos = new ArrayList<>();
 
      FastEntities() {
     }
@@ -90,17 +91,15 @@ public final class FastEntities {
         return entityInfoList;
     }
 
-
-    public void onDatabaseInfoChange() throws Exception {
-        checkTableExists();
-    }
-
-
     public void flush() {
         List<EntityInfo> waitRemove = new ArrayList<>();
         for (EntityInfo entityInfo : entityInfos) {
             if (FastClassUtils.isRelease(entityInfo.getTargetClass())) {
                 waitRemove.add(entityInfo);
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastEntities.class,
+                            FastChar.getLocal().getInfo("Entity_Error5",entityInfo.getTargetClass()));
+                }
             }
         }
         entityInfos.removeAll(waitRemove);

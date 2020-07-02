@@ -23,6 +23,7 @@ public abstract class FastSql {
 
 
     protected String type;
+
     public abstract FastSqlInfo buildInsertSql(FastEntity<?> entity, String... checks);
 
 
@@ -134,7 +135,14 @@ public abstract class FastSql {
 
         List<String> columns = new ArrayList<>();
         List<Object> values = new ArrayList<>();
+
+        entity.markSetDefaultValue("update");
+        entity.setDefaultValue();
+        entity.unmarkSetDefaultValue();
+
         TreeSet<String> treeKeys = new TreeSet<>(entity.getModified());
+
+
         for (String key : treeKeys) {
             FastColumnInfo<?> columnInfo = entity.getColumn(key);
             if (columnInfo != null) {
@@ -284,7 +292,7 @@ public abstract class FastSql {
                     values.add(getColumnValue(entity, column));
                 }
             }
-        }else{
+        } else {
             for (String check : entity.allKeys()) {
                 FastColumnInfo<?> column = entity.getColumn(check);
                 if (column != null) {
@@ -367,8 +375,11 @@ public abstract class FastSql {
 
     protected String getAlias(String sql) {
         int[] fromPosition = getTokenIndex("from", sql);
-        String fromSql = sql.substring(fromPosition[0]);
-        return getTokenValue("as", fromSql);
+        if (fromPosition.length > 0 && fromPosition[0] > 0) {
+            String fromSql = sql.substring(fromPosition[0]);
+            return getTokenValue("as", fromSql);
+        }
+        return null;
     }
 
     protected int[] getTokenIndex(String token, String sql, String... endToken) {
@@ -454,33 +465,35 @@ public abstract class FastSql {
      * <p>
      * 条件属性格式：
      * <br/>
-     * 连接符号+属性名+比较符（例如：&name?% 翻译后为：and name like '值%' ）
+     * 分组符号+连接符号+属性名+比较符号（例如：&name?% 翻译后为：and name like '值%' ）
      * </p>
      * <p>
+     * 分组符号 $[0-9]  翻译成sql ()
+     * </p>
      * 连接符号：&  翻译成sql  and
      * <br/>
      * 连接符号：@  翻译成sql  and
      * <br/>
      * 连接符号：|| 翻译成sql  or
      * <br/>
-     * 连接符号：?  翻译成sql  like
+     * 比较符号：?  翻译成sql  like
      * <br/>
-     * 连接符号：!? 翻译成sql  not like
+     * 比较符号：!? 翻译成sql  not like
      * <br/>
-     * 连接符号：#  翻译成sql  in
+     * 比较符号：#  翻译成sql  in
      * <br/>
-     * 连接符号：!# 翻译成sql  not in
+     * 比较符号：!# 翻译成sql  not in
      * <br/>
      * 前缀符号：__ 翻译成sql  . (别名前缀，例如：a__name 翻译后为：a.name)
      * </p>
      * <p>
-     * 以下特性被忽略：
+     * 以下特性被忽略转换：
      * 以^符号开头的属性 （例如：^test ）
      * </p>
      */
     public FastSqlInfo appendWhere(String sqlStr, FastEntity<?> entity) {
         sqlStr = sqlStr.trim();
-        String regStr = "([0-9]+)?(&{1}|@{1}|\\|{2})?([_a-zA-Z0-9.]*)([?!#><=%]+)?([:sort]+)?";
+        String regStr = "([$]?[0-9]+)?(&|@|\\|{2})?([_a-zA-Z0-9.]*)([?!#><=%]+)?([:sort]+)?";
         Pattern compile = Pattern.compile(regStr);
 
         FastSqlInfo sqlInfo = newSqlInfo();
@@ -493,11 +506,13 @@ public abstract class FastSql {
         } else {
             alias = alias + ".";
         }
+
+        String lastGroupKey = "";
         for (String whereAttr : keys) {
             if (whereAttr.startsWith("^")) {
                 continue;
             }
-            String where = "and";
+            String link = "and";
             String attr = alias + whereAttr;
             Object value = entity.get(whereAttr);
 
@@ -505,11 +520,14 @@ public abstract class FastSql {
                 continue;
             }
 
+            String before_1 = "";
+            String before_2 = "";
             String compare = "=";
             String placeholder = "?";
             Matcher matcher = compile.matcher(whereAttr);
             if (matcher.find()) {
-                where = FastStringUtils.defaultValue(matcher.group(2), "and");
+                String groupKey = FastStringUtils.defaultValue(matcher.group(1), "");
+                link = FastStringUtils.defaultValue(matcher.group(2), "and");
                 attr = FastStringUtils.defaultValue(matcher.group(3), whereAttr);
                 compare = FastStringUtils.defaultValue(matcher.group(4), "=");
                 String rank = matcher.group(5);// :sort
@@ -538,15 +556,33 @@ public abstract class FastSql {
                     }
                 }
 
-                if (FastStringUtils.isNotEmpty(where)) {
-                    if (where.equals("||")) {
-                        where = "or";
+                if (FastStringUtils.isNotEmpty(link)) {
+                    if (link.equals("||")) {
+                        link = "or";
                     } else {
-                        where = "and";
+                        link = "and";
                     }
                 } else {
-                    where = "and";
+                    link = "and";
                 }
+
+                if (groupKey.startsWith("$")) {
+                    if (FastStringUtils.isEmpty(lastGroupKey)) {
+                        if (FastStringUtils.isNotEmpty(groupKey)) {
+                            before_2 = " ( ";
+                            lastGroupKey = groupKey;
+                        }
+                    }else if (!lastGroupKey.equalsIgnoreCase(groupKey)) {
+                        before_1 = " ) ";
+                        if (FastStringUtils.isNotEmpty(groupKey)) {
+                            before_2 = " ( ";
+                            lastGroupKey = groupKey;
+                        }else{
+                            lastGroupKey = "";
+                        }
+                    }
+                }
+
                 switch (compare) {
                     case "?":
                         compare = "like";
@@ -589,7 +625,12 @@ public abstract class FastSql {
                 }
             }
 
-            whereBuilder.append(where)
+            whereBuilder
+                    .append(before_1)
+                    .append(" ")
+                    .append(link)
+                    .append(" ")
+                    .append(before_2)
                     .append(" ")
                     .append(attr)
                     .append(" ")
@@ -601,6 +642,9 @@ public abstract class FastSql {
             if (placeholder.equals("?")) {
                 sqlInfo.getParams().add(value);
             }
+        }
+        if (FastStringUtils.isNotEmpty(lastGroupKey)) {
+            whereBuilder.append(" ) ");
         }
 
         List<String> sortBuilder = new ArrayList<>();

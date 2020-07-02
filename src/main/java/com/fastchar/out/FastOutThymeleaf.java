@@ -30,7 +30,7 @@ public class FastOutThymeleaf extends FastOut<FastOutThymeleaf> {
         }
         HttpServletResponse response = action.getResponse();
         HttpServletRequest request = action.getRequest();
-        response.setContentType(toContentType());
+        response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
 
 

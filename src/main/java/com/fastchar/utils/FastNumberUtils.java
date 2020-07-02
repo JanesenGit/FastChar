@@ -4,6 +4,7 @@
 package com.fastchar.utils;
 
 import java.math.BigDecimal;
+import java.net.SocketTimeoutException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,15 +14,15 @@ public class FastNumberUtils {
 
 
     public static boolean isNumber(Object value) {
-        return String.valueOf(value).matches("[-\\+]?\\d+[\\.]?\\d*");
+        return toPlainText(value).matches("[-\\+]?\\d+[\\.]?\\d*");
     }
 
     public static boolean isDecimalNumber(Object value) {
-        return String.valueOf(value).matches("[-\\+]?\\d+\\.\\d*");
+        return toPlainText(value).matches("[-\\+]?\\d+\\.\\d*");
     }
 
     public static boolean isIntegralNumber(Object value) {
-        return String.valueOf(value).matches("[-\\+]?\\d+");
+        return toPlainText(value).matches("[-\\+]?\\d+");
     }
 
     /**
@@ -233,11 +234,33 @@ public class FastNumberUtils {
      * @return
      */
     public static String toPlainText(Object number) {
-        if (number == null) {
+        if (number == null || FastStringUtils.isEmpty(number.toString())) {
             return null;
         }
-        BigDecimal bd = new BigDecimal(number.toString());
-        return bd.toPlainString();
+        try {
+            BigDecimal bd = new BigDecimal(number.toString());
+            return bd.toPlainString();
+        } catch (Exception ignored) {
+        }
+        return String.valueOf(number);
+    }
+
+    /**
+     * 将数字转成字符串
+     *
+     * @param number
+     * @return
+     */
+    public static String toPlainText(Object number, int digit) {
+        if (number == null || FastStringUtils.isEmpty(number.toString())) {
+            return null;
+        }
+        try {
+            BigDecimal bd = new BigDecimal(number.toString())
+                    .setScale(digit, BigDecimal.ROUND_HALF_UP);
+            return bd.toPlainString();
+        } catch (Exception ignored) { }
+        return String.valueOf(number);
     }
 
 
@@ -278,6 +301,7 @@ public class FastNumberUtils {
     static class FastNumber extends Number {
         private static final long serialVersionUID = -380753666109976011L;
         String value;
+        Object source;
         Number defaultValue = 0;
         boolean isNumber;
         boolean isDecimal;
@@ -287,6 +311,7 @@ public class FastNumberUtils {
         }
 
         public FastNumber setValue(Object value) {
+            this.source = value;
             this.value = String.valueOf(value).replace(" ", "");
             isNumber = isNumber(this.value);
             isDecimal = isDecimalNumber(this.value);
@@ -307,6 +332,10 @@ public class FastNumberUtils {
             if (!isNumber) {
                 return defaultValue.intValue();
             }
+            if (source instanceof Number) {
+                Number number = (Number) source;
+                return number.intValue();
+            }
             try {
                 if (isDecimal) {
                     return (int) Float.parseFloat(this.value);
@@ -322,6 +351,10 @@ public class FastNumberUtils {
         public long longValue() {
             if (!isNumber) {
                 return defaultValue.longValue();
+            }
+            if (source instanceof Number) {
+                Number number = (Number) source;
+                return number.longValue();
             }
             try {
                 if (isDecimal) {
@@ -339,6 +372,10 @@ public class FastNumberUtils {
             if (!isNumber) {
                 return defaultValue.floatValue();
             }
+            if (source instanceof Number) {
+                Number number = (Number) source;
+                return number.floatValue();
+            }
             try {
                 return Float.parseFloat(this.value);
             } catch (Exception e) {
@@ -350,6 +387,10 @@ public class FastNumberUtils {
         public double doubleValue() {
             if (!isNumber) {
                 return defaultValue.doubleValue();
+            }
+            if (source instanceof Number) {
+                Number number = (Number) source;
+                return number.doubleValue();
             }
             try {
                 return Double.parseDouble(this.value);

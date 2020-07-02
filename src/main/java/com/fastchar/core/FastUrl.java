@@ -51,4 +51,14 @@ public final class FastUrl {
         this.params = params;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "FastUrl{" +
+                "methodRoute='" + methodRoute + '\'' +
+                ", urlParams=" + urlParams +
+                ", params=" + params +
+                ", level=" + level +
+                '}';
+    }
 }

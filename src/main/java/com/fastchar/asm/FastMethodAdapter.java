@@ -1,15 +1,22 @@
 package com.fastchar.asm;
 
-import com.fastchar.core.FastAction;
-import com.sun.xml.internal.ws.org.objectweb.asm.*;
+import jdk.internal.org.objectweb.asm.*;
 
-import static com.sun.xml.internal.ws.org.objectweb.asm.Opcodes.*;
 
-public class FastMethodAdapter implements MethodVisitor {
+public class FastMethodAdapter extends MethodVisitor {
     protected MethodVisitor mv;
 
     public FastMethodAdapter(MethodVisitor mv) {
+        super(Opcodes.ASM5, mv);
         this.mv = mv;
+    }
+
+    public FastMethodAdapter(int api) {
+        super(api);
+    }
+
+    public FastMethodAdapter(int api, MethodVisitor methodVisitor) {
+        super(api, methodVisitor);
     }
 
     public AnnotationVisitor visitAnnotationDefault() {

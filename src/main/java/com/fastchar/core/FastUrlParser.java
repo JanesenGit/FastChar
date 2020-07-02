@@ -26,26 +26,26 @@ final class FastUrlParser {
 
         url = url.split("[?]")[0];
         List<FastUrl> urls = new ArrayList<>();
-        String[] split = url.split("/");
-        split = FastArrayUtils.trimEmpty(split);
+        String[] split = FastArrayUtils.trimEmpty(url.split("/"));
         StringBuilder stringBuilder = new StringBuilder("/");
 
         FastUrl first = new FastUrl();
         first.setLevel(1);
         first.setMethodRoute(stringBuilder.toString());
-        first.setUrlParams(Arrays.asList(split));
+        List<String> splitList = Arrays.asList(split);
+        first.getUrlParams().addAll(splitList);
+        first.setParams(params);
         urls.add(first);
 
         int level = first.getLevel() + 1;
         for (int i = 0; i < split.length; i++) {
             String address = split[i];
             stringBuilder.append(address).append("/");
-            List<String> urlParams = new ArrayList<>(Arrays.asList(split).subList(i + 1, split.length));
             FastUrl fastUrl = new FastUrl();
             fastUrl.setLevel(level);
             fastUrl.setParams(params);
             fastUrl.setMethodRoute(FastStringUtils.stripEnd(stringBuilder.toString(), "/"));
-            fastUrl.setUrlParams(urlParams);
+            fastUrl.getUrlParams().addAll(splitList.subList(i + 1, split.length));
             urls.add(fastUrl);
             level++;
         }

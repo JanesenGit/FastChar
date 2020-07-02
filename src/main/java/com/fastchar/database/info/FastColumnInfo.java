@@ -10,7 +10,6 @@ import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
 public class FastColumnInfo<T> extends FastBaseInfo {
-    private static final long serialVersionUID = 5115745207554056476L;
 
     public static FastColumnInfo<?> newInstance() {
         return FastChar.getOverrides().newInstance(FastColumnInfo.class);

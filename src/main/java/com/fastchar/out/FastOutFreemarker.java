@@ -27,7 +27,7 @@ public class FastOutFreemarker extends FastOut<FastOutFreemarker> {
         }
         HttpServletResponse response = action.getResponse();
         HttpServletRequest request = action.getRequest();
-        response.setContentType(toContentType());
+        response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
 
         Map<String, Object> data = new HashMap<>(FastChar.getTemplates().getFinalContext());

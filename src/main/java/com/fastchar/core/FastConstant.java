@@ -5,12 +5,13 @@ import java.util.*;
 
 /**
  * 系统全局配置
+ * @author 沈建（Janesen）
  */
 public final class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FastCharVersion = "1.2.3";
+    public static final String FastCharVersion = "1.5.0";
 
     /**
      * mysql数据库类型
@@ -36,8 +37,8 @@ public final class FastConstant {
     private boolean syncDatabaseXml = true;//是否同步xml到数据库中
     private boolean testEnvironment;//是否测试环境，一般在main方法中使用
     private boolean crossDomain = false;//是否允许跨域
-    private Set<String> crossHeaders = new HashSet<>();//允许跨域的头部配置名
-    private Set<String> crossAllowDomains = new HashSet<>();//允许跨域的域名配置
+    private final Set<String> crossHeaders = new HashSet<>();//允许跨域的头部配置名
+    private final Set<String> crossAllowDomains = new HashSet<>();//允许跨域的域名配置
 
     private boolean debug = true;//调试模式
     private boolean ansi = false;
@@ -65,7 +66,7 @@ public final class FastConstant {
 
     private String propertiesName = "config.properties";
 
-    private boolean webStopped;
+    private boolean webStopped;//web服务器是已停止
 
     private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
 

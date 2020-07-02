@@ -6,6 +6,7 @@ import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -598,6 +599,14 @@ public class FastStringUtils {
             return FastNumberUtils.toPlainText(value);
         }
         return String.valueOf(value);
+    }
+
+
+    public static String firstString(List<?> list, String defaultValue) {
+        if (list.size() == 0) {
+            return defaultValue;
+        }
+        return defaultValue(list.get(0), defaultValue);
     }
 
 

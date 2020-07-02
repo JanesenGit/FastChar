@@ -2,6 +2,7 @@ package com.fastchar.utils;
 
 import com.fastchar.core.FastClassLoader;
 import com.fastchar.core.FastFile;
+import com.fastchar.exception.FastClassException;
 import com.fastchar.exception.FastOverrideException;
 import org.terracotta.offheapstore.pinning.PinnableCache;
 
@@ -81,7 +82,7 @@ public class FastClassUtils {
                 return targetClass.newInstance();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new FastClassException(e);
         }
         return null;
     }
@@ -125,7 +126,7 @@ public class FastClassUtils {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new FastClassException(e);
             }
             return newInstance(targetClass);
         }

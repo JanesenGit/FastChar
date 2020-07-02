@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 数据载体类FastEntity，FastChar的核心类
  *
  * @param <E>
+ * @author 沈建（Janesen）
  */
 @SuppressWarnings("unchecked")
 public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHashMap<String, Object> {
@@ -56,23 +57,26 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     public void setDefaultValue() {
     }
 
-    public final void markDefault() {
-        markSetDefault = true;
+    public final void markSetDefaultValue(String from) {
+        doSetDefaultValue = true;
+        fromOperate = from;
     }
 
-    public final void unmarkDefault() {
-        markSetDefault = false;
+    public final void unmarkSetDefaultValue() {
+        doSetDefaultValue = false;
+        fromOperate = null;
     }
 
     private transient FastData<E> fastData = null;
     protected transient List<String> modified = new ArrayList<>();
     private String error = "";
     private transient FastMapWrap mapWrap = null;
-    private transient boolean markSetDefault = false;
+    private transient boolean doSetDefaultValue = false;
+    private transient String fromOperate;
     private boolean ignoreCase;
 
     private boolean isDefaultMethodUse() {
-        return markSetDefault;
+        return doSetDefaultValue;
     }
 
     /**
@@ -165,6 +169,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         return (E) this;
     }
 
+
     /**
      * 设置属性值，会标识当前属性被修改
      *
@@ -198,6 +203,15 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         if (isColumn(attr) && !defaultMethodUse && !modified.contains(attr)) {
             modified.add(attr);
         }
+        //如果来自update操作进行设置默认值，则必须检查是否是被修改的属性
+        if (defaultMethodUse) {
+            if (FastStringUtils.isNotEmpty(fromOperate) && fromOperate.equalsIgnoreCase("update")) {
+                if (!isModified(attr)) {
+                    return (E) this;
+                }
+            }
+        }
+
         super.put(attr, value);
         return (E) this;
     }
@@ -230,7 +244,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         if (value == null || key == null) {
             return null;
         }
-        if (isDefaultMethodUse() && isNotEmpty(key)) {
+        if (isDefaultMethodUse() && isNotEmpty(key) && !isNull(key)) {
             return null;
         }
         return super.put(key, value);
@@ -263,7 +277,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public int getId() {
         List<FastColumnInfo<?>> primaries = getPrimaries();
-        if (primaries != null) {
+        if (primaries != null && primaries.size() > 0) {
             return getInt(primaries.get(0).getName(), -1);
         }
         return -1;
@@ -299,7 +313,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectFirstBySql(String sqlStr, List<Object> params) {
+    public E selectFirstBySql(String sqlStr, List<?> params) {
         return selectFirstBySql(false, sqlStr, params);
     }
 
@@ -311,8 +325,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectFirstBySql(boolean cache, String sqlStr, List<Object> params) {
-        return selectFirstBySql(cache, sqlStr, params.toArray());
+    public E selectFirstBySql(boolean cache, String sqlStr, List<?> params) {
+        return selectFirstBySql(cache, sqlStr, params.toArray(new Object[]{}));
     }
 
     /**
@@ -355,7 +369,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectLastBySql(String sqlStr, List<Object> params) {
+    public E selectLastBySql(String sqlStr, List<?> params) {
         return selectLastBySql(false, sqlStr, params);
     }
 
@@ -366,8 +380,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectLastBySql(boolean cache, String sqlStr, List<Object> params) {
-        return selectLastBySql(cache, sqlStr, params.toArray());
+    public E selectLastBySql(boolean cache, String sqlStr, List<?> params) {
+        return selectLastBySql(cache, sqlStr, params.toArray(new Object[]{}));
     }
 
     /**
@@ -410,8 +424,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 返回数据集合
      */
-    public List<E> selectBySql(String sqlStr, List<Object> params) {
-        return selectBySql(false, sqlStr, params.toArray());
+    public List<E> selectBySql(String sqlStr, List<?> params) {
+        return selectBySql(false, sqlStr, params.toArray(new Object[]{}));
     }
 
     /**
@@ -469,7 +483,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params   参数
      * @return 分页数据
      */
-    public FastPage<E> selectBySql(int page, int pageSize, String sqlStr, List<Object> params) {
+    public FastPage<E> selectBySql(int page, int pageSize, String sqlStr, List<?> params) {
         return selectBySql(false, page, pageSize, sqlStr, params);
     }
 
@@ -483,7 +497,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params   参数
      * @return 分页数据
      */
-    public FastPage<E> selectBySql(boolean cache, int page, int pageSize, String sqlStr, List<Object> params) {
+    public FastPage<E> selectBySql(boolean cache, int page, int pageSize, String sqlStr, List<?> params) {
         return selectBySql(cache, page, pageSize, sqlStr, params.toArray(new Object[]{}));
     }
 
@@ -578,7 +592,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     /**
      * 统计指定检测属性名的数量
      *
-     * @param checks 检测属性名，用作where判断
+     * @param checks 检测属性名，用作where判断，如果不传则以当前对象有值的属性为准
      * @return 统计的数字
      */
     public int count(String... checks) {
@@ -1485,6 +1499,18 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
     /**
+     * 删除属性，将同时删除修改的标识
+     *
+     * @param attr 属性名
+     * @return 当前对象
+     */
+    public FastEntity<E> remove(String attr) {
+        modified.remove(attr);
+        getMapWrap().removeAttr(attr);
+        return this;
+    }
+
+    /**
      * FastEntity内部数据缓存类
      */
     public static class Cache {
@@ -1539,4 +1565,5 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
             Object invoke();
         }
     }
+
 }

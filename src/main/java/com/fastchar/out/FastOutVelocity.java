@@ -33,7 +33,7 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
 
         HttpServletResponse response = action.getResponse();
         HttpServletRequest request = action.getRequest();
-        response.setContentType(toContentType());
+        response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
 
         File templateFile = new File(FastChar.getPath().getWebRootPath(), String.valueOf(data));

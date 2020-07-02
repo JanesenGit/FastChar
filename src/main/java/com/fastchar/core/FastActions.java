@@ -8,10 +8,11 @@ import java.util.List;
 
 /**
  * FastAction插件
+ * @author 沈建（Janesen）
  */
 public final class FastActions {
     private Class<? extends FastOut<?>> defaultOut;
-    private List<String> excludeUrls = new ArrayList<>();//排除拦截url
+    private final List<String> excludeUrls = new ArrayList<>();//排除拦截url
     private boolean excludeServlet = true;//排除拦截servlet
 
     FastActions() {

@@ -32,9 +32,9 @@ public class FastOracle extends FastSql {
         List<String> columns = new ArrayList<>();
         List<String> placeholders = new ArrayList<>();
         List<Object> values = new ArrayList<>();
-        entity.markDefault();
+        entity.markSetDefaultValue("insert");
         entity.setDefaultValue();
-        entity.unmarkDefault();
+        entity.unmarkSetDefaultValue();
 
         TreeSet<String> treeKeys = new TreeSet<>(entity.allKeys());
         for (String key : treeKeys) {

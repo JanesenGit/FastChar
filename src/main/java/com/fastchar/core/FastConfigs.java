@@ -6,9 +6,14 @@ import com.fastchar.extend.ehcache.FastEhCache2Config;
 import com.fastchar.extend.ehcache.FastEhCache3Config;
 import com.fastchar.extend.jdbc.FastJdbcConfig;
 import com.fastchar.extend.redis.FastRedisConfig;
+import com.fastchar.interfaces.IFastConfig;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * FastChar默认提供的配置类集合，与FastChar.getConfig功能一致
+ * @author 沈建（Janesen）
  */
 public final class FastConfigs {
 
@@ -40,4 +45,5 @@ public final class FastConfigs {
     public FastC3p0Config getC3p0Config() {
         return FastChar.getConfig(FastC3p0Config.class);
     }
+
 }

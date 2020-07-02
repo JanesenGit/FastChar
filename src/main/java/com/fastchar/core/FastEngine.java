@@ -4,6 +4,7 @@ import com.fastchar.accepter.*;
 import com.fastchar.converters.*;
 import com.fastchar.database.FastDatabaseXml;
 import com.fastchar.database.FastDb;
+import com.fastchar.enums.FastObservableEvent;
 import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.interfaces.IFastSecurity;
 import com.fastchar.observer.FastDatabaseObserver;
@@ -20,6 +21,7 @@ import java.io.FileOutputStream;
 
 /**
  * FastChar核心框架引擎
+ * @author 沈建（Janesen）
  */
 @SuppressWarnings("all")
 public final class FastEngine {
@@ -68,26 +70,7 @@ public final class FastEngine {
         System.setOut(new FastOutPrintStream(new FileOutputStream(FileDescriptor.out), true));
         System.setErr(new FastErrorPrintStream(System.out, true));
 
-        converters.add(FastEntityParamConverter.class);
-        converters.add(FastStringParamConverter.class);
-        converters.add(FastDateParamConverter.class);
-        converters.add(FastFileParamConverter.class);
-        converters.add(FastNumberParamConverter.class);
-        converters.add(FastBooleanParamConverter.class);
-        converters.add(FastEnumParamConverter.class);
-        converters.add(FastNormalParamConverter.class);
-
         observable.addObserver(FastDatabaseObserver.class);
-        observable.addObserver(entities);
-
-        validators.add(FastNullValidator.class);
-        validators.add(FastRegularValidator.class);
-
-        scanner.addAccepter(new FastOverrideScannerAccepter());
-        scanner.addAccepter(new FastDatabaseXmlScannerAccepter());
-        scanner.addAccepter(new FastWebXmlScannerAccepter());
-        scanner.addAccepter(new FastEntityScannerAccepter());
-        scanner.addAccepter(new FastActionScannerAccepter());
 
         constant.addCrossHeaders("Content-Type", "Access-Control-Allow-Headers", "Authorization", "X-Requested-With", "token");
     }
@@ -98,19 +81,21 @@ public final class FastEngine {
         webs.initWeb(this);
         scanner.startScanner();
         webs.initWeb(this);
-        observable.notifyObservers("onWebStart", this);
+        observable.notifyObservers(FastObservableEvent.onWebStart.name(), this);
         scanner.notifyAccepter();
-        observable.notifyObservers("onScannerFinish");
+        observable.notifyObservers(FastObservableEvent.onScannerFinish.name());
         FastDispatcher.initDispatcher();
+        observable.notifyObservers(FastObservableEvent.onWebReady.name(), this);
         if (!isMain()) {
             webs.runWeb(this);
+            observable.notifyObservers(FastObservableEvent.onWebRun.name(), this);
         }
     }
 
 
     void destroy() throws Exception {
         constant.setWebStopped(true);
-        observable.notifyObservers("onWebStop", this);
+        observable.notifyObservers(FastObservableEvent.onWebStop.name(), this);
         getWebs().destroyWeb(this);
     }
 
@@ -363,9 +348,6 @@ public final class FastEngine {
         FastEngine.instance().getObservable().flush();
         FastEngine.instance().getOverrides().flush();
         FastEngine.instance().getInterceptors().flush();
-        FastEngine.instance().getScanner().flush();
-        FastEngine.instance().getValidators().flush();
-        FastEngine.instance().getConverters().flush();
         FastEngine.instance().getWebs().flush();
     }
 

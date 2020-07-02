@@ -9,9 +9,9 @@ import javassist.tools.web.Webserver;
 import java.util.*;
 
 final class FastWebs {
-    private List<Class<? extends IFastWeb>> webs = new ArrayList<>();
-    private List<Class<? extends IFastWeb>> initialed =new ArrayList<>();
-    private List<Class<? extends IFastWeb>> ran = new ArrayList<>();
+    private final List<Class<? extends IFastWeb>> webs = new ArrayList<>();
+    private final List<Class<? extends IFastWeb>> initialed =new ArrayList<>();
+    private final List<Class<? extends IFastWeb>> ran = new ArrayList<>();
 
     FastWebs putFastWeb(Class<? extends IFastWeb> webClass) {
         if (!FastClassUtils.checkNewInstance(webClass)) {
@@ -29,6 +29,10 @@ final class FastWebs {
         for (Class<? extends IFastWeb> aClass : webs) {
             if (FastClassUtils.isRelease(aClass)) {
                 waitRemove.add(aClass);
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastWebs.class,
+                            FastChar.getLocal().getInfo("Web_Error1", aClass));
+                }
             }
         }
         try {

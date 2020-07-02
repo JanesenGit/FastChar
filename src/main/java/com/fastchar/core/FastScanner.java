@@ -1,10 +1,13 @@
 package com.fastchar.core;
 
 import com.fastchar.annotation.AFastClassFind;
+import com.fastchar.enums.FastObservableEvent;
 import com.fastchar.interfaces.IFastScannerAccepter;
+import com.fastchar.interfaces.IFastScannerExtract;
 import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.utils.*;
 import sun.misc.URLClassPath;
+//import jdk.internal.loader.URLClassPath;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -19,19 +22,22 @@ import java.util.jar.Manifest;
 
 @SuppressWarnings({"unchecked", "UnusedReturnValue", "WeakerAccess"})
 public final class FastScanner {
-    private static final String[] EXCLUDE = new String[]{"META-INF" + File.separator + "*", "WEB-INF" + File.separator + "*"};
+    private static final String[] EXCLUDE = new String[]{
+            "*" + File.separator + "META-INF" + File.separator + "*",
+            "META-INF" + File.separator + "*",
+            "*" + File.separator + "WEB-INF" + File.separator + "*",
+            "WEB-INF" + File.separator + "*"};
     private static final String[] WEB = new String[]{"web", "WebRoot", "Root", "WEB-INF"};
 
-    private List<ScannerJar> jars = new ArrayList<>();
-    private Set<Class<?>> scannedClass = new LinkedHashSet<>();
-    private Set<String> scannedFile = new LinkedHashSet<>();
-    private Set<String> scannedJar = new LinkedHashSet<>();
-    private Map<String, FastClassLoader> jarLoaders = new HashMap<>();
+    private final List<ScannerJar> jars = new ArrayList<>();
+    private final Set<Class<?>> scannedClass = new LinkedHashSet<>();
+    private final Set<String> scannedFile = new LinkedHashSet<>();
+    private final Set<String> scannedJar = new LinkedHashSet<>();
+    private final Map<String, FastClassLoader> jarLoaders = new HashMap<>();
 
     private List<String> modifyTicket;
     private boolean firstTicket;
 
-    private List<IFastScannerAccepter> accepterList = new ArrayList<>();
     private boolean printClassNotFound = false;
 
 
@@ -144,7 +150,7 @@ public final class FastScanner {
             registerWeb();
             FastEngine.instance().getWebs().initWeb(FastEngine.instance());
             notifyAccepter();
-            FastChar.getObservable().notifyObservers("onScannerFinish");
+            FastChar.getObservable().notifyObservers(FastObservableEvent.onScannerFinish.name());
             if (!FastChar.isMain()) {
                 FastEngine.instance().getWebs().runWeb(FastEngine.instance());
             }
@@ -172,12 +178,6 @@ public final class FastScanner {
     }
 
 
-    public FastScanner addAccepter(IFastScannerAccepter... accepter) {
-        accepterList.addAll(Arrays.asList(accepter));
-        return this;
-    }
-
-
     private void scannerSrc() throws Exception {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         Enumeration<URL> resources = classLoader.getResources("");
@@ -200,14 +200,12 @@ public final class FastScanner {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         if (FastChar.isMain()) {
             Field ucp = classLoader.getClass().getDeclaredField("ucp");
-            if (ucp != null) {
-                ucp.setAccessible(true);
-                URLClassPath urlClassPath = (URLClassPath) ucp.get(classLoader);
-                for (URL url : urlClassPath.getURLs()) {
-                    checkURL(url);
-                }
-                ucp.setAccessible(false);
+            ucp.setAccessible(true);
+            URLClassPath urlClassPath = (URLClassPath) ucp.get(classLoader);
+            for (URL url : urlClassPath.getURLs()) {
+                checkURL(url);
             }
+            ucp.setAccessible(false);
         } else {
             Enumeration<URL> resources = classLoader.getResources("");
             while (resources.hasMoreElements()) {
@@ -356,7 +354,7 @@ public final class FastScanner {
                                     break;
                                 }
                                 InputStream inputStream = jarFile.getInputStream(jarEntry);
-                                File file = saveJarEntry(scannerJar.getName(), inputStream, jarEntry, FastChar.getPath().getWebRootPath(), version);
+                                File file = saveJarEntry(jarFile, inputStream, jarEntry, FastChar.getPath().getWebRootPath(), version);
                                 if (file != null) {
                                     scannedFile.add(file.getAbsolutePath());
                                 }
@@ -368,7 +366,7 @@ public final class FastScanner {
                         }
                         if (!isWebSource) {
                             InputStream inputStream = jarFile.getInputStream(jarEntry);
-                            File file = saveJarEntry(scannerJar.getName(), inputStream, jarEntry, FastChar.getPath().getClassRootPath(), version);
+                            File file = saveJarEntry(jarFile, inputStream, jarEntry, FastChar.getPath().getClassRootPath(), version);
                             if (file != null) {
                                 scannedFile.add(file.getAbsolutePath());
                             }
@@ -402,7 +400,8 @@ public final class FastScanner {
             }
         }
 
-        for (IFastScannerAccepter iFastScannerAccepter : accepterList) {
+        List<IFastScannerAccepter> iFastScannerAccepterList = FastChar.getOverrides().newInstances(false, IFastScannerAccepter.class);
+        for (IFastScannerAccepter iFastScannerAccepter : iFastScannerAccepterList) {
             if (iFastScannerAccepter == null) continue;
             iFastScannerAccepter.onScannerClass(FastEngine.instance(), targetClass);
         }
@@ -410,7 +409,8 @@ public final class FastScanner {
 
     private void notifyAccepter(File file) throws Exception {
         if (file == null) return;
-        for (IFastScannerAccepter iFastScannerAccepter : accepterList) {
+        List<IFastScannerAccepter> iFastScannerAccepterList = FastChar.getOverrides().newInstances(false, IFastScannerAccepter.class);
+        for (IFastScannerAccepter iFastScannerAccepter : iFastScannerAccepterList) {
             if (iFastScannerAccepter == null) continue;
             iFastScannerAccepter.onScannerFile(FastEngine.instance(), file);
         }
@@ -464,7 +464,7 @@ public final class FastScanner {
 
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private File saveJarEntry(String jarName, InputStream inputStream, JarEntry jarEntry,
+    private File saveJarEntry(JarFile jarFile, InputStream inputStream, JarEntry jarEntry,
                               String targetPath, String version) {
         try {
             String jarEntryName = jarEntry.getName();
@@ -480,10 +480,20 @@ public final class FastScanner {
             }
             File file = new File(targetPath, jarEntryName);
             if (file.exists()) {
-                if (!checkIsModified(file.getAbsolutePath(), jarName)) {
+                if (!checkIsModified(file.getAbsolutePath(), jarFile.getName())) {
                     return file;
                 }
             }
+            checkIsModified(file.getAbsolutePath(), jarFile.getName());
+            List<IFastScannerExtract> iFastScannerExtracts = FastChar.getOverrides().newInstances(false, IFastScannerExtract.class);
+            for (IFastScannerExtract iFastScannerExtract : iFastScannerExtracts) {
+                if (iFastScannerExtract != null) {
+                    if (!iFastScannerExtract.onExtract(jarFile, jarEntry)) {
+                        return null;
+                    }
+                }
+            }
+
 
             if (!jarEntry.isDirectory()) {
                 if (!file.getParentFile().exists()) {
@@ -576,17 +586,6 @@ public final class FastScanner {
             return false;
         }
         return hasModified;
-    }
-
-
-    public void flush() {
-        List<IFastScannerAccepter> waitRemove = new ArrayList<>();
-        for (IFastScannerAccepter iFastScannerAccepter : accepterList) {
-            if (FastClassUtils.isRelease(iFastScannerAccepter)) {
-                waitRemove.add(iFastScannerAccepter);
-            }
-        }
-        accepterList.removeAll(waitRemove);
     }
 
 
