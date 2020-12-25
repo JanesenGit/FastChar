@@ -1,22 +1,12 @@
 package com.fastchar.asm;
 
-import jdk.internal.org.objectweb.asm.*;
+import com.sun.xml.internal.ws.org.objectweb.asm.*;
 
-
-public class FastMethodAdapter extends MethodVisitor {
+public class FastMethodAdapter7 implements MethodVisitor {
     protected MethodVisitor mv;
 
-    public FastMethodAdapter(MethodVisitor mv) {
-        super(Opcodes.ASM5, mv);
+    public FastMethodAdapter7(MethodVisitor mv) {
         this.mv = mv;
-    }
-
-    public FastMethodAdapter(int api) {
-        super(api);
-    }
-
-    public FastMethodAdapter(int api, MethodVisitor methodVisitor) {
-        super(api, methodVisitor);
     }
 
     @Override
@@ -72,6 +62,11 @@ public class FastMethodAdapter extends MethodVisitor {
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
         this.mv.visitFieldInsn(opcode, owner, name, desc);
+    }
+
+    @Override
+    public void visitMethodInsn(int opcode, String owner, String name, String desc) {
+        this.mv.visitMethodInsn(opcode, owner, name, desc);
     }
 
     @Override

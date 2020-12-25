@@ -1,6 +1,7 @@
 package com.fastchar.database;
 
 import com.fastchar.exception.FastSqlException;
+import com.fastchar.utils.FastIOUtils;
 
 import java.io.BufferedReader;
 import java.io.PrintWriter;
@@ -86,6 +87,7 @@ public class FastScriptRunner {
             }
         } finally {
             this.rollbackConnection();
+            FastIOUtils.closeQuietly(reader);
         }
 
     }
@@ -97,7 +99,7 @@ public class FastScriptRunner {
         try {
             BufferedReader lineReader = new BufferedReader(reader);
 
-            while((line = lineReader.readLine()) != null) {
+            while ((line = lineReader.readLine()) != null) {
                 script.append(line);
                 script.append(LINE_SEPARATOR);
             }
@@ -120,7 +122,7 @@ public class FastScriptRunner {
         try {
             BufferedReader lineReader = new BufferedReader(reader);
 
-            while((line = lineReader.readLine()) != null) {
+            while ((line = lineReader.readLine()) != null) {
                 this.handleLine(command, line);
             }
 
@@ -220,7 +222,7 @@ public class FastScriptRunner {
             }
 
             try {
-                for(boolean hasResults = statement.execute(sql); hasResults || statement.getUpdateCount() != -1; hasResults = statement.getMoreResults()) {
+                for (boolean hasResults = statement.execute(sql); hasResults || statement.getUpdateCount() != -1; hasResults = statement.getMoreResults()) {
                     this.checkWarnings(statement);
                     this.printResults(statement, hasResults);
                 }
@@ -264,17 +266,17 @@ public class FastScriptRunner {
                     int i = 0;
 
                     label50:
-                    while(true) {
+                    while (true) {
                         String value;
                         if (i >= cols) {
                             this.println("");
 
-                            while(true) {
+                            while (true) {
                                 if (!rs.next()) {
                                     break label50;
                                 }
 
-                                for(i = 0; i < cols; ++i) {
+                                for (i = 0; i < cols; ++i) {
                                     value = rs.getString(i + 1);
                                     this.print(value + "\t");
                                 }

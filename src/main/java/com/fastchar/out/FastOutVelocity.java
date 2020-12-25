@@ -2,6 +2,7 @@ package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.local.FastCharLocal;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 
@@ -38,7 +39,7 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
 
         File templateFile = new File(FastChar.getPath().getWebRootPath(), String.valueOf(data));
         if (!templateFile.exists()) {
-            action.response502(FastChar.getLocal().getInfo("Velocity_Error1", data));
+            action.response502(FastChar.getLocal().getInfo(FastCharLocal.VELOCITY_ERROR1, data));
             return;
         }
 

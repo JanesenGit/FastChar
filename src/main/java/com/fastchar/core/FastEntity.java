@@ -27,6 +27,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     private static final long serialVersionUID = 4002535971197915410L;
     private String database;
 
+    public FastEntity() {
+        super(16);
+    }
+
     /**
      * 获得实体对应的表格名称
      *
@@ -170,6 +174,17 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
 
+
+    /**
+     * 设置属性为NUll，会标识当前属性被修改
+     *
+     * @param attr  属性名
+     * @return 当前对象
+     */
+    public E setNull(String attr) {
+        return set(attr, "<null>", false);
+    }
+
     /**
      * 设置属性值，会标识当前属性被修改
      *
@@ -205,7 +220,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         }
         //如果来自update操作进行设置默认值，则必须检查是否是被修改的属性
         if (defaultMethodUse) {
-            if (FastStringUtils.isNotEmpty(fromOperate) && fromOperate.equalsIgnoreCase("update")) {
+            if (FastStringUtils.isNotEmpty(fromOperate) && "update".equalsIgnoreCase(fromOperate)) {
                 if (!isModified(attr)) {
                     return (E) this;
                 }
@@ -584,8 +599,26 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      *
      * @return 布尔值
      */
-    public boolean copySave() {
-        return getFastData().copySave();
+    public E copySave() {
+        FastEntity<E> fastEntity = FastChar.getOverrides().newInstance(getClass());
+        fastEntity.setAll(this);
+        fastEntity.getFastData().copySave();
+        return (E) fastEntity;
+    }
+
+
+    /**
+     * 清空所有空值的属性
+     * @return 当前对象
+     */
+    public E clearEmpty() {
+        Set<String> strings = allKeys();
+        for (String attr : strings) {
+            if (isEmpty(attr)) {
+                remove(attr);
+            }
+        }
+        return (E) this;
     }
 
 
@@ -628,6 +661,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     public boolean update() {
         return getFastData().update();
     }
+
+
 
     /**
      * 更新到数据库中
@@ -994,11 +1029,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 布尔值
      */
     public boolean isColumn(String attr) {
-        FastDatabaseInfo fastDatabaseInfo = FastChar.getDatabases().get(database);
-        if (fastDatabaseInfo == null) {
-            return false;
-        }
-        FastTableInfo<?> tableInfo = fastDatabaseInfo.getTableInfo(getTableName());
+        FastTableInfo<?> tableInfo = getTable();
         if (tableInfo != null) {
             return tableInfo.checkColumn(attr);
         }
@@ -1012,12 +1043,13 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastColumnInfo
      */
     public <T extends FastColumnInfo<?>> T getColumn(String attr) {
-        FastTableInfo<?> tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
+        FastTableInfo<?> tableInfo = getTable();
         if (tableInfo != null) {
             return (T) tableInfo.getColumnInfo(attr);
         }
         return null;
     }
+
 
     /**
      * 获取绑定的表格对象
@@ -1025,7 +1057,24 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastTableInfo
      */
     public <T extends FastTableInfo<?>> T getTable() {
-        return (T) FastChar.getDatabases().get(database).getTableInfo(getTableName());
+        FastDatabaseInfo fastDatabaseInfo = FastChar.getDatabases().get(database);
+        if (fastDatabaseInfo == null) {
+            return null;
+        }
+        return (T) fastDatabaseInfo.getTableInfo(getTableName());
+    }
+
+
+    /**
+     * 获取表格的所有列
+     * @return List&lt;FastColumnInfo&lt;?&gt;&gt;
+     */
+    public <T extends FastColumnInfo<?>> List<T>  getColumns() {
+        FastTableInfo<?> tableInfo = getTable();
+        if (tableInfo != null) {
+            return tableInfo.getColumns();
+        }
+        return null;
     }
 
 
@@ -1035,7 +1084,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return List&lt;FastColumnInfo&lt;?&gt;&gt;
      */
     public <T extends FastColumnInfo<?>> List<T> getPrimaries() {
-        FastTableInfo<?> tableInfo = FastChar.getDatabases().get(database).getTableInfo(getTableName());
+        FastTableInfo<?> tableInfo = getTable();
         if (tableInfo != null) {
             return tableInfo.getPrimaries();
         }
@@ -1493,9 +1542,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param ignoreCase 布尔值
      * @return 当前对象
      */
-    public FastEntity<E> setIgnoreCase(boolean ignoreCase) {
+    public E setIgnoreCase(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
-        return this;
+        return (E) this;
     }
 
     /**
@@ -1504,10 +1553,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param attr 属性名
      * @return 当前对象
      */
-    public FastEntity<E> remove(String attr) {
+    public E remove(String attr) {
         modified.remove(attr);
         getMapWrap().removeAttr(attr);
-        return this;
+        return (E) this;
     }
 
     /**

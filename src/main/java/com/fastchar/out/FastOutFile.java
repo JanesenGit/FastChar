@@ -4,6 +4,7 @@ import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.exception.FastFileException;
 
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -74,11 +75,11 @@ public class FastOutFile extends FastOut<FastOutFile> {
             file = new File(String.valueOf(data));
         }
         if (!file.exists()) {
-            throw new FastFileException(FastChar.getLocal().getInfo("File_Error7", "'" + file.getAbsolutePath() + "'"));
+            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, "'" + file.getAbsolutePath() + "'"));
         }
 
         if (!file.isFile()) {
-            throw new FastFileException(FastChar.getLocal().getInfo("File_Error8", "'" + file.getAbsolutePath() + "'"));
+            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR8, "'" + file.getAbsolutePath() + "'"));
         }
 
         this.setDescription("response file '" + file.getAbsolutePath() + "' ");
@@ -173,8 +174,9 @@ public class FastOutFile extends FastOut<FastOutFile> {
             long start = range[0];
             long end = range[1];
             inputStream = new BufferedInputStream(new FileInputStream(file));
-            if (inputStream.skip(start) != start)
+            if (inputStream.skip(start) != start) {
                 throw new RuntimeException("File skip error");
+            }
             try (ServletOutputStream outputStream = response.getOutputStream()) {
                 byte[] buffer = new byte[inputSize];
                 long position = start;
@@ -200,20 +202,23 @@ public class FastOutFile extends FastOut<FastOutFile> {
     private void processRange(HttpServletRequest request, File file, Long[] range) {
         String rangeStr = request.getHeader("Range");
         int index = rangeStr.indexOf(',');
-        if (index != -1)
+        if (index != -1) {
             rangeStr = rangeStr.substring(0, index);
+        }
         rangeStr = rangeStr.replace("bytes=", "");
 
         String[] arr = rangeStr.split("-", 2);
-        if (arr.length < 2)
+        if (arr.length < 2) {
             throw new RuntimeException("Range error");
+        }
 
         long fileLength = file.length();
         for (int i = 0; i < range.length; i++) {
             if (FastStringUtils.isNotBlank(arr[i])) {
                 range[i] = Long.parseLong(arr[i].trim());
-                if (range[i] >= fileLength)
+                if (range[i] >= fileLength) {
                     range[i] = fileLength - 1;
+                }
             }
         }
         if (range[0] != null && range[1] == null) {
@@ -223,8 +228,9 @@ public class FastOutFile extends FastOut<FastOutFile> {
             range[1] = fileLength - 1;
         }
 
-        if (range[0] == null || range[0] > range[1])
+        if (range[0] == null || range[0] > range[1]) {
             throw new RuntimeException("Range error");
+        }
     }
 
 

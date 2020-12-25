@@ -11,6 +11,7 @@ import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.interfaces.IFastDatabaseOperate;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -33,7 +34,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         if (data == null) {
             return false;
         }
-        return data.toString().equalsIgnoreCase("sql_server")||data.toString().equalsIgnoreCase("sqlserver");
+        return "sql_server".equalsIgnoreCase(data.toString())|| "sqlserver".equalsIgnoreCase(data.toString());
     }
 
     private Set<String> tables = null;
@@ -43,7 +44,9 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     @Override
     public void fetchDatabaseInfo(FastDatabaseInfo databaseInfo) throws Exception {
         Connection connection = fastDb.setDatabase(databaseInfo.getName()).getConnection();
-        if (connection == null) return;
+        if (connection == null) {
+            return;
+        }
         ResultSet resultSet = null;
         try {
             DatabaseMetaData dmd = connection.getMetaData();
@@ -61,6 +64,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                 if (tableInfo == null) {
                     tableInfo = FastTableInfo.newInstance();
                     tableInfo.setName(table_name);
+                    tableInfo.setComment(fastEntity.getString("remarks"));
                     databaseInfo.getTables().add(tableInfo);
                 }
 
@@ -155,7 +159,9 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     @Override
     public boolean checkTableExists(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo) throws Exception {
         Connection connection = fastDb.setDatabase(databaseInfo.getName()).getConnection();
-        if (connection == null) return true;
+        if (connection == null) {
+            return true;
+        }
         ResultSet resultSet = null;
         try {
             if (tables == null) {
@@ -163,7 +169,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                 DatabaseMetaData dmd = connection.getMetaData();
                 String schemaPattern = null;
                 String databaseProductName = dmd.getDatabaseProductName();
-                if (databaseProductName.toLowerCase().replace(" ", "").equals("sqlserver")) {
+                if ("sqlserver".equals(databaseProductName.toLowerCase().replace(" ", ""))) {
                     schemaPattern = "dbo";
                 }
                 databaseInfo.setProduct(databaseProductName);
@@ -171,13 +177,19 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                 resultSet = dmd.getTables(null, schemaPattern, null, new String[]{"TABLE"});
                 while (resultSet.next()) {
                     String tableName = resultSet.getString("TABLE_NAME");
-                    tables.add(tableName);
+                    if (databaseInfo.isIgnoreCase()) {
+                        tables.add(tableName.toLowerCase());
+                    } else {
+                        tables.add(tableName);
+                    }
                 }
             }
         } finally {
             fastDb.close(connection, resultSet);
         }
-
+        if (databaseInfo.isIgnoreCase()) {
+            return tables.contains(tableInfo.getName().toLowerCase());
+        }
         return tables.contains(tableInfo.getName());
     }
 
@@ -215,7 +227,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             }
 
         } finally {
-            FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo("Db_Table_Info1", databaseInfo.getName(), tableInfo.getName()));
+            FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO1, databaseInfo.getName(), tableInfo.getName()));
         }
     }
 
@@ -227,8 +239,12 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         }
         PreparedStatement statement = null;
         ResultSet resultSet = null;
+        String realTableName = tableInfo.getName();
+        if (databaseInfo.isIgnoreCase()) {
+            realTableName = realTableName.toLowerCase();
+        }
         try {
-            if (!tableColumns.containsKey(tableInfo.getName())) {
+            if (!tableColumns.containsKey(realTableName)) {
                 try {
                     String sqlStr = String.format("select * from %s where 1=0 ", tableInfo.getName());
                     statement = connection.prepareStatement(sqlStr);
@@ -237,14 +253,21 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                     ResultSetMetaData data = resultSet.getMetaData();
                     for (int i = 1; i < data.getColumnCount() + 1; i++) {
                         String columnName = data.getColumnName(i);
-                        columns.add(columnName);
+                        if (databaseInfo.isIgnoreCase()) {
+                            columns.add(columnName.toLowerCase());
+                        } else {
+                            columns.add(columnName);
+                        }
                     }
-                    tableColumns.put(tableInfo.getName(), columns);
+                    tableColumns.put(realTableName, columns);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-            return tableColumns.get(tableInfo.getName()).contains(columnInfo.getName());
+            if (databaseInfo.isIgnoreCase()) {
+                return tableColumns.get(realTableName).contains(columnInfo.getName().toLowerCase());
+            }
+            return tableColumns.get(realTableName).contains(columnInfo.getName());
         } finally {
             fastDb.close(connection, statement, resultSet);
         }
@@ -283,7 +306,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
             FastChar.getLog().info(FastSqlServerDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo("Db_Table_Info2", databaseInfo.getName(), tableInfo.getName(), columnInfo.getName()));
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO2, databaseInfo.getName(), tableInfo.getName(), columnInfo.getName()));
         }
     }
 
@@ -320,21 +343,21 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
             FastChar.getLog().info(FastSqlServerDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo("Db_Table_Info3", databaseInfo.getName(),
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO3, databaseInfo.getName(),
                             tableInfo.getName(), columnInfo.getName()));
         }
     }
 
     private void alterColumnIndex(FastDatabaseInfo databaseInfo, String tableName, FastColumnInfo<?> columnInfo) throws Exception {
         String convertIndex = convertIndex(columnInfo);
-        if (!convertIndex.equalsIgnoreCase("none")) {
+        if (!"none".equalsIgnoreCase(convertIndex)) {
             String columnName = columnInfo.getName();
             String indexName = String.format("%s_%s_Index", tableName, columnName);
             if (!checkColumnIndex(databaseInfo.getName(), indexName)) {
                 String createIndexSql = String.format("create %s index %s on %s(%s) ", convertIndex, indexName, tableName, columnName);
                 fastDb.setLog(true).setDatabase(databaseInfo.getName()).run(createIndexSql);
                 FastChar.getLog().info(FastSqlServerDatabaseOperateProvider.class,
-                        FastChar.getLocal().getInfo("Db_Table_Info4", databaseInfo.getName(), tableName, columnInfo.getName(), indexName));
+                        FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO4, databaseInfo.getName(), tableName, columnInfo.getName(), indexName));
             }
         }
     }
@@ -371,7 +394,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         String index = columnInfo.getIndex();
         if (FastStringUtils.isNotEmpty(index)) {
             String[] indexArray = new String[]{"nonclustered", "clustered"};
-            if (index.equalsIgnoreCase("true") || index.equalsIgnoreCase("normal")) {
+            if ("true".equalsIgnoreCase(index) || "normal".equalsIgnoreCase(index)) {
                 return "nonclustered";
             }
             for (String s : indexArray) {
@@ -428,7 +451,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
         String length = columnInfo.getLength();
         if (FastType.isNumberType(type)) {
             return null;
-        } else if (type.equalsIgnoreCase("varchar")) {
+        } else if ("varchar".equalsIgnoreCase(type)) {
             if (FastStringUtils.isEmpty(length)) {
                 return "500";
             }

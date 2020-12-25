@@ -8,9 +8,11 @@ import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.interfaces.IFastColumnSecurity;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastStringUtils;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,7 +54,7 @@ public abstract class FastSql {
 
         for (FastColumnInfo<?> primary : entity.getPrimaries()) {
             if (entity.isEmpty(primary.getName())) {
-                throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
             }
             sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
             values.add(getColumnValue(entity, primary));
@@ -83,7 +85,7 @@ public abstract class FastSql {
         if (checkColumns.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
                 }
                 sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
                 values.add(getColumnValue(entity, primary));
@@ -174,7 +176,7 @@ public abstract class FastSql {
         if (checkColumns.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
                 }
                 sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
                 values.add(getColumnValue(entity, primary));
@@ -323,7 +325,7 @@ public abstract class FastSql {
             String select = selectSql.substring(startIndex, endIndex);
             return selectSql.replace(select, " count(1) as " + alias + " ");
         }
-        throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error2"));
+        throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR2));
     }
 
     protected FastSqlInfo newSqlInfo() {
@@ -335,7 +337,7 @@ public abstract class FastSql {
         if (value == null) {
             return null;
         }
-        if (value.toString().equalsIgnoreCase("<null>")) {
+        if ("<null>".equalsIgnoreCase(value.toString())) {
             return null;
         }
         if (FastStringUtils.isNotEmpty(columnInfo.getEncrypt())) {
@@ -348,10 +350,10 @@ public abstract class FastSql {
 
     protected String convertInPlaceholder(Object value, List<Object> values) {
         List<String> placeholders = new ArrayList<String>();
-        if (value instanceof Object[]) {
-            Object[] ps = (Object[]) value;
-            for (Object p : ps) {
-                values.add(p);
+        if (value.getClass().isArray()) {
+            int length = Array.getLength(value);
+            for (int i = 0; i < length; i++) {
+                values.add(Array.get(value, i));
                 placeholders.add("?");
             }
         } else if (value instanceof Collection<?>) {
@@ -532,7 +534,7 @@ public abstract class FastSql {
                 compare = FastStringUtils.defaultValue(matcher.group(4), "=");
                 String rank = matcher.group(5);// :sort
                 if (FastStringUtils.isNotEmpty(rank)) {
-                    if (rank.equalsIgnoreCase(":sort")) {
+                    if (":sort".equalsIgnoreCase(rank)) {
                         sorts.put(attr, String.valueOf(value).toLowerCase());
                         continue;
                     }
@@ -557,7 +559,7 @@ public abstract class FastSql {
                 }
 
                 if (FastStringUtils.isNotEmpty(link)) {
-                    if (link.equals("||")) {
+                    if ("||".equals(link)) {
                         link = "or";
                     } else {
                         link = "and";
@@ -572,12 +574,12 @@ public abstract class FastSql {
                             before_2 = " ( ";
                             lastGroupKey = groupKey;
                         }
-                    }else if (!lastGroupKey.equalsIgnoreCase(groupKey)) {
+                    } else if (!lastGroupKey.equalsIgnoreCase(groupKey)) {
                         before_1 = " ) ";
                         if (FastStringUtils.isNotEmpty(groupKey)) {
                             before_2 = " ( ";
                             lastGroupKey = groupKey;
-                        }else{
+                        } else {
                             lastGroupKey = "";
                         }
                     }
@@ -639,7 +641,7 @@ public abstract class FastSql {
                     .append(placeholder)
                     .append(" ");
 
-            if (placeholder.equals("?")) {
+            if ("?".equals(placeholder)) {
                 sqlInfo.getParams().add(value);
             }
         }

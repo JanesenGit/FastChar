@@ -5,6 +5,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastMapWrap;
 import com.fastchar.exception.FastDatabaseException;
 
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -140,7 +141,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
     public void validate() throws FastDatabaseException {
         if (FastStringUtils.isEmpty(name)) {
-            throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Table_Error1")
+            throw new FastDatabaseException(FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_ERROR1)
                     + "\n\tat " + getStackTrace("name"));
         }
     }
@@ -148,7 +149,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
     public FastTableInfo<?> merge(FastTableInfo<?> info) {
         for (String key : info.keySet()) {
-            if (String.valueOf(key).equals("columns")) {
+            if ("columns".equals(String.valueOf(key))) {
                 continue;
             }
             this.set(key, info.get(key));
@@ -174,7 +175,7 @@ public class FastTableInfo<T> extends FastBaseInfo {
     public FastTableInfo<?> copy() {
         FastTableInfo<?> fastTableInfo = newInstance();
         for (String key : keySet()) {
-            if (String.valueOf(key).equals("columns")) {
+            if ("columns".equals(String.valueOf(key))) {
                 continue;
             }
             fastTableInfo.set(key, get(key));
@@ -191,9 +192,9 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
 
     public void columnToMap() {
-        mapColumn = FastMapWrap.newInstance(new ConcurrentHashMap<>());
+        mapColumn = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
         mapColumn.setIgnoreCase(isIgnoreCase());
-        mapPrimary = FastMapWrap.newInstance(new ConcurrentHashMap<>());
+        mapPrimary = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
         mapPrimary.setIgnoreCase(isIgnoreCase());
         for (FastColumnInfo<?> column : this.columns) {
             mapColumn.set(column.getName(), column);
@@ -202,4 +203,5 @@ public class FastTableInfo<T> extends FastBaseInfo {
             }
         }
     }
+
 }

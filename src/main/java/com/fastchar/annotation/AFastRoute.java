@@ -34,4 +34,16 @@ public @interface AFastRoute {
      * @return 域名数组
      */
     String[] crossDomains() default {};
+
+    /**
+     * 是否允许被Before拦截器拦截
+     * @return 布尔值
+     */
+    boolean interceptorBefore() default true;
+
+    /**
+     * 是否允许被After拦截器拦截
+     * @return 布尔值
+     */
+    boolean interceptorAfter() default true;
 }

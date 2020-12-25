@@ -2,6 +2,7 @@ package com.fastchar.core;
 
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastRootInterceptor;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -156,7 +157,7 @@ public final class FastInterceptors {
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastInterceptors.class,
-                            FastChar.getLocal().getInfo("Interceptor_Error3",rootInterceptor.interceptor));
+                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3,rootInterceptor.interceptor));
                 }
             }
         }
@@ -168,7 +169,7 @@ public final class FastInterceptors {
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastInterceptors.class,
-                            FastChar.getLocal().getInfo("Interceptor_Error3",rootInterceptor.interceptor));
+                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3,rootInterceptor.interceptor));
                 }
             }
         }
@@ -178,7 +179,7 @@ public final class FastInterceptors {
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastInterceptors.class,
-                            FastChar.getLocal().getInfo("Interceptor_Error3",rootInterceptor.interceptor));
+                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3,rootInterceptor.interceptor));
                 }
             }
         }

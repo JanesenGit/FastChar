@@ -21,6 +21,4 @@ public class FastCharBaseLocal implements IFastLocal {
         return null;
     }
 
-
-
 }

@@ -5,7 +5,7 @@ import com.fastchar.interfaces.IFastInterceptor;
 import java.lang.annotation.*;
 
 /**
- * FastChar拦截器注解，用作标注拦截请求钱的动作
+ * FastChar拦截器注解，用作标注拦截请求前的动作
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})

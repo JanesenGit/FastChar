@@ -3,15 +3,17 @@ package com.fastchar.core;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastStringUtils;
 
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.*;
 
 final class FastUrlParser {
 
     public static String getContentPath(String url) {
         try {
-            URL netUrl = new URL(url);
+            URL netUrl = new URL( URLDecoder.decode(url,"utf-8"));
             String replace = netUrl.getPath().replace(FastChar.getConstant().getProjectName(), "");
             return "/" + FastStringUtils.strip(replace, "/");
         } catch (Exception e) {
@@ -65,6 +67,9 @@ final class FastUrlParser {
      * @param url 例如：down?path=name.txt&id=1&key=a
      */
     public static List<FastRequestParam> parseParams(String url) {
+        try {
+            url=URLDecoder.decode(url,"utf-8");
+        } catch (Exception ignored) { }
         String[] splitUrl = url.split("[?]");
         if (splitUrl.length != 2) {
             return null;

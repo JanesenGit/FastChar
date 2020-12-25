@@ -16,4 +16,11 @@ public @interface AFastClassFind {
      * @return 类名
      */
     String[] value();
+
+    /**
+     * 下载路径
+     * @return 数组集合
+     */
+    String[] url() default {};
+
 }

@@ -1,5 +1,6 @@
 package com.fastchar.utils;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
@@ -14,8 +15,9 @@ import java.util.regex.Pattern;
 /**
  * from org.apache.commons.lang3
  */
+@SuppressWarnings("AlibabaAvoidPatternCompileInMethod")
 public class FastStringUtils {
-    static final AtomicInteger atomicInteger = new AtomicInteger();
+    static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger();
 
     /**
      * 插入字符串
@@ -577,11 +579,12 @@ public class FastStringUtils {
         }
     }
 
+    private static Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
     public static String stripAccents(String input) {
         if (input == null) {
             return null;
         } else {
-            Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+
             String decomposed = Normalizer.normalize(input, Normalizer.Form.NFD);
             return pattern.matcher(decomposed).replaceAll("");
         }
@@ -620,7 +623,10 @@ public class FastStringUtils {
         if (isEmpty(pattern) || isEmpty(target)) {
             return false;
         }
-        String reg = pattern.replace(".", "\\.").replace("*", ".*");
+        String reg = pattern
+                .replace("\\", "\\\\")
+                .replace(".", "\\.")
+                .replace("*", ".*");
         return Pattern.matches(reg, target);
     }
 
@@ -629,11 +635,11 @@ public class FastStringUtils {
         if (isEmpty(prefix)) {
             prefix = "";
         }
-        if (atomicInteger.get() > 999) {
-            atomicInteger.set(1);
+        if (ATOMIC_INTEGER.get() > 999) {
+            ATOMIC_INTEGER.set(1);
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS");//精确到毫秒
-        return prefix + sdf.format(new Date()) + String.format("%03d", atomicInteger.incrementAndGet());
+        return prefix + sdf.format(new Date()) + String.format("%03d", ATOMIC_INTEGER.incrementAndGet());
     }
 
     public static String buildUUID() {
@@ -644,7 +650,9 @@ public class FastStringUtils {
     public static int countChar(String source, char c) {
         int count = 0;
         for (int i = 0; i < source.length(); i++) {
-            if (source.charAt(i) == c) count++;
+            if (source.charAt(i) == c) {
+                count++;
+            }
         }
         return count;
     }
@@ -666,4 +674,13 @@ public class FastStringUtils {
         }
         return content.length();
     }
+
+
+    public static String replaceFileSeparator(String path, String replace) {
+        return path.replace("/", replace)
+                .replace("\\", replace)
+                .replace(File.separator, replace);
+    }
+
 }
+

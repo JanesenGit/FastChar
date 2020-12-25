@@ -88,7 +88,7 @@ public class FastResultSet {
                     FastRecord fastRecord = new FastRecord();
                     fastRecord.setTableName(tableName);
                     fastRecord.setIgnoreCase(this.ignoreCase);
-                    Map<String, Integer> keyCount = new HashMap<>();
+                    Map<String, Integer> keyCount = new HashMap<>(16);
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
@@ -117,7 +117,7 @@ public class FastResultSet {
     public Map<String, Object> getMap() {
         if (resultSet != null) {
             try {
-                Map<String, Object> map = new HashMap<>();
+                Map<String, Object> map = new HashMap<>(16);
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 if (resultSet.last()) {
                     int columnCount = resultSetMetaData.getColumnCount();

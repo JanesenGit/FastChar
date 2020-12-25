@@ -2,8 +2,10 @@ package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.utils.FastFileUtils;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -28,7 +30,12 @@ public class FastOutText extends FastOut<FastOutText> {
         response.setCharacterEncoding(getCharset());
 
         try (PrintWriter writer = response.getWriter()) {
-            writer.write(String.valueOf(data));
+            if (data instanceof File) {
+                File htmlFile = (File) data;
+                writer.write(FastFileUtils.readFileToString(htmlFile,FastChar.getConstant().getEncoding()));
+            }else{
+                writer.write(String.valueOf(data));
+            }
             writer.flush();
         }
 

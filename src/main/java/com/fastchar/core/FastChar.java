@@ -22,6 +22,10 @@ public final class FastChar {
     public static boolean startTest() {
         try {
             FastEngine instance = FastEngine.instance();
+            if (instance.getConstant().isWebStarted()) {
+                FastChar.getLog().info(FastChar.class, "The current web server is running! ");
+                return true;
+            }
             instance.getConstant().setSyncDatabaseXml(false);
             instance.getConstant().setTestEnvironment(true);
             instance.init(null);

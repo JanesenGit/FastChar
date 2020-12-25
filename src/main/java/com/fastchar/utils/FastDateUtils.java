@@ -1,6 +1,7 @@
 package com.fastchar.utils;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.local.FastCharLocal;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -143,23 +144,51 @@ public class FastDateUtils {
         int subDay = diffDay(dateTime, new Date());
         switch (subDay) {
             case 0:
-                return FastChar.getLocal().getInfo("Date_Error1") + sdf2.format(dateTime);
+                return FastChar.getLocal().getInfo(FastCharLocal.DATE_ERROR1) + sdf2.format(dateTime);
             case 1:
-                return FastChar.getLocal().getInfo("Date_Error2") + sdf2.format(dateTime);
+                return FastChar.getLocal().getInfo(FastCharLocal.DATE_ERROR2) + sdf2.format(dateTime);
             case 2:
-                return FastChar.getLocal().getInfo("Date_Error3") + sdf2.format(dateTime);
+                return FastChar.getLocal().getInfo(FastCharLocal.DATE_ERROR3) + sdf2.format(dateTime);
         }
         return format(dateTime, "yyyy-MM-dd ") + sdf2.format(dateTime);
     }
 
     public static int diffDay(Date first, Date two) {
         try {
-            return Math.abs((int) (first.getTime() - two.getTime()) / (60 * 60 * 1000 * 24));
+            return (int) Math.abs( (first.getTime() - two.getTime()) / (60 * 60 * 1000 * 24));
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
+
+    public static int diffHour(Date first, Date two) {
+        try {
+            return (int) Math.abs((first.getTime() - two.getTime()) / (60 * 60 * 1000));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static int diffMinute(Date first, Date two) {
+        try {
+            return (int) Math.abs((first.getTime() - two.getTime()) / (60 * 1000));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static int diffSecond(Date first, Date two) {
+        try {
+            return (int) Math.abs((first.getTime() - two.getTime()) / (1000));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
 
     public static int diffYear(Date first, Date two) {
         try {

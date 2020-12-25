@@ -19,50 +19,65 @@ public class FastEnhancer<T> {
     public static <T> FastEnhancer<T> get(Class<T> targetClass) {
         FastEnhancer<T> tFastEnhancer = new FastEnhancer<>();
         tFastEnhancer.targetClass = targetClass;
+        tFastEnhancer.safe = false;
         return tFastEnhancer;
     }
+
+    public static <T> FastEnhancer<T> getBySafe(Class<T> targetClass) {
+        FastEnhancer<T> tFastEnhancer = new FastEnhancer<>();
+        tFastEnhancer.targetClass = targetClass;
+        tFastEnhancer.safe = true;
+        return tFastEnhancer;
+    }
+
 
     private FastEnhancer() {
     }
 
-    private Class targetClass;
-    private List<IFastMethodInterceptor> beforeInterceptors = new ArrayList<>();
-    private List<IFastMethodInterceptor> afterInterceptors = new ArrayList<>();
-    private MethodInterceptor interceptor=new MethodInterceptor() {
+    private Class<T> targetClass;
+    private boolean safe;
+    private final List<IFastMethodInterceptor> beforeInterceptors = new ArrayList<>();
+    private final List<IFastMethodInterceptor> afterInterceptors = new ArrayList<>();
+    private final MethodInterceptor interceptor = new MethodInterceptor() {
         @Override
         public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
 
             for (IFastMethodInterceptor beforeInterceptor : beforeInterceptors) {
-                if (!beforeInterceptor.intercept(o, method, objects)) {
+                if (beforeInterceptor.intercept(o, method, objects)) {
                     return null;
                 }
             }
             Object methodReturn = methodProxy.invokeSuper(o, objects);
-
             for (IFastMethodInterceptor beforeInterceptor : afterInterceptors) {
-                if (!beforeInterceptor.intercept(o, method, objects)) {
+                if (beforeInterceptor.intercept(o, method, objects)) {
                     return null;
                 }
             }
             return methodReturn;
         }
-
     };
-
-    public void check() {
-    }
 
 
     public T create() {
-        check();
+        if (safe) {
+            Class<?> aClass = FastClassUtils.getClass("net.sf.cglib.proxy.Enhancer", false);
+            if (aClass == null) {
+                return FastClassUtils.newInstance(targetClass);
+            }
+        }
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(targetClass);
         enhancer.setCallback(interceptor);
         return (T) enhancer.create();
     }
 
-    public T create(Class[] argumentTypes, Object[] arguments) {
-        check();
+    public T create(Class<T>[] argumentTypes, Object[] arguments) {
+        if (safe) {
+            Class<?> aClass = FastClassUtils.getClass("net.sf.cglib.proxy.Enhancer", false);
+            if (aClass == null) {
+                return FastClassUtils.newInstance(targetClass, arguments);
+            }
+        }
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(targetClass);
         enhancer.setCallback(interceptor);
@@ -70,7 +85,12 @@ public class FastEnhancer<T> {
     }
 
     public Class<T> createClass() {
-        check();
+        if (safe) {
+            Class<?> aClass = FastClassUtils.getClass("net.sf.cglib.proxy.Enhancer", false);
+            if (aClass == null) {
+                return targetClass;
+            }
+        }
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(targetClass);
         enhancer.setCallback(interceptor);

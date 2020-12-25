@@ -15,11 +15,12 @@ import java.util.Random;
 
 /**
  * 响应验证码图片
+ * @author Janesen
  */
 public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
 
-    private static final String CaptchaStr = "3456789ABCDEFGHJKMNPQRSTUVWXY";
-    private static final String[] FontNames = new String[]{"Verdana"};
+    private static final String CAPTCHA_STR = "3456789ABCDEFGHJKMNPQRSTUVWXY";
+    private static final String[] FONT_NAMES = new String[]{"Verdana"};
     private static final int[][] COLOR = {{0, 135, 255}, {51, 153, 51}, {255, 102, 102}, {255, 153, 0}, {153, 102, 0}, {153, 102, 153}, {51, 153, 153}, {102, 102, 255}, {0, 102, 204}, {204, 51, 51}, {0, 153, 204}, {0, 51, 102}};
     private int width = 120;
     private int height = 40;
@@ -56,10 +57,10 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
 
     private char[] randomChar() {
         Random random = new Random();
-        return new char[]{CaptchaStr.charAt(random.nextInt(CaptchaStr.length())),
-                CaptchaStr.charAt(random.nextInt(CaptchaStr.length())),
-                CaptchaStr.charAt(random.nextInt(CaptchaStr.length())),
-                CaptchaStr.charAt(random.nextInt(CaptchaStr.length()))};
+        return new char[]{CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length())),
+                CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length())),
+                CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length())),
+                CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length()))};
     }
 
 
@@ -96,7 +97,7 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
         Font[] fontArray = new Font[codes.length];
 
         for (int i = 0; i < codes.length; i++) {
-            Font font = new Font(FontNames[random.nextInt(FontNames.length)], Font.ITALIC | Font.BOLD, 28);
+            Font font = new Font(FONT_NAMES[random.nextInt(FONT_NAMES.length)], Font.ITALIC | Font.BOLD, 28);
             fontArray[i] = font;
             FontMetrics fm = FontDesignMetrics.getMetrics(font);
             int charWidth = fm.charWidth(codes[i]);

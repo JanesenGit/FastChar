@@ -6,7 +6,9 @@ import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.enums.FastObservableEvent;
 import com.fastchar.exception.FastDatabaseException;
 import com.fastchar.exception.FastDatabaseInfoException;
+import com.fastchar.interfaces.IFastDatabaseListener;
 import com.fastchar.interfaces.IFastDatabaseOperate;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -18,6 +20,7 @@ import java.util.regex.Pattern;
 
 /**
  * 数据库操作
+ *
  * @author 沈建（Janesen）
  */
 public final class FastDatabases {
@@ -54,7 +57,7 @@ public final class FastDatabases {
     public synchronized FastDatabases add(FastDatabaseInfo databaseInfo) throws Exception {
         for (FastDatabaseInfo info : databaseInfos) {
             if (info.getName().equals(databaseInfo.getName())) {
-                throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Error1", databaseInfo.getName()));
+                throw new FastDatabaseException(FastChar.getLocal().getInfo(FastCharLocal.DB_ERROR1, databaseInfo.getName()));
             }
         }
         databaseInfo.fromProperty();
@@ -85,7 +88,7 @@ public final class FastDatabases {
             databaseName = lockDatabaseName;
         }
         if (databaseInfos.size() == 0) {
-            throw new FastDatabaseInfoException(FastChar.getLocal().getInfo("Db_Error3"));
+            throw new FastDatabaseInfoException(FastChar.getLocal().getInfo(FastCharLocal.DB_ERROR3));
         }
         if (FastStringUtils.isEmpty(databaseName)) {
             return databaseInfos.get(0);
@@ -96,7 +99,7 @@ public final class FastDatabases {
                 return databaseInfo;
             }
         }
-        throw new FastDatabaseInfoException(FastChar.getLocal().getInfo("Db_Error2", databaseName));
+        throw new FastDatabaseInfoException(FastChar.getLocal().getInfo(FastCharLocal.DB_ERROR2, databaseName));
     }
 
 
@@ -182,43 +185,50 @@ public final class FastDatabases {
     }
 
 
-
-
     /**
      * 刷新并同步数据库
+     *
      * @throws Exception 异常信息
      */
     public synchronized void flushDatabase() throws Exception {
         restoreTicket();
+
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
             databaseInfo.validate();
 
             IFastDatabaseOperate databaseOperate = databaseInfo.getOperate();
             if (databaseOperate == null) {
-                FastChar.getLog().error(FastDatabases.class, FastChar.getLocal().getInfo("DataSource_Info3", databaseInfo.getName()));
+                FastChar.getLog().error(FastDatabases.class, FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO3, databaseInfo.getName()));
                 continue;
             }
 
-
             if (FastChar.getConstant().isSyncDatabaseXml()) {
                 if (databaseInfo.getBoolean("enable", true) && databaseInfo.isFromXml()) {
-                    databaseOperate.createDatabase(databaseInfo);
+                    if (notifyListener(0, databaseInfo, null, null)) {
+                        databaseOperate.createDatabase(databaseInfo);
+                    }
 
                     for (FastTableInfo<?> table : databaseInfo.getTables()) {
                         if (table.getBoolean("enable", true) && table.isFromXml()) {
                             if (!databaseOperate.checkTableExists(databaseInfo, table)) {
-                                databaseOperate.createTable(databaseInfo, table);
+                                if (notifyListener(1, databaseInfo, table, null)) {
+                                    databaseOperate.createTable(databaseInfo, table);
+                                }
                                 removeTicket(databaseInfo.getName(), table.getName());
                             }
                             for (FastColumnInfo<?> column : table.getColumns()) {
                                 if (column.getBoolean("enable", true) && table.isFromXml()) {
                                     if (databaseOperate.checkColumnExists(databaseInfo, table, column)) {
                                         if (checkIsModified(databaseInfo.getName(), table.getName(), column)) {
-                                            databaseOperate.alterColumn(databaseInfo, table, column);
+                                            if (notifyListener(3, databaseInfo, table, column)) {
+                                                databaseOperate.alterColumn(databaseInfo, table, column);
+                                            }
                                         }
                                         continue;
                                     }
-                                    databaseOperate.addColumn(databaseInfo, table, column);
+                                    if (notifyListener(2, databaseInfo, table, column)) {
+                                        databaseOperate.addColumn(databaseInfo, table, column);
+                                    }
                                     checkIsModified(databaseInfo.getName(), table.getName(), column);
                                 }
                             }
@@ -235,6 +245,38 @@ public final class FastDatabases {
         if (FastChar.getDatabases().getAll().size() > 0) {
             FastChar.getObservable().notifyObservers(FastObservableEvent.onDatabaseFinish.name());
         }
+    }
+
+
+    private boolean notifyListener(int type, FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo) {
+        try {
+            List<IFastDatabaseListener> iFastDatabaseListeners = FastChar.getOverrides().singleInstances(false, IFastDatabaseListener.class);
+            for (IFastDatabaseListener iFastDatabaseListener : iFastDatabaseListeners) {
+                if (iFastDatabaseListener == null) {
+                    continue;
+                }
+                if (type == 0) {//创建数据库
+                    if (!iFastDatabaseListener.onCreateDatabase(databaseInfo)) {
+                        return false;
+                    }
+                } else if (type == 1) {//创建表格
+                    if (!iFastDatabaseListener.onCreateTable(databaseInfo, tableInfo)) {
+                        return false;
+                    }
+                } else if (type == 2) {//添加表格列
+                    if (!iFastDatabaseListener.onAddTableColumn(databaseInfo, tableInfo, columnInfo)) {
+                        return false;
+                    }
+                } else if (type == 3) {//修改表格列
+                    if (!iFastDatabaseListener.onAlterTableColumn(databaseInfo, tableInfo, columnInfo)) {
+                        return false;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
     }
 
 
@@ -283,7 +325,7 @@ public final class FastDatabases {
                 firstTicket = true;
                 if (!file.createNewFile()) {
                     if (FastChar.getConstant().isDebug()) {
-                        FastChar.getLog().error(FastChar.getLocal().getInfo("File_Error9", file.getAbsolutePath()));
+                        FastChar.getLog().error(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR9, file.getAbsolutePath()));
                     }
                 }
             } else {
@@ -301,7 +343,7 @@ public final class FastDatabases {
         try {
             if (modifyTicket != null) {
                 if (firstTicket) {
-                    modifyTicket.add(0, FastChar.getLocal().getInfo("Ticket_Error1"));
+                    modifyTicket.add(0, FastChar.getLocal().getInfo(FastCharLocal.TICKET_ERROR1));
                 }
                 File file = new File(FastChar.getPath().getWebInfoPath(), ".fast_database");
                 FastFileUtils.writeLines(file, modifyTicket);
@@ -324,7 +366,6 @@ public final class FastDatabases {
         }
         modifyTicket.removeAll(waitRemove);
     }
-
 
 
 }

@@ -6,7 +6,7 @@
 
     <groupId>com.fastchar</groupId>
     <artifactId>fastchar</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.4</version>
     <build>
         <plugins>
             <plugin>

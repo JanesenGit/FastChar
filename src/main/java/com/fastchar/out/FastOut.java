@@ -33,9 +33,6 @@ public abstract class FastOut<T> {
     public FastOut<?> setFieldValue(String fieldName, Object fieldValue) {
         try {
             Field declaredField = this.getClass().getDeclaredField(fieldName);
-            if (declaredField == null) {
-                return this;
-            }
             declaredField.setAccessible(true);
             declaredField.set(this, fieldValue);
         } catch (Exception ignored) {

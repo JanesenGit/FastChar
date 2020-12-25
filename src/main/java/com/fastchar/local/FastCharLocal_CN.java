@@ -1,8 +1,19 @@
 package com.fastchar.local;
 
+import com.fastchar.utils.FastClassUtils;
+import com.fastchar.utils.FastFileUtils;
+import com.fastchar.utils.FastStringUtils;
+
+import java.io.File;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+
 public class FastCharLocal_CN extends FastCharBaseLocal {
 
     private final String FastChar_Error1 = "{0}启动成功！耗时：{1}秒！";
+    private final String FastChar_Error2 = "{0}正在初始化，请稍后……";
+    private final String FastChar_Error3 = "{0}已停止运行！";
 
     private final String Date_Error1 = "今天";
     private final String Date_Error2 = "昨天";
@@ -137,4 +148,30 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     //IFastWeb
     private final String Web_Error1 = "移除被释放的IFastWeb类 {0} ";
 
+
+    //Jar包相关错误
+    private final String Jar_Error1 = "发现不同版本的JAR包 {0} ";
+
+
+//    public static void main(String[] args) throws Exception {
+//        Field[] declaredFields = FastCharLocal_CN.class.getDeclaredFields();
+//        for (Field declaredField : declaredFields) {
+//            String comment = "" +
+//                    "/**" +
+//                    "\n" +
+//                    " * 描述模板：" +
+//                    "\n" +
+//                    " * " + declaredField.get(new FastCharLocal_CN()) +
+//                    "\n" +
+//                    " */";
+//            String toUpperCase = declaredField.getName().toUpperCase();
+//            toUpperCase = toUpperCase.replaceAll("FASTCHAR", "FAST_CHAR");
+//
+//            String declare = "public static final String " + toUpperCase + " = \"" + declaredField.getName() + "\";";
+//
+//            System.out.println(comment);
+//            System.out.println(declare);
+//            System.out.println("\n");
+//        }
+//    }
 }

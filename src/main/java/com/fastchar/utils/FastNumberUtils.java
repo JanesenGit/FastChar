@@ -146,8 +146,9 @@ public class FastNumberUtils {
     public static String getAllNumbers(String content) {
         List<String> numbers = new ArrayList<String>();
         for (String n : content.replaceAll("[^0-9]", ",").split(",")) {
-            if (n.length() > 0)
+            if (n.length() > 0) {
                 numbers.add(n);
+            }
         }
         return FastStringUtils.join(numbers, "");
     }
@@ -223,7 +224,11 @@ public class FastNumberUtils {
      * 计算百分比后的数字
      */
     public static float formatToPercentage(Object value) {
-        return formatToFloat(value) / 100;
+        float formatToFloat = formatToFloat(value);
+        if (formatToFloat == 0) {
+            return 0;
+        }
+        return formatToFloat / 100;
     }
 
 

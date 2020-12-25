@@ -4,6 +4,7 @@ import com.fastchar.core.FastBaseInfo;
 import com.fastchar.core.FastChar;
 import com.fastchar.exception.FastDatabaseException;
 
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastClassUtils;
@@ -21,6 +22,7 @@ public class FastColumnInfo<T> extends FastBaseInfo {
 
     private String databaseName;
     private String tableName;
+    private String modifyTick;
 
     private String primary;
     private String name;
@@ -48,12 +50,12 @@ public class FastColumnInfo<T> extends FastBaseInfo {
     }
 
     public boolean isNotNull() {
-        return FastStringUtils.defaultValue(nullable, "null").replace(" ", "").equalsIgnoreCase("notnull");
+        return "notnull".equalsIgnoreCase(FastStringUtils.defaultValue(nullable, "null").replace(" ", ""));
     }
 
     public boolean isEncrypt() {
         if (FastStringUtils.isNotEmpty(encrypt)) {
-            if (encrypt.equalsIgnoreCase("md5")) {
+            if ("md5".equalsIgnoreCase(encrypt)) {
                 return true;
             }
         }
@@ -190,16 +192,16 @@ public class FastColumnInfo<T> extends FastBaseInfo {
     }
 
     public boolean isIntType() {
-        return type.equalsIgnoreCase("int");
+        return "int".equalsIgnoreCase(type);
     }
 
     public boolean isFloatType() {
-        return type.equalsIgnoreCase("float")
-                || type.equalsIgnoreCase("decimal")
-                || type.equalsIgnoreCase("money")
-                || type.equalsIgnoreCase("numeric")
-                || type.equalsIgnoreCase("real")
-                || type.equalsIgnoreCase("smallmoney");
+        return "float".equalsIgnoreCase(type)
+                || "decimal".equalsIgnoreCase(type)
+                || "money".equalsIgnoreCase(type)
+                || "numeric".equalsIgnoreCase(type)
+                || "real".equalsIgnoreCase(type)
+                || "smallmoney".equalsIgnoreCase(type);
     }
 
 
@@ -208,30 +210,33 @@ public class FastColumnInfo<T> extends FastBaseInfo {
      */
     public void validate() throws FastDatabaseException {
         if (FastStringUtils.isEmpty(name)) {
-            throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error1")
+            throw new FastDatabaseException(FastChar.getLocal().getInfo(FastCharLocal.DB_COLUMN_ERROR1)
                     + "\n\tat " + getStackTrace("name"));
         }
         if (FastStringUtils.isEmpty(type)) {
-            throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error2", "'" + name + "'")
+            throw new FastDatabaseException(FastChar.getLocal().getInfo(FastCharLocal.DB_COLUMN_ERROR2, "'" + name + "'")
 
                     + "\n\tat " + getStackTrace("type"));
         }
-
     }
 
 
+
     public String getModifyTick() {
-        String tick = this.name
-                + this.type
-                + this.length
-                + this.nullable
-                + this.autoincrement
-                + this.index
-                + this.charset
-                + this.primary
-                + this.value
-                + this.comment;
-        return FastChar.getSecurity().MD5_Encrypt(tick);
+        if (FastStringUtils.isEmpty(modifyTick)) {
+            String tick = this.name
+                    + this.type
+                    + this.length
+                    + this.nullable
+                    + this.autoincrement
+                    + this.index
+                    + this.charset
+                    + this.primary
+                    + this.value
+                    + this.comment;
+            modifyTick = FastChar.getSecurity().MD5_Encrypt(tick);
+        }
+        return modifyTick;
     }
 
 
@@ -265,5 +270,6 @@ public class FastColumnInfo<T> extends FastBaseInfo {
         fastColumnInfo.fromProperty();
         return fastColumnInfo;
     }
+
 
 }

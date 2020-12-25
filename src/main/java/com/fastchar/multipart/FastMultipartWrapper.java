@@ -4,6 +4,7 @@ package com.fastchar.multipart;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastFile;
 import com.fastchar.exception.FastFileException;
+import com.fastchar.local.FastCharLocal;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
@@ -45,25 +46,29 @@ public class FastMultipartWrapper extends HttpServletRequestWrapper {
         File file = new File(dir);
         if (!file.exists()) {
             if (!file.mkdirs()) {
-                throw new FastFileException(FastChar.getLocal().getInfo("File_Error1", "'" + dir + "'"));
+                throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR1, "'" + dir + "'"));
             }
         }
     }
 
+    @Override
     public Enumeration getParameterNames() {
         return this.multipartRequest.getParameterNames();
     }
 
+    @Override
     public String getParameter(String name) {
         return this.multipartRequest.getParameter(name);
     }
 
+    @Override
     public String[] getParameterValues(String name) {
         return this.multipartRequest.getParameterValues(name);
     }
 
+    @Override
     public Map getParameterMap() {
-        Map map = new HashMap();
+        Map map = new HashMap(16);
         Enumeration enumm = this.getParameterNames();
 
         while (enumm.hasMoreElements()) {
@@ -90,15 +95,15 @@ public class FastMultipartWrapper extends HttpServletRequestWrapper {
         return this.multipartRequest.getContentType(name);
     }
 
-    public FastFile getFile(String name) {
+    public FastFile<?> getFile(String name) {
         return this.multipartRequest.getFile(name);
     }
 
-    public FastFile[] getFiles(String name) {
+    public FastFile<?>[] getFiles(String name) {
         return this.multipartRequest.getFiles(name);
     }
 
-    public void putFile(String name, FastFile fastFile) {
+    public void putFile(String name, FastFile<?> fastFile) {
         this.multipartRequest.putFile(name, fastFile);
     }
 
@@ -107,13 +112,14 @@ public class FastMultipartWrapper extends HttpServletRequestWrapper {
     }
 
 
-    class DefaultFileRenamePolicy implements FileRenamePolicy {
-        private boolean md5Name;
+    static class DefaultFileRenamePolicy implements FileRenamePolicy {
+        private final boolean md5Name;
 
         public DefaultFileRenamePolicy(boolean md5Name) {
             this.md5Name = md5Name;
         }
 
+        @Override
         public File rename(File f) {
             if (!FastChar.getConstant().isAttachNameSuffix()) {
                 f = new File(f.getParent(), FastChar.getSecurity().MD5_Encrypt(f.getName()));

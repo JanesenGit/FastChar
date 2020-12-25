@@ -1,16 +1,11 @@
 package com.fastchar.asm;
 
+import com.sun.xml.internal.ws.org.objectweb.asm.*;
 
-import jdk.internal.org.objectweb.asm.*;
-public class FastClassAdapter extends ClassVisitor {
+public class FastClassAdapter7 implements ClassVisitor {
     protected ClassVisitor cv;
 
-    public FastClassAdapter(int i) {
-        super(i);
-    }
-
-    public FastClassAdapter(ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+    public FastClassAdapter7(ClassVisitor cv) {
         this.cv = cv;
     }
 

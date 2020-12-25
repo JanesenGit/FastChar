@@ -3,6 +3,7 @@ package com.fastchar.core;
 import com.fastchar.asm.FastParameter;
 import com.fastchar.exception.FastFileException;
 import com.fastchar.exception.FastReturnException;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.multipart.FastMultipartWrapper;
 import com.fastchar.out.*;
 import com.fastchar.utils.*;
@@ -33,8 +34,6 @@ import java.util.regex.Pattern;
  */
 @SuppressWarnings("all")
 public abstract class FastAction {
-    private static ConcurrentHashMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<String, ReentrantLock>();
-
     HttpServletRequest request;
     HttpServletResponse response;
     ServletContext servletContext;
@@ -62,13 +61,7 @@ public abstract class FastAction {
      * @return ReentrantLock
      */
     protected ReentrantLock getLock(String key) {
-        ReentrantLock lock = lockMap.get(key);
-        if (lock != null)
-            return lock;
-
-        lock = new ReentrantLock();
-        ReentrantLock previousLock = lockMap.putIfAbsent(key, lock);
-        return previousLock == null ? lock : previousLock;
+        return FastLockUtils.getLock(key);
     }
 
     /**
@@ -76,7 +69,7 @@ public abstract class FastAction {
      * @param key 唯一key
      */
     protected void removeLock(String key) {
-        lockMap.remove(key);
+        FastLockUtils.removeLock(key);
     }
 
     /**
@@ -283,7 +276,7 @@ public abstract class FastAction {
      */
     public String getParam(String paramName, boolean notNull) {
         if (notNull) {
-            check(0, "@null:" + FastChar.getLocal().getInfo("Param_Error1"));
+            check(0, "@null:" + FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1));
         }
         for (FastRequestParam param : params) {
             if (param.getName().equals(paramName)) {
@@ -326,9 +319,8 @@ public abstract class FastAction {
                 arrays.add(param.getValue());
             }
         }
-
-        if (notNull) {
-            check(0, "@null:" + FastChar.getLocal().getInfo("Param_Error1"));
+        if (arrays.size() == 0 && notNull) {
+            responseParamError(paramName, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, paramName));
         }
         String[] strings = arrays.toArray(new String[]{});
         if (validParam(paramName, strings)) {
@@ -578,7 +570,9 @@ public abstract class FastAction {
         for (String paramName : paramNames) {
             if (paramName.startsWith(prefix)) {
                 String[] parameterValues = getParamToArray(paramName);
-                if (parameterValues.length == 0) continue;
+                if (parameterValues.length == 0) {
+                    continue;
+                }
                 if (parameterValues.length > 1) {
                     list.addAll(Arrays.asList(parameterValues));
                 } else {
@@ -588,7 +582,7 @@ public abstract class FastAction {
         }
         fastCheck.rollback();
         if (list.size() == 0 && notNull) {
-            responseParamError(prefix, FastChar.getLocal().getInfo("Param_Error1", prefix));
+            responseParamError(prefix, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, prefix));
         }
         return list;
     }
@@ -1087,7 +1081,9 @@ public abstract class FastAction {
         Set<String> paramNames = getParamNames();
         for (String paramName : paramNames) {
             String[] parameterValues = getParamToArray(paramName);
-            if (parameterValues.length == 0) continue;
+            if (parameterValues.length == 0) {
+                continue;
+            }
             if (parameterValues.length > 1) {
                 mapParam.put(paramName, parameterValues);
             } else {
@@ -1126,7 +1122,9 @@ public abstract class FastAction {
             if (paramName.startsWith(prefix)) {
                 String attr = getParamNameAttr(paramName);
                 String[] parameterValues = getParamToArray(paramName);
-                if (parameterValues.length == 0) continue;
+                if (parameterValues.length == 0) {
+                    continue;
+                }
                 if (parameterValues.length > 1) {
                     mapParam.put(attr, parameterValues);
                 } else {
@@ -1136,7 +1134,7 @@ public abstract class FastAction {
         }
         fastCheck.rollback();
         if (notNull && mapParam.size() == 0) {
-            responseParamError(prefix, FastChar.getLocal().getInfo("Param_Error1", prefix));
+            responseParamError(prefix, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, prefix));
         }
         return mapParam;
     }
@@ -1170,11 +1168,13 @@ public abstract class FastAction {
         }
         for (String mapName : mapNames) {
             Map<String, Object> paramToMap = getParamToMap(mapName);
-            if (paramToMap.size() == 0) continue;
+            if (paramToMap.size() == 0) {
+                continue;
+            }
             mapList.add(paramToMap);
         }
         if (notNull && mapList.size() == 0) {
-            responseParamError(prefix, FastChar.getLocal().getInfo("Param_Error1", prefix));
+            responseParamError(prefix, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, prefix));
         }
         fastCheck.rollback();
         return mapList;
@@ -1240,7 +1240,9 @@ public abstract class FastAction {
         List<T> list = new ArrayList<>();
         List<Map<String, Object>> paramToMapList = getParamToMapList(prefix, notNull);
         for (Map<String, Object> paramToMap : paramToMapList) {
-            if (paramToMap.size() == 0) continue;
+            if (paramToMap.size() == 0) {
+                continue;
+            }
             FastEntity fastEntity = FastChar.getOverrides().newInstance(targetClass);
             if (fastEntity == null) {
                 return null;
@@ -1248,7 +1250,9 @@ public abstract class FastAction {
             for (String key : paramToMap.keySet()) {
                 fastEntity.set(key, paramToMap.get(key));
             }
-            if (fastEntity.size() == 0) continue;
+            if (fastEntity.size() == 0) {
+                continue;
+            }
             list.add((T) fastEntity);
         }
         return list;
@@ -1365,6 +1369,15 @@ public abstract class FastAction {
     /**
      * 获得上传的附件数组
      * @param paramName 参数名
+     * @return List&lt;FastFile&lt;?&gt;&gt;
+     */
+    public <T extends FastFile<?>> List<T> getParamFileList(String paramName) {
+        return (List<T>) Arrays.asList(getParamFiles(paramName));
+    }
+
+    /**
+     * 获得上传的附件数组
+     * @param paramName 参数名
      * @return FastFile[]
      */
     public <T extends FastFile<?>> T[] getParamFiles(String paramName) {
@@ -1392,6 +1405,15 @@ public abstract class FastAction {
     }
 
     /**
+     * 获得上传的附件数组
+     * @param paramName 参数名
+     * @return List&lt;FastFile&lt;?&gt;&gt;
+     */
+    public <T extends FastFile<?>> List<T> getParamFileList(String paramName, String moveToDirectory) throws FastFileException, IOException{
+        return (List<T>) Arrays.asList(getParamFiles(paramName, moveToDirectory));
+    }
+
+    /**
      * 获得上传的附件
      * @param paramName 参数名
      * @param moveToDirectory 保存到指定的目录下
@@ -1405,6 +1427,7 @@ public abstract class FastAction {
         }
         return (T[]) paramToFiles;
     }
+
 
 
     /**
@@ -1614,6 +1637,14 @@ public abstract class FastAction {
     }
 
     /**
+     * 响应xml
+     * @param xmlFile xml文件
+     */
+    public void responseXml(File xmlFile) {
+        response(FastChar.getOverrides().newInstance(FastOutXml.class).setData(xmlFile).setStatus(this.status));
+    }
+
+    /**
      * 响应参数错误
      * @param paramName 参数名
      */
@@ -1636,9 +1667,11 @@ public abstract class FastAction {
      * 响应网页
      * @param html 网页内容
      */
-    public void responseHtml(String html) {
+    public void responseHtml(Object html) {
         response(FastChar.getOverrides().newInstance(FastOutHtml.class).setData(html).setStatus(this.status));
     }
+
+
 
     /**
      * 响应文件
@@ -2183,10 +2216,13 @@ public abstract class FastAction {
      */
     public Cookie getCookieObject(String name) {
         Cookie[] cookies = request.getCookies();
-        if (cookies != null)
-            for (Cookie cookie : cookies)
-                if (cookie.getName().equals(name))
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(name)) {
                     return cookie;
+                }
+            }
+        }
         return null;
     }
 
@@ -2194,8 +2230,6 @@ public abstract class FastAction {
      * 删除cookie
      *
      * @param name 名称
-     * @param path 相对路径
-     * @param domain domain
      * @return 当前对象
      */
     public FastAction removeCookie(String name) {
@@ -2207,7 +2241,6 @@ public abstract class FastAction {
      *
      * @param name 名称
      * @param path 相对路径
-     * @param domain domain
      * @return 当前对象
      */
     public FastAction removeCookie(String name, String path) {
@@ -2382,7 +2415,7 @@ public abstract class FastAction {
                 ip = ip.substring(0, ip.indexOf(","));
             }
         }
-        if (ip.equalsIgnoreCase("0:0:0:0:0:0:0:1")) {
+        if ("0:0:0:0:0:0:0:1".equalsIgnoreCase(ip)) {
             return "localhost";
         }
         return ip;

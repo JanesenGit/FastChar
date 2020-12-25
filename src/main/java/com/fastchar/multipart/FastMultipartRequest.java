@@ -3,21 +3,22 @@ package com.fastchar.multipart;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastFile;
 import com.fastchar.exception.FastFileException;
+import com.fastchar.local.FastCharLocal;
+import com.fastchar.utils.FastHttpUtils;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
 public class FastMultipartRequest {
-    private static final int DEFAULT_MAX_POST_SIZE = 1048576;
+    private static final int DEFAULT_MAX_POST_SIZE = 30 * 1024 * 1024;
     private Hashtable parameters;
     protected Hashtable files;
 
     public FastMultipartRequest(HttpServletRequest request, String saveDirectory) throws FastFileException, IOException {
-        this(request, saveDirectory, 1048576);
+        this(request, saveDirectory, DEFAULT_MAX_POST_SIZE);
     }
 
     public FastMultipartRequest(HttpServletRequest request, String saveDirectory, int maxPostSize) throws FastFileException, IOException {
@@ -25,7 +26,7 @@ public class FastMultipartRequest {
     }
 
     public FastMultipartRequest(HttpServletRequest request, String saveDirectory, String encoding) throws FastFileException, IOException {
-        this(request, saveDirectory, 1048576, encoding, (FileRenamePolicy) null);
+        this(request, saveDirectory, DEFAULT_MAX_POST_SIZE, encoding, (FileRenamePolicy) null);
     }
 
     public FastMultipartRequest(HttpServletRequest request, String saveDirectory, int maxPostSize, FileRenamePolicy policy) throws FastFileException, IOException {
@@ -40,22 +41,22 @@ public class FastMultipartRequest {
         this.parameters = new Hashtable();
         this.files = new Hashtable();
         if (request == null) {
-            throw new FastFileException(FastChar.getLocal().getInfo("File_Error2"));
+            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR2));
         } else if (saveDirectory == null) {
-            throw new FastFileException(FastChar.getLocal().getInfo("File_Error3"));
+            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR3));
         } else if (maxPostSize <= 0) {
-            throw new FastFileException(FastChar.getLocal().getInfo("File_Error4"));
+            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR4));
         } else {
             File dir = new File(saveDirectory);
             if (!dir.isDirectory()) {
-                throw new FastFileException(FastChar.getLocal().getInfo("File_Error5"));
+                throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR5));
             } else if (!dir.canWrite()) {
-                throw new FastFileException(FastChar.getLocal().getInfo("File_Error6"));
+                throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR6));
             } else {
                 MultipartParser parser = new MultipartParser(request, maxPostSize, true, true, encoding);
                 Vector existingValues;
                 if (request.getQueryString() != null) {
-                    Hashtable queryParameters = HttpUtils.parseQueryString(request.getQueryString());
+                    Hashtable queryParameters = FastHttpUtils.parseQueryString(request.getQueryString());
                     Enumeration queryParameterNames = queryParameters.keys();
 
                     while (queryParameterNames.hasMoreElements()) {
@@ -99,13 +100,10 @@ public class FastMultipartRequest {
                             this.files.put(name, existingValues);
                         }
 
-                        if (fileName != null) {
-                            filePart.setRenamePolicy(policy);
-                            filePart.writeTo(dir);
-                            FastFile fastFile = FastFile.newInstance(name, dir.toString(), filePart.getFileName(), fileName, filePart.getContentType());
-                            existingValues.addElement(fastFile);
-                        } else {
-                            FastFile fastFile = FastFile.newInstance(name, null, null, null, null);
+                        filePart.setRenamePolicy(policy);
+                        filePart.writeTo(dir);
+                        FastFile<?> fastFile = FastFile.newInstance(name, dir.toString(), filePart.getFileName(), fileName, filePart.getContentType());
+                        if (fastFile.getFile() != null && fastFile.getFile().exists()) {
                             existingValues.addElement(fastFile);
                         }
                     }
@@ -196,7 +194,7 @@ public class FastMultipartRequest {
         return null;
     }
 
-    public FastFile getFile(String name) {
+    public FastFile<?> getFile(String name) {
         try {
             Vector values = (Vector) this.files.get(name);
             if (values != null && values.size() != 0) {

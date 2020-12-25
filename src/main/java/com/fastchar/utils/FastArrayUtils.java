@@ -2023,6 +2023,7 @@ public class FastArrayUtils {
             return value;
         }
 
+        @Override
         public int compareTo(final MutableInt other) {
             return Integer.compare(this.value, other.value);
         }

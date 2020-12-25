@@ -591,7 +591,9 @@ public class FastDb {
             preparedStatement = connection.prepareStatement(sqlStr);
             if (params != null) {
                 for (Object[] param : params) {
-                    if (param == null) continue;
+                    if (param == null) {
+                        continue;
+                    }
                     for (int i = 0; i < param.length; i++) {
                         Object value = param[i];
                         if (value != null) {

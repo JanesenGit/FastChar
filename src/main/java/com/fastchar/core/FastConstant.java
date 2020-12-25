@@ -1,17 +1,30 @@
 package com.fastchar.core;
 
 
+import com.fastchar.interfaces.IFastMethodInterceptor;
+
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
  * 系统全局配置
  * @author 沈建（Janesen）
  */
-public final class FastConstant {
+public class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FastCharVersion = "1.5.0";
+    public static final String FAST_CHAR_VERSION = "1.5.4";
+
+    /**
+     * 数据库xml配置文件的前缀
+     */
+    public static String FAST_DATA_BASE_FILE_PREFIX = "fast-database";
+
+    /**
+     * 默认数据xml配置文件的前缀
+     */
+    public static String FAST_DATA_FILE_PREFIX = "fast-data";
 
     /**
      * mysql数据库类型
@@ -41,7 +54,7 @@ public final class FastConstant {
     private final Set<String> crossAllowDomains = new HashSet<>();//允许跨域的域名配置
 
     private boolean debug = true;//调试模式
-    private boolean ansi = false;
+    private boolean ansi = false;//是否支持控制ansi字体颜色设置
     private int maxResponseTime = 30;//最大响应时间 单位秒 如果超时这控制打印时会标红提醒
     private String dateFormat = "yyyy-MM-dd HH:mm:ss";//日期格式化统一，默认为 yyyy-MM-dd HH:mm:ss
     private boolean logRoute = false;//打印路由地址
@@ -52,6 +65,7 @@ public final class FastConstant {
     private boolean logFilterResponseTime =false;//是否只打印 超时的路由日志
     private boolean logSql = true;//是否打印sql语句日志
     private boolean logExtract = false;//是否打印解压jar包的文件日志
+    private boolean logSameJar = false;//是否打印不同版本的jar包
 
     private boolean systemOutPrint = true;//是否允许system.out输出
 
@@ -62,13 +76,15 @@ public final class FastConstant {
     private boolean attachNameMD5;//自动保存的附件是否自动进行MD5加密处理名称
     private boolean attachNameSuffix = true;//保留文件的后缀名
     private String attachDirectory;//附件保存的路径  默认WebRoot/attachments
-    private int attachMaxPostSize;//附件最大上传大小，单位 字节(b) 默认(30M) 30*1024*1024
+    private int attachMaxPostSize;//附件最大上传大小，单位 字节(b) 默认(500M) 500*1024*1024
 
-    private String propertiesName = "config.properties";
+    private String propertiesName = "config.properties";//默认配置的properties文件
 
-    private boolean webStopped;//web服务器是已停止
+    private boolean webStarted;//web服务器是否已启动
+    private boolean webStopped;//web服务器是否已停止
 
     private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
+
 
     /**
      * 是否加密fast-database.xml相关的数据库配置文件
@@ -720,5 +736,89 @@ public final class FastConstant {
     public FastConstant setSystemOutPrint(boolean systemOutPrint) {
         this.systemOutPrint = systemOutPrint;
         return this;
+    }
+
+    /**
+     * 获取项目的Web服务器是否已启动
+     * @return 布尔值
+     */
+    public boolean isWebStarted() {
+        return webStarted;
+    }
+
+    /**
+     * 设置项目的Web服务器是否已启动
+     * @param webStarted 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setWebStarted(boolean webStarted) {
+        this.webStarted = webStarted;
+        return this;
+    }
+
+
+    /**
+     * 是否打印不同版本的JAR包
+     * @return 布尔值
+     */
+    public boolean isLogSameJar() {
+        return logSameJar;
+    }
+
+    /**
+     * 设置是否打印不同版本的JAR包
+     * @param logSameJar 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setLogSameJar(boolean logSameJar) {
+        this.logSameJar = logSameJar;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "FastConstant{" +
+                "projectName='" + projectName + '\'' +
+                ", encoding='" + encoding + '\'' +
+                ", encryptDatabaseXml=" + encryptDatabaseXml +
+                ", encryptPassword='" + encryptPassword + '\'' +
+                ", syncDatabaseXml=" + syncDatabaseXml +
+                ", testEnvironment=" + testEnvironment +
+                ", crossDomain=" + crossDomain +
+                ", crossHeaders=" + crossHeaders +
+                ", crossAllowDomains=" + crossAllowDomains +
+                ", debug=" + debug +
+                ", ansi=" + ansi +
+                ", maxResponseTime=" + maxResponseTime +
+                ", dateFormat='" + dateFormat + '\'' +
+                ", logRoute=" + logRoute +
+                ", logOverride=" + logOverride +
+                ", logHeaders=" + logHeaders +
+                ", logRemoteAddress=" + logRemoteAddress +
+                ", logInterceptorUseTotal=" + logInterceptorUseTotal +
+                ", logFilterResponseTime=" + logFilterResponseTime +
+                ", logSql=" + logSql +
+                ", logExtract=" + logExtract +
+                ", logSameJar=" + logSameJar +
+                ", systemOutPrint=" + systemOutPrint +
+                ", errorPage404='" + errorPage404 + '\'' +
+                ", errorPage500='" + errorPage500 + '\'' +
+                ", errorPage502='" + errorPage502 + '\'' +
+                ", attachNameMD5=" + attachNameMD5 +
+                ", attachNameSuffix=" + attachNameSuffix +
+                ", attachDirectory='" + attachDirectory + '\'' +
+                ", attachMaxPostSize=" + attachMaxPostSize +
+                ", propertiesName='" + propertiesName + '\'' +
+                ", webStarted=" + webStarted +
+                ", webStopped=" + webStopped +
+                ", sessionMaxInterval=" + sessionMaxInterval +
+                '}';
+    }
+
+    public static class FastConstantMethodInterceptor implements IFastMethodInterceptor {
+        @Override
+        public boolean intercept(Object o, Method method, Object[] objects) {
+            return false;
+        }
     }
 }

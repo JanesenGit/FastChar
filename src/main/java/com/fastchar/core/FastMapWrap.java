@@ -28,7 +28,7 @@ public class FastMapWrap {
     }
     public Map<?, ?> getMap() {
         if (map == null) {
-            map = new HashMap<>();
+            map = new HashMap<>(16);
         }
         return map;
     }
@@ -146,7 +146,7 @@ public class FastMapWrap {
         if (value == null) {
             return true;
         }
-        return String.valueOf(value).equalsIgnoreCase("<null>");
+        return "<null>".equalsIgnoreCase(String.valueOf(value));
     }
 
     /**

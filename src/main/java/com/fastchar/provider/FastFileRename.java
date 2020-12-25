@@ -8,6 +8,7 @@ import java.io.IOException;
 
 public class FastFileRename implements IFastFileRename {
 
+    @Override
     public File rename(File f, boolean md5Name) {
         f = formatFileName(f, md5Name);
         if (this.createNewFile(f)) {

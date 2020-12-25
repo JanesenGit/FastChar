@@ -27,7 +27,7 @@ public class FastWebXmlScannerAccepter implements IFastScannerAccepter {
 
     @Override
     public boolean onScannerFile(FastEngine engine, File file) throws Exception {
-        if (file.getName().equalsIgnoreCase("web.xml")) {
+        if ("web.xml".equalsIgnoreCase(file.getName())) {
             initServletMapping(engine);
             initWebXmlConfig(engine, file);
             return true;

@@ -4,6 +4,7 @@ import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastChar;
 import com.fastchar.exception.FastCacheException;
 import com.fastchar.interfaces.IFastCache;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastSerializeUtils;
 import com.fastchar.utils.FastStringUtils;
 import redis.clients.jedis.*;
@@ -14,7 +15,7 @@ import java.util.Set;
 @SuppressWarnings("unchecked")
 @AFastClassFind("redis.clients.jedis.Jedis")
 public class FastRedisNormalProvider implements IFastCache {
-    private static final Object locker = new Object();
+    private static final Object LOCKER = new Object();
 
     public static boolean isOverride() {
         FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
@@ -28,14 +29,14 @@ public class FastRedisNormalProvider implements IFastCache {
 
     private Jedis getJedis() {
         if (jedisPool == null) {
-            synchronized (locker) {
+            synchronized (LOCKER) {
                 FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
                 if (redisConfig.getServers().size() == 0) {
-                    throw new FastCacheException(FastChar.getLocal().getInfo("Redis_Error1"));
+                    throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR1));
                 }
                 if (redisConfig.getServers().size() > 1) {
                     if (FastStringUtils.isEmpty(redisConfig.getMasterName())) {
-                        throw new FastCacheException(FastChar.getLocal().getInfo("Redis_Error2"));
+                        throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR2));
                     }
                     jedisPool = new JedisSentinelPool(redisConfig.getMasterName(),
                             redisConfig.toSentinels(),

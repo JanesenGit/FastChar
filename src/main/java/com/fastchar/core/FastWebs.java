@@ -3,6 +3,7 @@ package com.fastchar.core;
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.interfaces.IFastWebRun;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import javassist.tools.web.Webserver;
 
@@ -31,7 +32,7 @@ final class FastWebs {
                 waitRemove.add(aClass);
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastWebs.class,
-                            FastChar.getLocal().getInfo("Web_Error1", aClass));
+                            FastChar.getLocal().getInfo(FastCharLocal.WEB_ERROR1, aClass));
                 }
             }
         }

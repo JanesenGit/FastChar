@@ -11,6 +11,7 @@ import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.interfaces.IFastDatabaseOperate;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,7 +27,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
         if (data == null) {
             return false;
         }
-        return data.toString().equalsIgnoreCase("oracle");
+        return "oracle".equalsIgnoreCase(data.toString());
     }
 
     private Set<String> tables = null;
@@ -36,7 +37,9 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
     @Override
     public void fetchDatabaseInfo(FastDatabaseInfo databaseInfo) throws Exception {
         Connection connection = fastDb.setDatabase(databaseInfo.getName()).getConnection();
-        if (connection == null) return;
+        if (connection == null) {
+            return;
+        }
         ResultSet resultSet = null;
         try {
             DatabaseMetaData dmd = connection.getMetaData();
@@ -54,6 +57,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                 if (tableInfo == null) {
                     tableInfo = FastTableInfo.newInstance();
                     tableInfo.setName(table_name);
+                    tableInfo.setComment(fastEntity.getString("remarks"));
                     databaseInfo.getTables().add(tableInfo);
                 }
 
@@ -87,6 +91,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                         int displaySize = data.getColumnDisplaySize(i);
                         int nullable = data.isNullable(i);
                         boolean isAutoIncrement = data.isAutoIncrement(i);
+                        String columnLabel = data.getColumnLabel(i);
 //                        int precision = data.getPrecision(i);
 //                        int scale = data.getScale(i);
 
@@ -113,6 +118,13 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                             columnInfo.fromProperty();
 
                             tableInfo.getColumns().add(columnInfo);
+                        }else{
+                            if (FastStringUtils.isEmpty(columnInfo.getType())) {
+                                columnInfo.setType(type);
+                            }
+                            if (FastStringUtils.isEmpty(columnInfo.getComment())) {
+                                columnInfo.setComment(columnLabel);
+                            }
                         }
                     }
                 } finally {
@@ -150,7 +162,9 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
     @Override
     public boolean checkTableExists(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo) throws Exception {
         Connection connection = fastDb.setDatabase(databaseInfo.getName()).getConnection();
-        if (connection == null) return true;
+        if (connection == null) {
+            return true;
+        }
         ResultSet resultSet = null;
         try {
             if (tables == null) {
@@ -162,13 +176,19 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                 resultSet = dmd.getTables(null, null, null, new String[]{"TABLE"});
                 while (resultSet.next()) {
                     String tableName = resultSet.getString("TABLE_NAME");
-                    tables.add(tableName);
+                    if (databaseInfo.isIgnoreCase()) {
+                        tables.add(tableName.toLowerCase());
+                    } else {
+                        tables.add(tableName);
+                    }
                 }
             }
         } finally {
             fastDb.close(connection, resultSet);
         }
-
+        if (databaseInfo.isIgnoreCase()) {
+            return tables.contains(tableInfo.getName().toLowerCase());
+        }
         return tables.contains(tableInfo.getName());
     }
 
@@ -205,7 +225,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
             }
 
         } finally {
-            FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo("Db_Table_Info1", databaseInfo.getName(), tableInfo.getName()));
+            FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO1, databaseInfo.getName(), tableInfo.getName()));
         }
     }
 
@@ -217,8 +237,12 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
         }
         PreparedStatement statement = null;
         ResultSet resultSet = null;
+        String realTableName = tableInfo.getName();
+        if (databaseInfo.isIgnoreCase()) {
+            realTableName = realTableName.toLowerCase();
+        }
         try {
-            if (!tableColumns.containsKey(tableInfo.getName())) {
+            if (!tableColumns.containsKey(realTableName)) {
                 try {
                     String sqlStr = String.format("select * from %s where 1=0 ", tableInfo.getName());
                     statement = connection.prepareStatement(sqlStr);
@@ -227,14 +251,21 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                     ResultSetMetaData data = resultSet.getMetaData();
                     for (int i = 1; i < data.getColumnCount() + 1; i++) {
                         String columnName = data.getColumnName(i);
-                        columns.add(columnName);
+                        if (databaseInfo.isIgnoreCase()) {
+                            columns.add(columnName.toLowerCase());
+                        } else {
+                            columns.add(columnName);
+                        }
                     }
-                    tableColumns.put(tableInfo.getName(), columns);
+                    tableColumns.put(realTableName, columns);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-            return tableColumns.get(tableInfo.getName()).contains(columnInfo.getName());
+            if (databaseInfo.isIgnoreCase()) {
+                return tableColumns.get(realTableName).contains(columnInfo.getName().toLowerCase());
+            }
+            return tableColumns.get(realTableName).contains(columnInfo.getName());
         } finally {
             fastDb.close(connection, statement, resultSet);
         }
@@ -259,7 +290,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
             FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo("Db_Table_Info2", databaseInfo.getName(), tableInfo.getName(), columnInfo.getName()));
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO2, databaseInfo.getName(), tableInfo.getName(), columnInfo.getName()));
         }
     }
 
@@ -282,7 +313,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
             FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo("Db_Table_Info3", databaseInfo.getName(),
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO3, databaseInfo.getName(),
                             tableInfo.getName(), columnInfo.getName()));
         }
     }
@@ -290,7 +321,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
 
     private void alterColumnIndex(FastDatabaseInfo databaseInfo, String tableName, FastColumnInfo<?> columnInfo) throws Exception {
         String convertIndex = convertIndex(columnInfo);
-        if (!convertIndex.equalsIgnoreCase("none")) {
+        if (!"none".equalsIgnoreCase(convertIndex)) {
             String columnName = columnInfo.getName();
 
             String indexName = String.format("%s_OF_%s", columnName, convertIndex.toUpperCase());
@@ -309,7 +340,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                     indexName, columnName, getIndexMaxLength(getType(columnInfo)));
             fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(createIndexSql);
             FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo("Db_Table_Info4", databaseInfo.getName(), tableName, columnInfo.getName(), indexName));
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO4, databaseInfo.getName(), tableName, columnInfo.getName(), indexName));
         }
     }
 
@@ -355,7 +386,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
         String index = columnInfo.getIndex();
         if (FastStringUtils.isNotEmpty(index)) {
             String[] indexArray = new String[]{"normal", "fulltext", "spatial", "unique"};
-            if (index.equalsIgnoreCase("true") || index.equalsIgnoreCase("normal")) {
+            if ("true".equalsIgnoreCase(index) || "normal".equalsIgnoreCase(index)) {
                 return "";
             }
             for (String s : indexArray) {
@@ -457,7 +488,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
 
 
     public String getIndexMaxLength(String type) {
-        if (type.toLowerCase().equals("fulltext")) {
+        if ("fulltext".equals(type.toLowerCase())) {
             return "";
         }
 

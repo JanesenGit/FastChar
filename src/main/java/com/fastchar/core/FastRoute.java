@@ -3,6 +3,7 @@ package com.fastchar.core;
 import com.fastchar.annotation.AFastCheck;
 import com.fastchar.asm.FastParameter;
 import com.fastchar.exception.FastActionException;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.response.FastResponseCacheConfig;
 import com.fastchar.response.FastResponseCacheInfo;
 import com.fastchar.response.FastResponseWrapper;
@@ -11,8 +12,6 @@ import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.out.FastOut;
 import com.fastchar.out.FastOutForward;
-import com.fastchar.utils.FastClassUtils;
-import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +29,9 @@ public final class FastRoute {
     boolean responseInvoked;
     private  boolean afterInvoked;
     boolean actionLog = true;
+    boolean interceptorBefore = true;
+    boolean interceptorAfter = true;
+
     Set<String> crossAllowDomains = new HashSet<>();
     int priority;
     int firstMethodLineNumber;
@@ -70,8 +72,11 @@ public final class FastRoute {
         fastRoute.priority = this.priority;
         fastRoute.actionClass = this.actionClass;
         fastRoute.route = this.route;
+        fastRoute.interceptorBefore = this.interceptorBefore;
+        fastRoute.interceptorAfter = this.interceptorAfter;
         fastRoute.crossAllowDomains = this.crossAllowDomains;
         fastRoute.returnOut = this.returnOut;
+        fastRoute.rootInterceptor = new ArrayList<>(this.rootInterceptor);
         fastRoute.doBeforeInterceptor = new ArrayList<>(this.doBeforeInterceptor);
         fastRoute.doAfterInterceptor = new ArrayList<>(this.doAfterInterceptor);
         fastRoute.firstMethodLineNumber = this.firstMethodLineNumber;
@@ -195,13 +200,16 @@ public final class FastRoute {
             if (doBeforeIndex == 0) {
                 beforeInterceptorTime = System.currentTimeMillis();
             }
-            if (doBeforeIndex < doBeforeInterceptor.size()) {
-                beforeInvoked = false;
-                RouteInterceptor routeInterceptor = doBeforeInterceptor.get(doBeforeIndex);
-                IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptorClass);
-                fastInterceptor.onInterceptor(fastAction);
-                return;
+            if (interceptorBefore) {
+                if (doBeforeIndex < doBeforeInterceptor.size()) {
+                    beforeInvoked = false;
+                    RouteInterceptor routeInterceptor = doBeforeInterceptor.get(doBeforeIndex);
+                    IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptorClass);
+                    fastInterceptor.onInterceptor(fastAction);
+                    return;
+                }
             }
+
             beforeInterceptorUseTotal = System.currentTimeMillis() - beforeInterceptorTime;
             beforeInvoked = true;
             if (FastChar.getConstant().isDebug()) {
@@ -261,9 +269,9 @@ public final class FastRoute {
             stackTraceElements.add(stackTraceElement);
         }
         if (stackTraceElement != null) {
-            new FastActionException(FastChar.getLocal().getInfo("Interceptor_Error1", stackTraceElement.getClassName())
+            new FastActionException(FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR1, stackTraceElement.getClassName())
                     + "\n\tat " + stackTraceElement).printStackTrace();
-            fastAction.response502(FastChar.getLocal().getInfo("Interceptor_Error1", stackTraceElement.getClassName()) + " at " + stackTraceElement);
+            fastAction.response502(FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR1, stackTraceElement.getClassName()) + " at " + stackTraceElement);
         }
     }
 
@@ -281,9 +289,9 @@ public final class FastRoute {
             stackTraceElements.add(stackTraceElement);
         }
         if (stackTraceElement != null) {
-            new FastActionException(FastChar.getLocal().getInfo("Interceptor_Error2", stackTraceElement.getClassName())
+            new FastActionException(FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR2, stackTraceElement.getClassName())
                     + "\n\tat " + stackTraceElement).printStackTrace();
-            fastAction.response502(FastChar.getLocal().getInfo("Interceptor_Error2", stackTraceElement.getClassName()) + " at " + stackTraceElement);
+            fastAction.response502(FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR2, stackTraceElement.getClassName()) + " at " + stackTraceElement);
         }
     }
 
@@ -293,10 +301,10 @@ public final class FastRoute {
                 fastAction.getClass().getSimpleName() + ".java",
                 firstMethodLineNumber).toString();
 
-        new FastActionException(FastChar.getLocal().getInfo("Route_Error1", FastStringUtils.wrap(getRoute(), "'")) +
+        new FastActionException(FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR1, FastStringUtils.wrap(getRoute(), "'")) +
                 "\n\tat " + position).printStackTrace();
 
-        fastAction.response502(FastChar.getLocal().getInfo("Route_Error1", FastStringUtils.wrap(getRoute(), "'")) + " at " + position);
+        fastAction.response502(FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR1, FastStringUtils.wrap(getRoute(), "'")) + " at " + position);
     }
 
     private void responseException(Throwable throwable) {
@@ -349,17 +357,19 @@ public final class FastRoute {
             if (doAfterIndex == 0) {
                 afterInterceptorTime = System.currentTimeMillis();
             }
-            if (doAfterIndex < doAfterInterceptor.size()) {
-                afterInvoked = false;
-                RouteInterceptor routeInterceptor = doAfterInterceptor.get(doAfterIndex);
-                IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptorClass);
-                fastInterceptor.onInterceptor(fastAction);
-                return;
+            if (interceptorAfter) {
+                if (doAfterIndex < doAfterInterceptor.size()) {
+                    afterInvoked = false;
+                    RouteInterceptor routeInterceptor = doAfterInterceptor.get(doAfterIndex);
+                    IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptorClass);
+                    fastInterceptor.onInterceptor(fastAction);
+                    return;
+                }
             }
             afterInvoked = true;
             afterInterceptorUseTotal = System.currentTimeMillis() - afterInterceptorTime;
             outBase.setOutTime(new Date());
-            fastAction.getResponse().setHeader("Powered-By", "FastChar " + FastConstant.FastCharVersion);
+            fastAction.getResponse().setHeader("Powered-By", "FastChar " + FastConstant.FAST_CHAR_VERSION);
             outBase.response(fastAction);
             //转发请求 取消日志打印
             if (!FastOutForward.class.isAssignableFrom(outBase.getClass())) {

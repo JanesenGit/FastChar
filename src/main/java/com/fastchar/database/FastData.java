@@ -9,6 +9,7 @@ import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.sql.FastSql;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.interfaces.IFastColumnSecurity;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -287,7 +288,16 @@ public class FastData<T extends FastEntity<?>> {
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .insert(sqlInfo.getSql(), sqlInfo.toParams());
-            return insert > 0;
+            boolean result = insert > 0;
+            if (result) {
+                target.getModified().clear();
+                for (FastColumnInfo<?> primary : target.getPrimaries()) {
+                    if (primary.isAutoincrement()) {
+                        target.put(primary.getName(), insert);
+                    }
+                }
+            }
+            return result;
         } catch (Exception e) {
             setError(e);
             throw new FastSqlException(e);
@@ -297,7 +307,7 @@ public class FastData<T extends FastEntity<?>> {
 
     public boolean push(String... checks) {
         if (checks.length == 0) {
-            throw new FastSqlException(FastChar.getLocal().getInfo("Entity_Error4"));
+            throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR4));
         }
         if (!target.save(checks)) {
             return target.update(checks);
@@ -307,7 +317,7 @@ public class FastData<T extends FastEntity<?>> {
 
     public boolean push(FastHandler handler,String... checks) {
         if (checks.length == 0) {
-            throw new FastSqlException(FastChar.getLocal().getInfo("Entity_Error4"));
+            throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR4));
         }
         if (handler != null) {
             handler.setCode(0);
@@ -357,7 +367,7 @@ public class FastData<T extends FastEntity<?>> {
             FastSqlInfo sqlInfo = FastSql.getInstance(getDatabaseType()).buildUpdateSql(target, checks);
             if (sqlInfo == null) {
                 target.getModified().clear();
-                target.setError(FastChar.getLocal().getInfo("Entity_Error3"));
+                target.setError(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR3));
                 return false;
             }
             boolean result = FastChar.getDb()
@@ -379,7 +389,7 @@ public class FastData<T extends FastEntity<?>> {
             FastSqlInfo sqlInfo = FastSql.getInstance(getDatabaseType()).buildUpdateSqlByIds(target, ids);
             if (sqlInfo == null) {
                 target.getModified().clear();
-                target.setError(FastChar.getLocal().getInfo("Entity_Error3"));
+                target.setError(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR3));
                 return false;
             }
             boolean result = FastChar.getDb()

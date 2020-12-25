@@ -274,7 +274,7 @@ public class MultipartParser {
             return new ParamPart(name, in, boundary, encoding);
         } else {
             // This is a file
-            if (filename.equals("")) {
+            if ("".equals(filename)) {
                 filename = null; // empty filename, probably an "empty" file param
             }
             lastFilePart = new FilePart(name, in, boundary,
@@ -331,7 +331,7 @@ public class MultipartParser {
             throw new IOException("Content disposition corrupt: " + origline);
         }
         String disposition = line.substring(start + 21, end).trim();
-        if (!disposition.equals("form-data")) {
+        if (!"form-data".equals(disposition)) {
             throw new IOException("Invalid content disposition: " + disposition);
         }
 

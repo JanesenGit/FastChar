@@ -5,6 +5,7 @@ import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.exception.FastSqlException;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ public class FastOracle extends FastSql {
 
     public static boolean isOverride(String type) {
         if (FastStringUtils.isNotEmpty(type)) {
-            return type.equalsIgnoreCase("oracle");
+            return "oracle".equalsIgnoreCase(type);
         }
         return false;
     }
@@ -42,7 +43,7 @@ public class FastOracle extends FastSql {
             if (column != null) {
                 Object columnValue = getColumnValue(entity, column);
                 if (column.isNotNull() && columnValue == null) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error3", "'" + column.getName() + "'"));
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR3, "'" + column.getName() + "'"));
                 }
                 columns.add(key);
                 values.add(columnValue);

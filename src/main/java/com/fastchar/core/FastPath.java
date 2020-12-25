@@ -20,26 +20,12 @@ public final class FastPath {
     FastPath() {
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public String getClassRootPath() {
         if (classRootPath == null) {
             try {
                 URL resource = FastPath.class.getResource("/");
-                String path = URLDecoder.decode(resource.getPath(), "utf-8");
-                path = path.replace("file:", "");
-                String systemName = System.getProperties().getProperty("os.name").toLowerCase();
-                if (systemName.contains("windows") && path.startsWith("/")) {
-                    path = FastStringUtils.stripStart(path, "/");
-                }
-                if (path.contains("WEB-INF")) {
-                    path = new File(path.split("WEB-INF")[0], "WEB-INF/classes").getAbsolutePath();
-                }
-                classRootPath = path;
-                File classRootFile = new File(classRootPath);
-                if (!classRootFile.exists()) {
-                    classRootFile.mkdirs();
-                }
-            } catch (UnsupportedEncodingException e) {
+                classRootPath = new File(resource.toURI()).getAbsolutePath();
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

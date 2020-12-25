@@ -1,12 +1,12 @@
 package com.fastchar.core;
 
 import com.fastchar.annotation.AFastEntity;
-import com.fastchar.asm.FastMethodRead;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastEntityException;
+import com.fastchar.interfaces.IFastMethodRead;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
-import net.sf.cglib.reflect.FastClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +16,6 @@ import java.util.List;
  * @author 沈建（Janesen）
  */
 public final class FastEntities {
-    private final FastMethodRead methodConverter = new FastMethodRead();
     private final List<EntityInfo> entityInfos = new ArrayList<>();
 
      FastEntities() {
@@ -34,7 +33,8 @@ public final class FastEntities {
         }
 
         EntityInfo entityInfo = new EntityInfo();
-        List<FastMethodRead.MethodLine> lineNumber = methodConverter.getMethodLineNumber(targetClass, "getTableName");
+        IFastMethodRead methodConverter = FastChar.getOverrides().newInstance(IFastMethodRead.class);
+        List<IFastMethodRead.MethodLine> lineNumber = methodConverter.getMethodLineNumber(targetClass, "getTableName");
         FastEntity<?> fastEntity = FastClassUtils.newInstance(targetClass);
         if (fastEntity == null) {
             return this;
@@ -45,7 +45,7 @@ public final class FastEntities {
             StackTraceElement stackTraceElement = new StackTraceElement(targetClass.getName(),
                     "getTableName", targetClass.getSimpleName() + ".java",
                     lineNumber.get(0).getLastLine());
-            throw new FastEntityException(FastChar.getLocal().getInfo("Entity_Error1") +
+            throw new FastEntityException(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR1) +
                     "\n\tat " + stackTraceElement);
         }
         entityInfo.setMethodLine(lineNumber.get(0))
@@ -65,7 +65,7 @@ public final class FastEntities {
                 StackTraceElement stackTraceElement = new StackTraceElement(aClass.getName(),
                         "getTableName", aClass.getSimpleName() + ".java",
                         entityInfo.getMethodLine().getLastLine());
-                throw new FastEntityException(FastChar.getLocal().getInfo("Entity_Error2", "'" + entityInfo.getTableName() + "'") +
+                throw new FastEntityException(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR2, "'" + entityInfo.getTableName() + "'") +
                         "\n\tat " + stackTraceElement);
             }
         }
@@ -98,7 +98,7 @@ public final class FastEntities {
                 waitRemove.add(entityInfo);
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastEntities.class,
-                            FastChar.getLocal().getInfo("Entity_Error5",entityInfo.getTargetClass()));
+                            FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR5,entityInfo.getTargetClass()));
                 }
             }
         }
@@ -109,7 +109,7 @@ public final class FastEntities {
     public static class EntityInfo {
         private String databaseName;
         private String tableName;
-        private FastMethodRead.MethodLine methodLine;
+        private IFastMethodRead.MethodLine methodLine;
         private Class<? extends FastEntity<?>> targetClass;
 
         public String getTableName() {
@@ -121,11 +121,11 @@ public final class FastEntities {
             return this;
         }
 
-        public FastMethodRead.MethodLine getMethodLine() {
+        public IFastMethodRead.MethodLine getMethodLine() {
             return methodLine;
         }
 
-        public EntityInfo setMethodLine(FastMethodRead.MethodLine methodLine) {
+        public EntityInfo setMethodLine(IFastMethodRead.MethodLine methodLine) {
             this.methodLine = methodLine;
             return this;
         }

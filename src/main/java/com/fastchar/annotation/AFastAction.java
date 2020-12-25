@@ -17,5 +17,4 @@ public @interface AFastAction {
      * @return 布尔值
      */
     boolean value() default true;
-
 }

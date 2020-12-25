@@ -5,6 +5,7 @@ import com.fastchar.converters.*;
 import com.fastchar.database.FastDatabaseXml;
 import com.fastchar.database.FastDb;
 import com.fastchar.enums.FastObservableEvent;
+import com.fastchar.extend.cglib.FastEnhancer;
 import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.interfaces.IFastSecurity;
 import com.fastchar.observer.FastDatabaseObserver;
@@ -21,6 +22,7 @@ import java.io.FileOutputStream;
 
 /**
  * FastChar核心框架引擎
+ *
  * @author 沈建（Janesen）
  */
 @SuppressWarnings("all")
@@ -47,7 +49,7 @@ public final class FastEngine {
     private final FastDatabases dataSources = new FastDatabases();
     private final FastScanner scanner = new FastScanner();
     private final FastPath path = new FastPath();
-    private final FastConstant constant = new FastConstant();
+    private final FastConstant constant = FastEnhancer.getBySafe(FastConstant.class).addBeforeInterceptor(FastConstant.FastConstantMethodInterceptor.class).create();
     private final FastInterceptors interceptors = new FastInterceptors();
     private final FastObservable observable = new FastObservable();
     private final FastConverters converters = new FastConverters();
@@ -64,7 +66,7 @@ public final class FastEngine {
             path.setWebRootPath(servletContext.getRealPath("/"));
             constant.setProjectName(FastStringUtils.strip(servletContext.getContextPath(), "/"))
                     .setAttachDirectory(FastStringUtils.stripEnd(path.getWebRootPath(), "/") + "/attachments")
-                    .setAttachMaxPostSize(30 * 1024 * 1024);
+                    .setAttachMaxPostSize(500 * 1024 * 1024);
 
         }
         System.setOut(new FastOutPrintStream(new FileOutputStream(FileDescriptor.out), true));
@@ -84,7 +86,10 @@ public final class FastEngine {
         observable.notifyObservers(FastObservableEvent.onWebStart.name(), this);
         scanner.notifyAccepter();
         observable.notifyObservers(FastObservableEvent.onScannerFinish.name());
-        FastDispatcher.initDispatcher();
+
+        if (!isMain()) {
+            FastDispatcher.initDispatcher();
+        }
         observable.notifyObservers(FastObservableEvent.onWebReady.name(), this);
         if (!isMain()) {
             webs.runWeb(this);
@@ -101,6 +106,7 @@ public final class FastEngine {
 
     /**
      * 处理url
+     *
      * @param url 如果以'/'开头 则相对项目下的路径 否则相对请求的路径
      */
     public String wrapperUrl(String url) {
@@ -124,6 +130,7 @@ public final class FastEngine {
 
     /**
      * 获取数据库操作类
+     *
      * @return FastDb
      */
     public FastDb getDb() {
@@ -132,6 +139,7 @@ public final class FastEngine {
 
     /**
      * 获取系统路径工具类
+     *
      * @return FastPath
      */
     public FastPath getPath() {
@@ -140,6 +148,7 @@ public final class FastEngine {
 
     /**
      * 获取系统常量配置
+     *
      * @return FastConstant
      */
     public FastConstant getConstant() {
@@ -148,6 +157,7 @@ public final class FastEngine {
 
     /**
      * 获取拦截器配置
+     *
      * @return FastInterceptors
      */
     public FastInterceptors getInterceptors() {
@@ -156,6 +166,7 @@ public final class FastEngine {
 
     /**
      * 获取ServletContext
+     *
      * @return ServletContext
      */
     public ServletContext getServletContext() {
@@ -165,6 +176,7 @@ public final class FastEngine {
 
     /**
      * 获取观察者配置
+     *
      * @return FastObservable
      */
     public FastObservable getObservable() {
@@ -173,6 +185,7 @@ public final class FastEngine {
 
     /**
      * 获取扫描器
+     *
      * @return FastScanner
      */
     public FastScanner getScanner() {
@@ -181,6 +194,7 @@ public final class FastEngine {
 
     /**
      * 获取FastAction配置
+     *
      * @return FastActions
      */
     public FastActions getActions() {
@@ -189,6 +203,7 @@ public final class FastEngine {
 
     /**
      * 获取参数转换器
+     *
      * @return FastConverters
      */
     public FastConverters getConverters() {
@@ -197,6 +212,7 @@ public final class FastEngine {
 
     /**
      * 获取FastEntity配置
+     *
      * @return FastEntities
      */
     public FastEntities getEntities() {
@@ -205,6 +221,7 @@ public final class FastEngine {
 
     /**
      * 获取模板配置
+     *
      * @return FastTemplates
      */
     public FastTemplates getTemplates() {
@@ -213,6 +230,7 @@ public final class FastEngine {
 
     /**
      * 获取插件配置器
+     *
      * @return FastConfigs
      */
     public FastConfigs getConfigs() {
@@ -221,6 +239,7 @@ public final class FastEngine {
 
     /**
      * 获取系统全局数据存储器
+     *
      * @return
      */
     public FastValues getValues() {
@@ -229,6 +248,7 @@ public final class FastEngine {
 
     /**
      * 获取类代理器
+     *
      * @return FastOverrides
      */
     public FastOverrides getOverrides() {
@@ -237,6 +257,7 @@ public final class FastEngine {
 
     /**
      * 获取系统日志工具类
+     *
      * @return FastLog
      */
     public FastLog getLog() {
@@ -245,6 +266,7 @@ public final class FastEngine {
 
     /**
      * 获取参数验证器
+     *
      * @return FastValidators
      */
     public FastValidators getValidators() {
@@ -253,6 +275,7 @@ public final class FastEngine {
 
     /**
      * 获取系统配置的数据库
+     *
      * @return FastDatabases
      */
     public FastDatabases getDatabases() {
@@ -261,8 +284,9 @@ public final class FastEngine {
 
     /**
      * 快速获取插件的配置类
+     *
      * @param targetClass 插件配置类
-     * @param <T> 继承IFastConfig的泛型类
+     * @param <T>         继承IFastConfig的泛型类
      * @return &lt;T extends IFastConfig&gt;
      */
     public <T extends IFastConfig> T getConfig(Class<T> targetClass) {
@@ -271,17 +295,19 @@ public final class FastEngine {
 
     /**
      * 快速获取插件的配置类
-     * @param onlyCode 配置的唯一编号
+     *
+     * @param onlyCode    配置的唯一编号
      * @param targetClass 插件配置类
-     * @param <T> 继承IFastConfig的泛型类
+     * @param <T>         继承IFastConfig的泛型类
      * @return &lt;T extends IFastConfig&gt;
      */
-    public <T extends IFastConfig> T getConfig(String onlyCode,Class<T> targetClass) {
+    public <T extends IFastConfig> T getConfig(String onlyCode, Class<T> targetClass) {
         return FastChar.getOverrides().singleInstance(onlyCode, targetClass);
     }
 
     /**
      * 获取数据加密工具类
+     *
      * @return IFastSecurity
      */
     public IFastSecurity getSecurity() {
@@ -290,6 +316,7 @@ public final class FastEngine {
 
     /**
      * 获取Properties配置工具类
+     *
      * @return FastProperties
      */
     public FastProperties getProperties() {
@@ -298,7 +325,8 @@ public final class FastEngine {
     }
 
     /**
-     *  获取Properties配置工具类
+     * 获取Properties配置工具类
+     *
      * @param fileName 位于src目录下properties文件名
      * @return
      */
@@ -312,6 +340,7 @@ public final class FastEngine {
 
     /**
      * 获取类加载预检测器，可用于第三方jar包引用的检测
+     *
      * @return FastFindClass
      */
     public FastFindClass getFindClass() {
@@ -321,11 +350,12 @@ public final class FastEngine {
 
     /**
      * 是否在main方法运行
+     *
      * @return
      */
     public boolean isMain() {
-        ClassLoader classLoader =  Thread.currentThread().getContextClassLoader();
-        if (classLoader != null && classLoader.getClass().getSimpleName().equalsIgnoreCase("AppClassLoader")) {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader != null && "AppClassLoader".equalsIgnoreCase(classLoader.getClass().getSimpleName())) {
             return true;
         }
         return false;
@@ -333,6 +363,7 @@ public final class FastEngine {
 
     /**
      * 获取fast-database.xml操作工具类
+     *
      * @return
      */
     public FastDatabaseXml getDatabaseXml() {

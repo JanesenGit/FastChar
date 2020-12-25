@@ -55,6 +55,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
     }
 
 
+    @Override
     public void clear() {
         super.clear();
         for (Field field : fields) {

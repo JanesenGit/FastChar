@@ -184,16 +184,16 @@ public class FastDatabaseInfo extends FastBaseInfo {
     }
 
     public boolean isMySql() {
-        return type.equals("mysql");
+        return "mysql".equals(type);
     }
 
     public boolean isSqlServer() {
-        return type.equals("sql_server");
+        return "sql_server".equals(type);
     }
 
 
     public boolean isOracle() {
-        return type.equals("oracle");
+        return "oracle".equals(type);
     }
 
     public DataSource getDataSource() {
@@ -248,7 +248,8 @@ public class FastDatabaseInfo extends FastBaseInfo {
                     "&characterEncoding=utf-8" +
                     "&allowPublicKeyRetrieval=true" +
                     "&serverTimezone=GMT" +
-                    "&useSSL=false";
+                    "&useSSL=false" +
+                    "&useInformationSchema=true";
         } else if (isSqlServer()) {
             url = "jdbc:sqlserver://" + getHost() + ":" + getPort() + ";databaseName=" + getName();
         } else if (isOracle()) {
@@ -282,7 +283,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
      */
     public FastDatabaseInfo merge(FastDatabaseInfo info) {
         for (String key : info.keySet()) {
-            if (String.valueOf(key).equals("tables")) {
+            if ("tables".equals(String.valueOf(key))) {
                 continue;
             }
             this.set(key, info.get(key));
@@ -308,7 +309,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
     public FastDatabaseInfo copy() {
         FastDatabaseInfo fastDatabaseInfo = FastChar.getOverrides().newInstance(FastDatabaseInfo.class);
         for (String key : keySet()) {
-            if (String.valueOf(key).equals("tables")) {
+            if ("tables".equals(String.valueOf(key))) {
                 continue;
             }
             fastDatabaseInfo.set(key, get(key));
@@ -325,7 +326,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
     }
 
     public void tableToMap() {
-        mapTable = FastMapWrap.newInstance(new ConcurrentHashMap<>());
+        mapTable = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
         mapTable.setIgnoreCase(isIgnoreCase());
         for (FastTableInfo<?> table : this.tables) {
             table.setIgnoreCase(isIgnoreCase());
@@ -348,4 +349,5 @@ public class FastDatabaseInfo extends FastBaseInfo {
             }
         }
     }
+
 }

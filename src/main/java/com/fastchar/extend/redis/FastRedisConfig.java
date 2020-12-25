@@ -3,6 +3,7 @@ package com.fastchar.extend.redis;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastConfig;
+import com.fastchar.local.FastCharLocal;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisPoolConfig;
 
@@ -37,7 +38,7 @@ public class FastRedisConfig implements IFastConfig {
     public FastRedisConfig addServer(String host, int port) {
         servers.add(new HostAndPort(host, port));
         if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(FastChar.getLocal().getInfo("Redis_Error3", "Druid") + host + ":" + port);
+            FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR3, "Druid") + host + ":" + port);
         }
         return this;
     }

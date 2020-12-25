@@ -249,5 +249,7 @@ public class FastClassUtils {
         }
         return false;
     }
+
+
 }
 

@@ -52,6 +52,7 @@ public class LimitedServletInputStream extends ServletInputStream {
    *        read, or -1 if the end of the stream is reached.
    * @exception  IOException  if an I/O error occurs.
    */
+  @Override
   public int readLine(byte b[], int off, int len) throws IOException {
     int result, left = totalExpected - totalRead;
     if (left <= 0) {
@@ -73,6 +74,7 @@ public class LimitedServletInputStream extends ServletInputStream {
    *             stream is reached.
    * @exception  IOException  if an I/O error occurs.
    */
+  @Override
   public int read() throws IOException {
     if (totalRead >= totalExpected) {
       return -1;
@@ -96,7 +98,8 @@ public class LimitedServletInputStream extends ServletInputStream {
    *             the stream has been reached.
    * @exception  IOException  if an I/O error occurs.
    */
-  public int read( byte b[], int off, int len ) throws IOException {
+  @Override
+  public int read(byte b[], int off, int len ) throws IOException {
     int result, left = totalExpected - totalRead;
     if (left <= 0) {
       return -1;

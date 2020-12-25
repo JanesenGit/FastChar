@@ -6,6 +6,7 @@ import com.fastchar.annotation.AFastPriority;
 import com.fastchar.core.FastChar;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.interfaces.IFastDataSource;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
@@ -50,7 +51,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
             this.databaseInfo = databaseInfo;
 
             if (FastChar.getConstant().isDebug()) {
-                FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info1", "Tomcat jdbc pool of " + databaseInfo.getName()));
+                FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, "Tomcat jdbc pool of " + databaseInfo.getName()));
             }
         }
         return datasource;
@@ -74,7 +75,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
             if (datasource != null) {
                 datasource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("DataSource_Info2", "Tomcat jdbc pool of " + databaseInfo.getName()));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Tomcat jdbc pool of " + databaseInfo.getName()));
                 }
             }
         } finally {

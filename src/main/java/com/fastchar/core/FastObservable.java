@@ -1,5 +1,6 @@
 package com.fastchar.core;
 
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 
 import java.lang.reflect.Method;
@@ -21,8 +22,9 @@ public final class FastObservable{
     }
 
     public synchronized FastObservable addObserver(Object o) {
-        if (o == null)
+        if (o == null) {
             return this;
+        }
         if (!obs.contains(o)) {
             obs.addElement(o);
         }
@@ -31,8 +33,9 @@ public final class FastObservable{
 
     public synchronized FastObservable addObserver(Class<?> targetClass) {
         Object o = FastChar.getOverrides().singleInstance(targetClass);
-        if (o == null)
+        if (o == null) {
             return this;
+        }
         if (!obs.contains(o)) {
             obs.addElement(o);
         }
@@ -88,7 +91,7 @@ public final class FastObservable{
                 waitRemove.add(ob);
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastObservable.class,
-                            FastChar.getLocal().getInfo("Observable_Error1",ob.getClass()));
+                            FastChar.getLocal().getInfo(FastCharLocal.OBSERVABLE_ERROR1,ob.getClass()));
                 }
             }
         }

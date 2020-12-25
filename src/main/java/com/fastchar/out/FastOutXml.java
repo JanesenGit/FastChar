@@ -1,8 +1,11 @@
 package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
+import com.fastchar.core.FastChar;
+import com.fastchar.utils.FastFileUtils;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.PrintWriter;
 
 /**
@@ -23,7 +26,12 @@ public class FastOutXml extends FastOut<FastOutXml> {
         response.setCharacterEncoding(getCharset());
 
         try (PrintWriter writer = response.getWriter()){
-            writer.write(String.valueOf(data));
+            if (data instanceof File) {
+                File xmlFile = (File) data;
+                writer.write(FastFileUtils.readFileToString(xmlFile, FastChar.getConstant().getEncoding()));
+            }else{
+                writer.write(String.valueOf(data));
+            }
             writer.flush();
         }
     }

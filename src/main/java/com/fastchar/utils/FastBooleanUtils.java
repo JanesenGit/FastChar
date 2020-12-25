@@ -23,10 +23,10 @@ public class FastBooleanUtils {
                 if (FastStringUtils.isEmpty(string)) {
                     return defaultValue;
                 }
-                if (string.equalsIgnoreCase("true")) {
+                if ("true".equalsIgnoreCase(string)) {
                     return true;
                 }
-                if (string.equalsIgnoreCase("false")) {
+                if ("false".equalsIgnoreCase(string)) {
                     return false;
                 }
                 int intValue = FastNumberUtils.formatToInt(string, -1);

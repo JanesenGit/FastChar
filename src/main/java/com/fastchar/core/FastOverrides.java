@@ -5,6 +5,8 @@ import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.annotation.AFastObserver;
 import com.fastchar.annotation.AFastOverrideError;
 import com.fastchar.annotation.AFastPriority;
+import com.fastchar.asm.FastMethodRead;
+import com.fastchar.asm.FastMethodRead7;
 import com.fastchar.converters.*;
 import com.fastchar.database.operate.FastMySqlDatabaseOperateProvider;
 import com.fastchar.database.operate.FastOracleDatabaseOperateProvider;
@@ -12,6 +14,8 @@ import com.fastchar.database.operate.FastSqlServerDatabaseOperateProvider;
 import com.fastchar.database.sql.FastMySql;
 import com.fastchar.database.sql.FastOracle;
 import com.fastchar.database.sql.FastSqlServer;
+import com.fastchar.exception.FastFindClassException;
+import com.fastchar.exception.FastFindException;
 import com.fastchar.exception.FastOverrideException;
 import com.fastchar.extend.c3p0.FastC3p0DataSourceProvider;
 import com.fastchar.extend.druid.FastDruidDataSourceProvider;
@@ -23,6 +27,7 @@ import com.fastchar.extend.jdbc.FastJdbcDataSourceProvider;
 import com.fastchar.extend.redis.FastRedisClusterProvider;
 import com.fastchar.extend.redis.FastRedisNormalProvider;
 import com.fastchar.interfaces.IFastLocal;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.local.FastCharLocal_CN;
 import com.fastchar.provider.FastColumnSecurity;
 import com.fastchar.provider.FastFileRename;
@@ -50,6 +55,9 @@ public final class FastOverrides {
 
 
     FastOverrides() {
+        add(FastMethodRead.class);
+        add(FastMethodRead7.class);
+
         add(FastMySql.class);
         add(FastSqlServer.class);
         add(FastOracle.class);
@@ -423,6 +431,20 @@ public final class FastOverrides {
             AFastOverrideError overrideError = targetClass.getAnnotation(AFastOverrideError.class);
             errorInfo = overrideError.value();
         }
+        if (targetClass.isAnnotationPresent(AFastClassFind.class)) {
+            AFastClassFind fastFind = targetClass.getAnnotation(AFastClassFind.class);
+            String[] url = fastFind.url();
+            for (int i = 0; i < fastFind.value().length; i++) {
+                String className = fastFind.value()[i];
+                if (FastClassUtils.getClass(className, false) == null) {
+                    if (i < url.length) {
+                        throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, url[i]));
+                    }else{
+                        throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR3, className));
+                    }
+                }
+            }
+        }
 
         if (Modifier.isFinal(targetClass.getModifiers())) {
             T instance = FastClassUtils.newInstance(targetClass, constructorParams);
@@ -470,7 +492,7 @@ public final class FastOverrides {
         if (!IFastLocal.class.isAssignableFrom(targetClass)) {
             if (!targetClass.getName().equals(superClass)) {
                 if (FastChar.getConstant().isLogOverride()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo("Override_Error2", superClass, targetClass.getName()));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR2, superClass, targetClass.getName()));
                 }
             }
         }
@@ -505,6 +527,26 @@ public final class FastOverrides {
         List<T> instances = new ArrayList<>();
         String superClass = targetClass.getName();
         String errorInfo = "can not get instances for " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
+
+        if (targetClass.isAnnotationPresent(AFastOverrideError.class)) {
+            AFastOverrideError overrideError = targetClass.getAnnotation(AFastOverrideError.class);
+            errorInfo = overrideError.value();
+        }
+        if (targetClass.isAnnotationPresent(AFastClassFind.class)) {
+            AFastClassFind fastFind = targetClass.getAnnotation(AFastClassFind.class);
+            String[] url = fastFind.url();
+            for (int i = 0; i < fastFind.value().length; i++) {
+                String className = fastFind.value()[i];
+                if (FastClassUtils.getClass(className, false) == null) {
+                    if (i < url.length) {
+                        throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, url[i]));
+                    }else{
+                        throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR3, className));
+                    }
+                }
+            }
+        }
+
         if (Modifier.isFinal(targetClass.getModifiers())) {
             T instance = FastClassUtils.newInstance(targetClass, constructorParams);
             if (instance == null) {
@@ -537,7 +579,7 @@ public final class FastOverrides {
             if (!IFastLocal.class.isAssignableFrom(aClass)) {
                 if (!aClass.getName().equals(superClass)) {
                     if (FastChar.getConstant().isLogOverride()) {
-                        FastChar.getLog().info(FastChar.getLocal().getInfo("Override_Error2", superClass, aClass.getName()));
+                        FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR2, superClass, aClass.getName()));
                     }
                 }
             }
@@ -658,7 +700,7 @@ public final class FastOverrides {
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastOverrides.class,
-                            FastChar.getLocal().getInfo("Override_Error3", aClass.targetClass));
+                            FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR3, aClass.targetClass));
                 }
             }
         }

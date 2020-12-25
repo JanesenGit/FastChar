@@ -2,6 +2,7 @@ package com.fastchar.validators;
 
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastValidator;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastStringUtils;
 
 import java.text.MessageFormat;
@@ -26,7 +27,7 @@ public class FastNullValidator extends FastBaseValidator {
                     message = split[1];
                 }
                 if (FastStringUtils.isEmpty(message)) {
-                    message = FastChar.getLocal().getInfo("Param_Error1", key);
+                    message = FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, key);
                 }
                 if (value == null || FastStringUtils.isEmpty(value.toString())) {
                     return formatMessage(message, key);

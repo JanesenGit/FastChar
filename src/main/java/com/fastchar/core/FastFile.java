@@ -2,6 +2,7 @@ package com.fastchar.core;
 
 import com.fastchar.exception.FastFileException;
 
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastMD5Utils;
@@ -56,7 +57,7 @@ public class FastFile<T> {
     private String uploadFileName;
     private String contentType;
     private final ConcurrentHashMap<String, Object> attrs = new ConcurrentHashMap<>();
-
+    private final FastMapWrap mapWrap = FastMapWrap.newInstance(attrs);
 
     public String getKey() {
         if (FastStringUtils.isEmpty(key)) {
@@ -143,45 +144,54 @@ public class FastFile<T> {
 
     public boolean isImageFile() {
         return FastFileUtils.isImageFile(uploadFileName)||
+                FastFileUtils.isImageFile(fileName)||
                 FastFileUtils.isImageFileByMimeType(contentType);
     }
     public boolean isTxtFile() {
         return FastFileUtils.isTxtFile(uploadFileName)||
+                FastFileUtils.isTxtFile(fileName)||
                 FastFileUtils.isTxtFileByMimeType(contentType);
     }
     public boolean isExcelFile() {
         return FastFileUtils.isExcelFile(uploadFileName)||
+                FastFileUtils.isExcelFile(fileName)||
                 FastFileUtils.isExcelFileByMimeType(contentType);
     }
     public boolean isWordFile() {
         return FastFileUtils.isWordFile(uploadFileName)||
+                FastFileUtils.isWordFile(fileName)||
                 FastFileUtils.isWordFileByMimeType(contentType);
     }
     public boolean isPDFFile() {
         return FastFileUtils.isPDFFile(uploadFileName)||
+                FastFileUtils.isPDFFile(fileName)||
                 FastFileUtils.isPDFFileByMimeType(contentType);
     }
     public boolean isPPTFile() {
         return FastFileUtils.isPPTFile(uploadFileName)||
+                FastFileUtils.isPPTFile(fileName)||
                 FastFileUtils.isPPTFileByMimeType(contentType);
     }
     public boolean isMP4File() {
         return FastFileUtils.isMP4File(uploadFileName)||
+                FastFileUtils.isMP4File(fileName)||
                 FastFileUtils.isMP4FileByMimeType(contentType);
     }
 
     public boolean isMOVFile() {
         return FastFileUtils.isMOVFile(uploadFileName)||
+                FastFileUtils.isMOVFile(fileName)||
                 FastFileUtils.isMOVFileByMimeType(contentType);
     }
 
     public boolean isAVIFile() {
         return FastFileUtils.isAVIFile(uploadFileName)||
+                FastFileUtils.isAVIFile(fileName)||
                 FastFileUtils.isAVIFileByMimeType(contentType);
     }
 
     public boolean isTargetFile(String... extensions) {
-        return FastFileUtils.isTargetFile(uploadFileName, extensions);
+        return FastFileUtils.isTargetFile(uploadFileName, extensions)||FastFileUtils.isTargetFile(fileName, extensions);
     }
 
     public boolean isTargetFileByMimeType(String... mimeTypes) {
@@ -204,7 +214,7 @@ public class FastFile<T> {
         File targetFile = new File(targetDirectory, fileName);
         if (!targetFile.getParentFile().exists()) {
             if (!targetFile.getParentFile().mkdirs()) {
-                throw new FastFileException(FastChar.getLocal().getInfo("File_Error1", "'" + targetDirectory + "'"));
+                throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR1, "'" + targetDirectory + "'"));
             }
         }
         File rename = FastChar.getFileRename().rename(targetFile, false);
@@ -223,7 +233,7 @@ public class FastFile<T> {
     public <E extends FastFile> E renameTo(File targetFile, boolean force) throws FastFileException, IOException {
         if (!targetFile.getParentFile().exists()) {
             if (!targetFile.getParentFile().mkdirs()) {
-                throw new FastFileException(FastChar.getLocal().getInfo("File_Error1", "'" + targetFile.getParent() + "'"));
+                throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR1, "'" + targetFile.getParent() + "'"));
             }
         }
         FastFileUtils.moveFile(getFile(), targetFile, force);
@@ -234,7 +244,7 @@ public class FastFile<T> {
     public <E extends FastFile> E copyTo(File targetFile) throws IOException, FastFileException {
         if (!targetFile.getParentFile().exists()) {
             if (!targetFile.getParentFile().mkdirs()) {
-                throw new FastFileException(FastChar.getLocal().getInfo("File_Error1", "'" + targetFile.getParent() + "'"));
+                throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR1, "'" + targetFile.getParent() + "'"));
             }
         }
         FastFileUtils.copyFile(getFile(), targetFile);
@@ -266,6 +276,10 @@ public class FastFile<T> {
 
     public Object getAttr(String name) {
         return this.attrs.get(name);
+    }
+
+    public FastMapWrap getAttrWrap() {
+        return mapWrap;
     }
 
     public ConcurrentHashMap<String, Object> getAttrs() {

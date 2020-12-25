@@ -1,5 +1,6 @@
 package com.fastchar.extend.freemarker;
 
+import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastTemplate;
 import com.fastchar.utils.FastStringUtils;
@@ -7,12 +8,11 @@ import freemarker.cache.StringTemplateLoader;
 import freemarker.template.*;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Locale;
 import java.util.Map;
 
+@AFastClassFind(value = {"freemarker.template.Configuration"}, url = {"https://mvnrepository.com/artifact/org.freemarker/freemarker"})
 public class FastFreemarkerEngine extends Configuration  implements IFastTemplate {
 
     public FastFreemarkerEngine() {
@@ -26,9 +26,9 @@ public class FastFreemarkerEngine extends Configuration  implements IFastTemplat
         }
         configuration.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
         if (FastChar.getConstant().isDebug()) {
-            configuration.setTemplateUpdateDelay(0);
+            configuration.setTemplateUpdateDelayMilliseconds(0);
         } else {
-            configuration.setTemplateUpdateDelay(3600);
+            configuration.setTemplateUpdateDelayMilliseconds(3600 * 1000);
         }
         configuration.setDefaultEncoding(FastChar.getConstant().getEncoding());
         configuration.setOutputEncoding(FastChar.getConstant().getEncoding());
@@ -41,12 +41,13 @@ public class FastFreemarkerEngine extends Configuration  implements IFastTemplat
         configuration.setDateTimeFormat("yyyy-MM-dd HH:mm:ss");
     }
 
+    @Override
     public String run(Map<String, Object> params, String template) {
         try {
             if (params == null || FastStringUtils.isEmpty(template)) {
                 return null;
             }
-            Configuration cfg = new Configuration();
+            Configuration cfg = new Configuration(VERSION_2_3_28);
             params.putAll(FastChar.getTemplates().getFinalContext());
             StringTemplateLoader stringLoader = new StringTemplateLoader();
             String templateName = FastChar.getSecurity().MD5_Encrypt(template);

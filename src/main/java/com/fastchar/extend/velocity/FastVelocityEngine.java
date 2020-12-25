@@ -1,22 +1,21 @@
 package com.fastchar.extend.velocity;
 
+import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastChar;
 import com.fastchar.exception.FastTemplateException;
 import com.fastchar.interfaces.IFastTemplate;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
-import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 import org.apache.velocity.app.VelocityEngine;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Enumeration;
 import java.util.Map;
 
+@AFastClassFind(value = {"org.apache.velocity.app.VelocityEngine"}, url = {"https://mvnrepository.com/artifact/org.apache.velocity/velocity-engine-core"})
 public class FastVelocityEngine extends VelocityEngine implements IFastTemplate {
 
     public FastVelocityEngine() {

@@ -3,7 +3,7 @@ package com.fastchar.asm;
 
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.interfaces.IFastMethodRead;
-import jdk.internal.org.objectweb.asm.*;
+import com.sun.xml.internal.ws.org.objectweb.asm.*;
 
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -12,13 +12,14 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
-@AFastClassFind("jdk.internal.org.objectweb.asm.ClassReader")
-public class FastMethodRead implements IFastMethodRead {
+@AFastClassFind("com.sun.xml.internal.ws.org.objectweb.asm.ClassReader")
+public class FastMethodRead7 implements IFastMethodRead {
 
     @Override
     public List<FastParameter> getParameter(final Method method) throws Exception {
         return getParameter(method, null);
     }
+
     /**
      * 获得方法参数
      *
@@ -42,7 +43,7 @@ public class FastMethodRead implements IFastMethodRead {
         }
         ClassReader reader = new ClassReader(resourceAsStream);
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        reader.accept(new FastClassAdapter(classWriter) {
+        reader.accept(new FastClassAdapter7(classWriter) {
 
             @Override
             public MethodVisitor visitMethod(final int access, final String name, final String desc,
@@ -54,7 +55,7 @@ public class FastMethodRead implements IFastMethodRead {
                     if (numbers != null) {
                         numbers.add(methodLine);
                     }
-                    return new FastMethodAdapter(superMethodVisitor) {
+                    return new FastMethodAdapter7(superMethodVisitor) {
                         int localIndex = 0;
 
                         @Override
@@ -108,7 +109,7 @@ public class FastMethodRead implements IFastMethodRead {
         }
         ClassReader reader = new ClassReader(resourceAsStream);
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        reader.accept(new FastClassAdapter(classWriter) {
+        reader.accept(new FastClassAdapter7(classWriter) {
 
             @Override
             public MethodVisitor visitMethod(final int access, final String name, final String desc,
@@ -117,7 +118,7 @@ public class FastMethodRead implements IFastMethodRead {
                 if (name.equals(methodName)) {
                     final MethodLine methodLine = new MethodLine();
                     numbers.add(methodLine);
-                    return new FastMethodAdapter(superMethodVisitor) {
+                    return new FastMethodAdapter7(superMethodVisitor) {
                         @Override
                         public void visitLineNumber(int line, Label start) {
                             super.visitLineNumber(line, start);
@@ -134,5 +135,4 @@ public class FastMethodRead implements IFastMethodRead {
         }
         return numbers;
     }
-
 }

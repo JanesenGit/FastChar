@@ -1,5 +1,6 @@
 package com.fastchar.extend.thymeleaf;
 
+import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastTemplate;
 import com.fastchar.utils.FastStringUtils;
@@ -8,10 +9,10 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.StringTemplateResolver;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Map;
 
+@AFastClassFind(value = {"org.thymeleaf.TemplateEngine"}, url = {"https://mvnrepository.com/artifact/org.thymeleaf/thymeleaf"})
 public class FastThymeleafEngine extends TemplateEngine implements IFastTemplate {
 
     private FastTemplateResolver fastTemplateResolver;

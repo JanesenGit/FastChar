@@ -170,9 +170,9 @@ public class FastType {
     }
 
     public static boolean isBigStringType(String type) {
-        return type.equalsIgnoreCase("longtext")
-                || type.equalsIgnoreCase("ntext")
-                || type.equalsIgnoreCase("long");
+        return "longtext".equalsIgnoreCase(type)
+                || "ntext".equalsIgnoreCase(type)
+                || "long".equalsIgnoreCase(type);
     }
 
     public static boolean isByteArrayType(String type) {
@@ -211,17 +211,17 @@ public class FastType {
 
     public static String convertType(String dbType, String type) {
         int index = -1;
-        if (dbType.equalsIgnoreCase("mysql")) {
+        if ("mysql".equalsIgnoreCase(dbType)) {
             if (isMySqlType(type)) {
                 return type;
             }
             index = 0;
-        } else if (dbType.equalsIgnoreCase("sql_server")) {
+        } else if ("sql_server".equalsIgnoreCase(dbType)) {
             if (isSqlServerType(type)) {
                 return type;
             }
             index = 1;
-        }else if (dbType.equalsIgnoreCase("oracle")) {
+        }else if ("oracle".equalsIgnoreCase(dbType)) {
             if (isOracleType(type)) {
                 return type;
             }

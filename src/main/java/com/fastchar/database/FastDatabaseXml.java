@@ -6,6 +6,7 @@ import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastStringUtils;
 import org.xml.sax.Attributes;
@@ -34,6 +35,11 @@ import java.util.jar.JarFile;
  * fast-database.xml处理工具
  */
 public final class FastDatabaseXml {
+    public static final String FAST_TAG_DATA_BASE = "database";
+    public static final String FAST_TAG_TABLE = "table";
+    public static final String FAST_TAG_COLUMN = "column";
+    public static final String FAST_DATA = "data";
+
 
     private final SAXParserFactory factory = SAXParserFactory.newInstance();
     private SAXParser parser;
@@ -159,7 +165,6 @@ public final class FastDatabaseXml {
 
 
 
-
     public static class DatabaseInfoHandler extends DefaultHandler {
         private File xmlFile;
         private Locator locator;
@@ -180,7 +185,7 @@ public final class FastDatabaseXml {
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
             super.startElement(uri, localName, qName, attributes);
-            if (qName.equalsIgnoreCase("database")) {
+            if (FAST_TAG_DATA_BASE.equalsIgnoreCase(qName)) {
                 if (databaseInfo == null) {
                     databaseInfo = new FastDatabaseInfo();
                     databaseInfo.setTables(new ArrayList<FastTableInfo<?>>());
@@ -195,9 +200,11 @@ public final class FastDatabaseXml {
                     String attrValue = getAttrValue(attributes, attr);
                     databaseInfo.set(attr.toLowerCase(), attrValue);
                 }
-            } else if (qName.equalsIgnoreCase("table")) {
+            } else if (FAST_TAG_TABLE.equalsIgnoreCase(qName)) {
                 tableInfo = FastTableInfo.newInstance();
-                if(tableInfo==null) return;
+                if(tableInfo==null) {
+                    return;
+                }
                 tableInfo.setFromXml(true);
                 tableInfo.setTagName(qName);
                 tableInfo.setColumns(new ArrayList<FastColumnInfo<?>>());
@@ -216,14 +223,16 @@ public final class FastDatabaseXml {
                         tableInfo.setData(dataFile.getAbsolutePath());
                     }else{
                         if (FastChar.getConstant().isDebug()) {
-                            FastChar.getLog().warn(FastChar.getLocal().getInfo("File_Error7", dataFile.getAbsolutePath()));
+                            FastChar.getLog().warn(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, dataFile.getAbsolutePath()));
                         }
                     }
                 }
 
-            } else if (qName.equalsIgnoreCase("column")) {
+            } else if (FAST_TAG_COLUMN.equalsIgnoreCase(qName)) {
                 columnInfo = FastColumnInfo.newInstance();
-                if(columnInfo==null) return;
+                if(columnInfo==null) {
+                    return;
+                }
                 columnInfo.setFromXml(true);
                 columnInfo.setTagName(qName);
                 columnInfo.setLineNumber(locator.getLineNumber());
@@ -241,9 +250,9 @@ public final class FastDatabaseXml {
         @Override
         public void endElement(String uri, String localName, String qName) throws SAXException {
             super.endElement(uri, localName, qName);
-            if (qName.equalsIgnoreCase("database")) {
+            if (FAST_TAG_DATA_BASE.equalsIgnoreCase(qName)) {
                 databaseInfo.fromProperty();
-            } else if (qName.equalsIgnoreCase("table")) {
+            } else if (FAST_TAG_TABLE.equalsIgnoreCase(qName)) {
                 tableInfo.fromProperty();
                 tableInfo.setDatabaseName(databaseInfo.getName());
                 FastTableInfo<?> existTable = databaseInfo.getTableInfo(tableInfo.getName());
@@ -253,7 +262,7 @@ public final class FastDatabaseXml {
                 } else {
                     databaseInfo.getTables().add(tableInfo);
                 }
-            } else if (qName.equalsIgnoreCase("column")) {
+            } else if (FAST_TAG_COLUMN.equalsIgnoreCase(qName)) {
                 columnInfo.fromProperty();
                 columnInfo.setTableName(tableInfo.getName());
                 columnInfo.setDatabaseName(tableInfo.getDatabaseName());
@@ -287,7 +296,7 @@ public final class FastDatabaseXml {
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
             super.startElement(uri, localName, qName, attributes);
-            if (!qName.equalsIgnoreCase("data")) {
+            if (!FAST_DATA.equalsIgnoreCase(qName)) {
                 String databaseName = null;
                 FastSqlInfo sqlInfo = FastSqlInfo.newInstance();
                 List<String> columns = new ArrayList<String>();
@@ -295,18 +304,18 @@ public final class FastDatabaseXml {
                 for (int i = 0; i < attributes.getLength(); i++) {
                     String attrName = attributes.getQName(i);
                     String value = attributes.getValue(attrName);
-                    if (attrName.equalsIgnoreCase("databaseName")) {
+                    if ("databaseName".equalsIgnoreCase(attrName)) {
                         databaseName = value;
                         continue;
                     }
-                    if (attrName.equalsIgnoreCase("database")) {
+                    if (FAST_TAG_DATA_BASE.equalsIgnoreCase(attrName)) {
                         databaseName = value;
                         continue;
                     }
 
                     columns.add(attrName);
                     if (value.startsWith("@")) {
-                        if (value.equalsIgnoreCase("@now")) {
+                        if ("@now".equalsIgnoreCase(value)) {
                             placeholders.add("?");
                             sqlInfo.getParams().add(FastDateUtils.getDateString());
                         }
