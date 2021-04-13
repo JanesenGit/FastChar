@@ -10,6 +10,7 @@ import com.fastchar.exception.FastSqlException;
 import com.fastchar.interfaces.IFastColumnSecurity;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastArrayUtils;
+import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.lang.reflect.Array;

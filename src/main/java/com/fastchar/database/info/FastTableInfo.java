@@ -6,6 +6,7 @@ import com.fastchar.core.FastMapWrap;
 import com.fastchar.exception.FastDatabaseException;
 
 import com.fastchar.local.FastCharLocal;
+import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -27,6 +28,8 @@ public class FastTableInfo<T> extends FastBaseInfo {
     private String comment = "";
     private String data;
     private boolean ignoreCase = true;
+    private String lock ;//锁定表格，不能*匹配表格合并
+
 
     private List<FastColumnInfo<?>> columns = new ArrayList<>();
     private FastMapWrap mapColumn;
@@ -106,6 +109,15 @@ public class FastTableInfo<T> extends FastBaseInfo {
         return this;
     }
 
+    public boolean isLock() {
+        return FastBooleanUtils.formatToBoolean(lock);
+    }
+
+    public FastTableInfo<T> setLock(boolean lock) {
+        this.lock = String.valueOf(lock);
+        return this;
+    }
+
     public <E extends FastColumnInfo<?>> List<E> getPrimaries() {
         if (mapPrimary != null) {
             return new ArrayList<E>((Collection<? extends E>) mapPrimary.getMap().values());
@@ -148,17 +160,22 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
 
     public FastTableInfo<?> merge(FastTableInfo<?> info) {
-        for (String key : info.keySet()) {
-            if ("columns".equals(String.valueOf(key))) {
-                continue;
+        return merge(info, false);
+    }
+    public FastTableInfo<?> merge(FastTableInfo<?> info,boolean onlyColumns) {
+        if (!onlyColumns) {
+            for (String key : info.keySet()) {
+                if ("columns".equals(String.valueOf(key))) {
+                    continue;
+                }
+                this.set(key, info.get(key));
             }
-            this.set(key, info.get(key));
-        }
-        if (FastStringUtils.isNotEmpty(info.getFileName())) {
-            setFileName(info.getFileName());
-        }
-        if (info.getLineNumber() != 0) {
-            setLineNumber(info.getLineNumber());
+            if (FastStringUtils.isNotEmpty(info.getFileName())) {
+                setFileName(info.getFileName());
+            }
+            if (info.getLineNumber() != 0) {
+                setLineNumber(info.getLineNumber());
+            }
         }
         for (FastColumnInfo<?> column : info.getColumns()) {
             FastColumnInfo<?> existColumn = this.getColumnInfo(column.getName());

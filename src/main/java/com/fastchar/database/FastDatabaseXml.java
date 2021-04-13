@@ -166,7 +166,7 @@ public final class FastDatabaseXml {
 
 
     public static class DatabaseInfoHandler extends DefaultHandler {
-        private File xmlFile;
+        private final File xmlFile;
         private Locator locator;
         private FastDatabaseInfo databaseInfo;
         private FastTableInfo<?> tableInfo;

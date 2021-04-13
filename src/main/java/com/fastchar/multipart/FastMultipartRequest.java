@@ -4,7 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastFile;
 import com.fastchar.exception.FastFileException;
 import com.fastchar.local.FastCharLocal;
-import com.fastchar.utils.FastHttpUtils;
+import com.fastchar.utils.FastRequestUtils;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
@@ -56,7 +56,7 @@ public class FastMultipartRequest {
                 MultipartParser parser = new MultipartParser(request, maxPostSize, true, true, encoding);
                 Vector existingValues;
                 if (request.getQueryString() != null) {
-                    Hashtable queryParameters = FastHttpUtils.parseQueryString(request.getQueryString());
+                    Hashtable queryParameters = FastRequestUtils.parseQueryString(request.getQueryString());
                     Enumeration queryParameterNames = queryParameters.keys();
 
                     while (queryParameterNames.hasMoreElements()) {

@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class FastLockUtils {
 
-    private static ConcurrentHashMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<String, ReentrantLock>();
+    private static final ConcurrentHashMap<String, ReentrantLock> LOCK_MAP = new ConcurrentHashMap<String, ReentrantLock>();
 
 
     /**
@@ -18,13 +18,12 @@ public class FastLockUtils {
      * @return ReentrantLock
      */
     public static ReentrantLock getLock(String key) {
-        ReentrantLock lock = lockMap.get(key);
+        ReentrantLock lock = LOCK_MAP.get(key);
         if (lock != null) {
             return lock;
         }
-
         lock = new ReentrantLock();
-        ReentrantLock previousLock = lockMap.putIfAbsent(key, lock);
+        ReentrantLock previousLock = LOCK_MAP.putIfAbsent(key, lock);
         return previousLock == null ? lock : previousLock;
     }
 
@@ -34,7 +33,7 @@ public class FastLockUtils {
      * @param key 唯一key
      */
     public static void removeLock(String key) {
-        lockMap.remove(key);
+        LOCK_MAP.remove(key);
     }
 
 }

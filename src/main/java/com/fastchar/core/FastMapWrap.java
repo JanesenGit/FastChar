@@ -150,6 +150,15 @@ public class FastMapWrap {
     }
 
     /**
+     * 是否不为null
+     * @param attr 属性名
+     * @return 布尔值
+     */
+    public boolean isNotNull(String attr) {
+        return !isNull(attr);
+    }
+
+    /**
      * 是否为Timestamp类型
      * @param attr 属性名
      * @return 布尔值

@@ -645,7 +645,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     /**
      * 设置数据到数据库中，根据指定的检测属性，如果不存在则添加，存在则修改
      *
-     * @param handler 操作句柄，可根据code判断数据最终是添加还是更新 0：添加 1：更新
+     * @param handler 操作句柄，可根据code判断数据最终是添加还是更新 【0：添加 1：更新】
      * @param checks  检测属性名，用作where判断
      * @return 布尔值
      */
@@ -1183,6 +1183,17 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     public boolean isNull(String attr) {
         return getMapWrap().isNull(attr);
     }
+
+    /**
+     * 是否不为null
+     *
+     * @param attr 属性名
+     * @return 布尔值
+     */
+    public boolean isNotNull(String attr) {
+        return getMapWrap().isNotNull(attr);
+    }
+
 
     /**
      * 是否为Timestamp类型

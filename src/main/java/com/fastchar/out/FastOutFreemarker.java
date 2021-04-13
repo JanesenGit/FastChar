@@ -1,5 +1,6 @@
 package com.fastchar.out;
 
+import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import freemarker.template.Template;
@@ -14,6 +15,7 @@ import java.util.Map;
 /**
  * 响应Freemarker模板
  */
+@AFastClassFind(value = "freemarker.template.Template", url = "https://mvnrepository.com/artifact/org.freemarker/freemarker")
 public class FastOutFreemarker extends FastOut<FastOutFreemarker> {
 
     public FastOutFreemarker() {

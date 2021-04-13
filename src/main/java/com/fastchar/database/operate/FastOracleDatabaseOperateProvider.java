@@ -337,7 +337,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                 fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(deleteIndexStr);
             }
             String createIndexSql = String.format("alter table %s add %s index %s (%s%s)", tableName, convertIndex,
-                    indexName, columnName, getIndexMaxLength(getType(columnInfo)));
+                    indexName, columnName, getIndexMaxLength(getLength(columnInfo), getType(columnInfo)));
             fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(createIndexSql);
             FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
                     FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO4, databaseInfo.getName(), tableName, columnInfo.getName(), indexName));
@@ -487,7 +487,7 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
     }
 
 
-    public String getIndexMaxLength(String type) {
+    public String getIndexMaxLength(String length,String type) {
         if ("fulltext".equals(type.toLowerCase())) {
             return "";
         }
@@ -499,7 +499,11 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
                 || FastType.isByteArrayType(type)) {
             return "";
         }
-        return "(155)";
+        int numberLength = FastNumberUtils.formatToInt(length);
+        if (numberLength == 0) {
+            numberLength = 50;
+        }
+        return "(" + Math.min(numberLength, 155) + ")";
     }
 
 }

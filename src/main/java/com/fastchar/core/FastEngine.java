@@ -73,7 +73,6 @@ public final class FastEngine {
         System.setErr(new FastErrorPrintStream(System.out, true));
 
         observable.addObserver(FastDatabaseObserver.class);
-
         constant.addCrossHeaders("Content-Type", "Access-Control-Allow-Headers", "Authorization", "X-Requested-With", "token");
     }
 

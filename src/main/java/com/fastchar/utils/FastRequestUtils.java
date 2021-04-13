@@ -12,12 +12,12 @@ import java.util.StringTokenizer;
  * @author 沈建（Janesen）
  * @date 2020/8/6 17:46
  */
-public class FastHttpUtils {
+public class FastRequestUtils {
 
     private static final String LSTRING_FILE = "javax.servlet.http.LocalStrings";
     private static final ResourceBundle L_STRINGS = ResourceBundle.getBundle("javax.servlet.http.LocalStrings");
 
-    public FastHttpUtils() {
+    public FastRequestUtils() {
     }
 
     public static Hashtable<String, String[]> parseQueryString(String s) {

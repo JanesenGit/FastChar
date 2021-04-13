@@ -1,5 +1,6 @@
 package com.fastchar.out;
 
+import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.local.FastCharLocal;
@@ -16,6 +17,7 @@ import java.util.Map;
 /**
  * 响应输出Velocity模板
  */
+@AFastClassFind(value = "org.apache.velocity.VelocityContext", url = "https://mvnrepository.com/artifact/org.apache.velocity/velocity-engine-core")
 public class FastOutVelocity extends FastOut<FastOutVelocity> {
 
     public FastOutVelocity() {
@@ -24,6 +26,7 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
 
     /**
      * 响应数据
+     *
      * @param action
      */
     @Override
@@ -51,15 +54,15 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
             context.put(key, finalContext.get(key));
         }
 
-        for (Enumeration<String> attrs = request.getAttributeNames(); attrs.hasMoreElements();) {
+        for (Enumeration<String> attrs = request.getAttributeNames(); attrs.hasMoreElements(); ) {
             String attrName = attrs.nextElement();
             context.put(attrName, request.getAttribute(attrName));
         }
-        for (Enumeration<String> attrs = request.getSession().getAttributeNames(); attrs.hasMoreElements();) {
+        for (Enumeration<String> attrs = request.getSession().getAttributeNames(); attrs.hasMoreElements(); ) {
             String attrName = attrs.nextElement();
             context.put(attrName, request.getSession().getAttribute(attrName));
         }
-        try (PrintWriter writer = response.getWriter()){
+        try (PrintWriter writer = response.getWriter()) {
             template.merge(context, writer);
             writer.flush();
         }

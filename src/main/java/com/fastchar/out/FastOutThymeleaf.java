@@ -1,5 +1,6 @@
 package com.fastchar.out;
 
+import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import org.thymeleaf.context.WebContext;
@@ -13,6 +14,7 @@ import java.util.Map;
 /**
  * 响应输出Thymeleaf模板
  */
+@AFastClassFind(value = "org.thymeleaf.context.WebContext", url = "https://mvnrepository.com/artifact/org.thymeleaf/thymeleaf")
 public class FastOutThymeleaf extends FastOut<FastOutThymeleaf> {
     public FastOutThymeleaf() {
         this.contentType = "text/html";

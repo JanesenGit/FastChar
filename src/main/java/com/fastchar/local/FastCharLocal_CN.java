@@ -28,6 +28,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     //参数相关错误
     private final String Param_Error1 = "参数{0}不可为空！";
     private final String Param_Error2 = "参数{0}值错误！";
+    private final String Param_Error3 = "参数异常！";
 
     private final String Interceptor_Error1 = "请求前置的拦截器{0}没有执行response或invoke方法！";
     private final String Interceptor_Error2 = "请求后置的拦截器{0}没有执行response或invoke方法！";

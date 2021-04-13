@@ -8,13 +8,14 @@ import java.util.*;
 
 /**
  * 系统全局配置
+ *
  * @author 沈建（Janesen）
  */
 public class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FAST_CHAR_VERSION = "1.5.4";
+    public static final String FAST_CHAR_VERSION = "1.5.5";
 
     /**
      * 数据库xml配置文件的前缀
@@ -62,7 +63,7 @@ public class FastConstant {
     private boolean logHeaders = false;//打印请求的header信息
     private boolean logRemoteAddress = false;//打印远程请求的地址
     private boolean logInterceptorUseTotal = false;//打印拦截器的耗时时间
-    private boolean logFilterResponseTime =false;//是否只打印 超时的路由日志
+    private boolean logFilterResponseTime = false;//是否只打印 超时的路由日志
     private boolean logSql = true;//是否打印sql语句日志
     private boolean logExtract = false;//是否打印解压jar包的文件日志
     private boolean logSameJar = false;//是否打印不同版本的jar包
@@ -82,6 +83,9 @@ public class FastConstant {
 
     private boolean webStarted;//web服务器是否已启动
     private boolean webStopped;//web服务器是否已停止
+
+    private boolean decodeUploadFileName = true;//是否使用URLDecoder解码上传文件的名称
+    private String decodeUploadFileNameEncoding = encoding;//URLDecoder解码时的编码
 
     private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
 
@@ -604,6 +608,7 @@ public class FastConstant {
 
     /**
      * 添加允许跨域的域名
+     *
      * @param domains 域名地址 支持匹配符*
      * @return 当前对象
      */
@@ -624,6 +629,7 @@ public class FastConstant {
 
     /**
      * 获取允许跨域的域名地址
+     *
      * @return Set&lt;String&gt;
      */
     public Set<String> getCrossAllowDomains() {
@@ -632,6 +638,7 @@ public class FastConstant {
 
     /**
      * 是否只打印请求响应时间超过配置的maxUseTotalLog时间日志
+     *
      * @return 布尔值
      */
     public boolean isLogFilterResponseTime() {
@@ -640,6 +647,7 @@ public class FastConstant {
 
     /**
      * 设置是否只打印请求响应时间超过配置的maxResponseTime时间日志
+     *
      * @param logFilterResponseTime 布尔值
      * @return 当前对象
      */
@@ -650,6 +658,7 @@ public class FastConstant {
 
     /**
      * 是否打印sql语句
+     *
      * @return 布尔值
      */
     public boolean isLogSql() {
@@ -658,6 +667,7 @@ public class FastConstant {
 
     /**
      * 设置是否打印sql语句
+     *
      * @param logSql 布尔值
      * @return 当前对象
      */
@@ -668,6 +678,7 @@ public class FastConstant {
 
     /**
      * 获取session失效时间，默认 30分钟
+     *
      * @return 时间（秒）
      */
     public int getSessionMaxInterval() {
@@ -676,6 +687,7 @@ public class FastConstant {
 
     /**
      * 设置session失效时间
+     *
      * @param sessionMaxInterval 时间（秒）
      * @return 当前对象
      */
@@ -686,6 +698,7 @@ public class FastConstant {
 
     /**
      * 是否打印解压jar包的文件日志
+     *
      * @return 布尔值
      */
     public boolean isLogExtract() {
@@ -694,6 +707,7 @@ public class FastConstant {
 
     /**
      * 设置是否打印解压jar包的文件日志
+     *
      * @param logExtract 布尔值
      * @return 当前对象
      */
@@ -704,6 +718,7 @@ public class FastConstant {
 
     /**
      * 是否打印远程请求的地址
+     *
      * @return 布尔值
      */
     public boolean isLogRemoteAddress() {
@@ -712,6 +727,7 @@ public class FastConstant {
 
     /**
      * 设置是否打印远程请求接口的地址
+     *
      * @param logRemoteAddress 布尔值
      * @return 当前对象
      */
@@ -722,6 +738,7 @@ public class FastConstant {
 
     /**
      * 是否允许系统使用System.out输出打印
+     *
      * @return 布尔值
      */
     public boolean isSystemOutPrint() {
@@ -730,6 +747,7 @@ public class FastConstant {
 
     /**
      * 配置是否允许系统使用System.out输出打印
+     *
      * @param systemOutPrint 布尔值
      * @return 当前对象
      */
@@ -740,6 +758,7 @@ public class FastConstant {
 
     /**
      * 获取项目的Web服务器是否已启动
+     *
      * @return 布尔值
      */
     public boolean isWebStarted() {
@@ -748,6 +767,7 @@ public class FastConstant {
 
     /**
      * 设置项目的Web服务器是否已启动
+     *
      * @param webStarted 布尔值
      * @return 当前对象
      */
@@ -759,6 +779,7 @@ public class FastConstant {
 
     /**
      * 是否打印不同版本的JAR包
+     *
      * @return 布尔值
      */
     public boolean isLogSameJar() {
@@ -767,11 +788,30 @@ public class FastConstant {
 
     /**
      * 设置是否打印不同版本的JAR包
+     *
      * @param logSameJar 布尔值
      * @return 当前对象
      */
     public FastConstant setLogSameJar(boolean logSameJar) {
         this.logSameJar = logSameJar;
+        return this;
+    }
+
+    public boolean isDecodeUploadFileName() {
+        return decodeUploadFileName;
+    }
+
+    public FastConstant setDecodeUploadFileName(boolean decodeUploadFileName) {
+        this.decodeUploadFileName = decodeUploadFileName;
+        return this;
+    }
+
+    public String getDecodeUploadFileNameEncoding() {
+        return decodeUploadFileNameEncoding;
+    }
+
+    public FastConstant setDecodeUploadFileNameEncoding(String decodeUploadFileNameEncoding) {
+        this.decodeUploadFileNameEncoding = decodeUploadFileNameEncoding;
         return this;
     }
 
@@ -811,6 +851,8 @@ public class FastConstant {
                 ", propertiesName='" + propertiesName + '\'' +
                 ", webStarted=" + webStarted +
                 ", webStopped=" + webStopped +
+                ", decodeUploadFileName=" + decodeUploadFileName +
+                ", decodeUploadFileNameEncoding='" + decodeUploadFileNameEncoding + '\'' +
                 ", sessionMaxInterval=" + sessionMaxInterval +
                 '}';
     }

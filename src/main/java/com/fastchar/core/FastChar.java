@@ -2,7 +2,6 @@ package com.fastchar.core;
 
 import com.fastchar.database.FastDb;
 import com.fastchar.interfaces.*;
-
 import javax.servlet.ServletContext;
 
 /**
@@ -158,8 +157,13 @@ public final class FastChar {
         return FastEngine.instance().getProperties(fileName);
     }
 
+    public static FastFindClass getFindClass() {
+        return FastEngine.instance().getFindClass();
+    }
 
     public static boolean isMain() {
         return FastEngine.instance().isMain();
     }
+
+
 }

@@ -307,7 +307,8 @@ public final class FastScanner {
                     extract = scannerJar.getExtract();
                 }
                 if (extract) {
-                    String logInfo = FastChar.getLocal().getInfo(FastCharLocal.SCANNER_ERROR1, scannerJar.getJarFileName());
+                    String logInfo = FastChar.getLocal().getInfo(FastCharLocal.SCANNER_ERROR1,
+                            scannerJar.getJarFileName() + " (" + FastFileUtils.getFileSize(scannerJar.getJarFile()) + ") ");
                     FastChar.getLog().info(logInfo);
                 }
 
@@ -405,7 +406,8 @@ public final class FastScanner {
                     }
                 }
                 if (extract) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.SCANNER_ERROR2, scannerJar.getJarFileName()));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.SCANNER_ERROR2,
+                            scannerJar.getJarFileName() + " (" + FastFileUtils.getFileSize(scannerJar.getJarFile()) + ") "));
                 }
             }
         }
@@ -647,7 +649,6 @@ public final class FastScanner {
         private final String jarCode;
         private final String jarVersion;
         private String jarName;
-
 
         public File getJarFile() {
             return jarFile;

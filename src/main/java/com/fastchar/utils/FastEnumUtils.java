@@ -4,11 +4,11 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class FastEnumUtils {
 
 
-    public static <T extends Enum> T formatToEnum(Class<T> clazz, int index){
+    public static <T extends Enum> T formatToEnum(Class<T> clazz, int index) {
         return formatToEnum(clazz, index, null);
     }
 
@@ -25,7 +25,7 @@ public class FastEnumUtils {
     }
 
 
-    public static <T extends Enum> T formatToEnum(Class<T> clazz, String name){
+    public static <T extends Enum> T formatToEnum(Class<T> clazz, String name) {
         return formatToEnum(clazz, name, null);
     }
 
@@ -37,6 +37,9 @@ public class FastEnumUtils {
             int index = FastNumberUtils.formatToInt(name, -1);
             if (index >= 0) {
                 return formatToEnum(clazz, index, defaultValue);
+            }
+            if (FastNumberUtils.isNumber(name)) {
+                return null;
             }
             return (T) Enum.valueOf(clazz, name);
         } catch (Exception e) {
@@ -82,7 +85,12 @@ public class FastEnumUtils {
         return enumList.toArray((T[]) Array.newInstance(targetClass, enumList.size()));
     }
 
-    public static Integer[] getEnumOrdinals(Class<? extends  Enum<?>> targetClass, String... keys) {
+    public static <T extends Enum<?>> T[] getEnumValuesOr(Class<T> targetClass, String... keys) {
+        return getEnumValues(targetClass, keys);
+    }
+
+
+    public static Integer[] getEnumOrdinals(Class<? extends Enum<?>> targetClass, String... keys) {
         List<Integer> enumList = new ArrayList<>();
         Enum[] enumConstants = targetClass.getEnumConstants();
         for (Enum enumConstant : enumConstants) {
@@ -97,7 +105,7 @@ public class FastEnumUtils {
     }
 
 
-    public static Integer[] getEnumOrdinalsAnd(Class<? extends  Enum<?>> targetClass, String... keys) {
+    public static Integer[] getEnumOrdinalsAnd(Class<? extends Enum<?>> targetClass, String... keys) {
         List<Integer> enumList = new ArrayList<>();
         Enum[] enumConstants = targetClass.getEnumConstants();
         for (Enum enumConstant : enumConstants) {
@@ -116,4 +124,7 @@ public class FastEnumUtils {
         return enumList.toArray(new Integer[]{});
     }
 
+    public static Integer[] getEnumOrdinalsOr(Class<? extends Enum<?>> targetClass, String... keys) {
+        return getEnumOrdinals(targetClass, keys);
+    }
 }

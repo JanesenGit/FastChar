@@ -79,12 +79,16 @@ public class FastEhCache2Provider implements IFastCache {
 
     @Override
     public void set(String tag, String key, Object data) {
-        if (FastStringUtils.isEmpty(tag)||FastStringUtils.isEmpty(key)) {
+        if (FastStringUtils.isEmpty(tag) || FastStringUtils.isEmpty(key)) {
             return;
         }
         Cache cache = getCache(tag);
-        Element element = new Element(key, data);
-        cache.put(element);
+        if (data == null) {
+            cache.remove(key);
+        } else {
+            Element element = new Element(key, data);
+            cache.put(element);
+        }
     }
 
     @Override

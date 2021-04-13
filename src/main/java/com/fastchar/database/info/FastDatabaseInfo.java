@@ -151,6 +151,17 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return (List<T>) tables;
     }
 
+    public <T extends FastTableInfo<?>> List<T> findTables(String name) {
+        List<T> findTales = new ArrayList<>();
+        for (FastTableInfo<?> table : tables) {
+            if (table.getName().contains(name)) {
+                findTales.add((T) table);
+            }
+        }
+        return findTales;
+    }
+
+
     public FastDatabaseInfo setTables(List<FastTableInfo<?>> tables) {
         this.tables = tables;
         return this;
@@ -337,6 +348,20 @@ public class FastDatabaseInfo extends FastBaseInfo {
 
 
     public void validate() throws FastDatabaseException {
+        //合并 * 号匹配的表格
+
+        List<FastTableInfo<?>> matchesTableList = findTables("*");
+        for (FastTableInfo<?> matchesTable : matchesTableList) {
+            for (FastTableInfo<?> table : this.tables) {
+                if (table.isLock()) {
+                    continue;
+                }
+                if (FastStringUtils.matches(matchesTable.getName(), table.getName())) {
+                    table.merge(matchesTable, true);
+                }
+            }
+        }
+
         List<FastTableInfo<?>> tables = new ArrayList<>(getTables());
         for (FastTableInfo<?> table : tables) {
             for (FastColumnInfo<?> column : table.getColumns()) {
@@ -348,6 +373,8 @@ public class FastDatabaseInfo extends FastBaseInfo {
                 table.validate();
             }
         }
+
+
     }
 
 }

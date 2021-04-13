@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 
 /**
  * Request请求处理类，FastChar核心类
+ *
  * @author 沈建（Janesen）
  */
 @SuppressWarnings("all")
@@ -57,6 +58,7 @@ public abstract class FastAction {
 
     /**
      * 根据key获取一个对象锁
+     *
      * @param key 唯一key
      * @return ReentrantLock
      */
@@ -66,6 +68,7 @@ public abstract class FastAction {
 
     /**
      * 删除一个对象锁
+     *
      * @param key 唯一key
      */
     protected void removeLock(String key) {
@@ -74,6 +77,7 @@ public abstract class FastAction {
 
     /**
      * 获得路由地址
+     *
      * @return String
      */
     protected abstract String getRoute();
@@ -100,6 +104,7 @@ public abstract class FastAction {
 
     /**
      * 判断是否是multipart/form-data表单格式
+     *
      * @return 布尔值
      */
     public boolean isMultipart() {
@@ -125,6 +130,7 @@ public abstract class FastAction {
 
     /**
      * 获得项目的主路径地址，例如：http://localhost:8080/fastchar_test/
+     *
      * @return 项目主路径
      */
     public String getProjectHost() {
@@ -147,6 +153,7 @@ public abstract class FastAction {
 
     /**
      * 获得请求对象
+     *
      * @return HttpServletRequest
      */
     public HttpServletRequest getRequest() {
@@ -168,6 +175,7 @@ public abstract class FastAction {
 
     /**
      * 获取Web全局上下文
+     *
      * @return ServletContext
      */
     public final ServletContext getServletContext() {
@@ -176,6 +184,7 @@ public abstract class FastAction {
 
     /**
      * 判断参数是否为空
+     *
      * @param paramName 参数名称
      * @return 布尔值
      */
@@ -185,6 +194,7 @@ public abstract class FastAction {
 
     /**
      * 判断参数是否不为空
+     *
      * @param paramName 参数名
      * @return 布尔值
      */
@@ -194,6 +204,7 @@ public abstract class FastAction {
 
     /**
      * 判断参数是否为【空白】值
+     *
      * @param paramName 参数名
      * @return 布尔值
      */
@@ -203,6 +214,7 @@ public abstract class FastAction {
 
     /**
      * 判断参数是否不为【空白】值
+     *
      * @param paramName 参数名
      * @return 布尔值
      */
@@ -212,6 +224,7 @@ public abstract class FastAction {
 
     /**
      * 判断参数是否存在
+     *
      * @param paramName 参数名
      * @return 布尔值
      */
@@ -221,7 +234,8 @@ public abstract class FastAction {
 
     /**
      * 添加请求的参数
-     * @param paramName 参数名
+     *
+     * @param paramName  参数名
      * @param paramValue 参数值
      * @return 当前对象
      */
@@ -230,9 +244,31 @@ public abstract class FastAction {
         return this;
     }
 
+    /**
+     * 设置请求的参数，将覆盖request中的参数
+     *
+     * @param paramName  参数名
+     * @param paramValue 参数值
+     * @return 当前对象
+     */
+    public FastAction setParam(String paramName, String paramValue) {
+        List<FastRequestParam> waitRemove = new ArrayList<>();
+        for (FastRequestParam param : params) {
+            if (param.getName().equals(paramName)) {
+                waitRemove.add(param);
+            }
+        }
+        if (waitRemove.size() > 0) {
+            params.removeAll(waitRemove);
+        }
+        params.add(new FastRequestParam().setName(paramName).setValue(paramValue).setDoSet(true));
+        return this;
+    }
+
 
     /**
      * 获取所有参数名称集合
+     *
      * @return Set&lt;String&gt;
      */
     public Set<String> getParamNames() {
@@ -251,7 +287,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return String
      */
@@ -261,6 +298,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return String
      */
@@ -270,8 +308,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return String
      */
     public String getParam(String paramName, boolean notNull) {
@@ -295,6 +334,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @return String[]
      */
@@ -304,20 +344,26 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return String[]
      */
     public String[] getParamToArray(String paramName, boolean notNull) {
         String[] parameterValues = getRequest().getParameterValues(paramName);
         List<String> arrays = new ArrayList<>();
-        if (parameterValues != null) {
-            arrays.addAll(Arrays.asList(parameterValues));
-        }
+
+        //2021-1-11 新增
+        boolean breakRequestValue = false;
         for (FastRequestParam param : params) {
             if (param.getName().equals(paramName)) {
                 arrays.add(param.getValue());
+                breakRequestValue = param.isDoSet();
             }
+        }
+
+        if (parameterValues != null && !breakRequestValue) {
+            arrays.addAll(Arrays.asList(parameterValues));
         }
         if (arrays.size() == 0 && notNull) {
             responseParamError(paramName, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, paramName));
@@ -331,6 +377,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @return Integer[]
      */
@@ -340,14 +387,18 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Integer[]
      */
     public Integer[] getParamToIntArray(String paramName, boolean notNull) {
         List<Integer> arrays = new ArrayList<>();
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
             arrays.add(FastNumberUtils.formatToInt(parameterValue));
         }
         return arrays.toArray(new Integer[]{});
@@ -355,6 +406,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @return Double[]
      */
@@ -364,14 +416,18 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Double[]
      */
     public Double[] getParamToDoubleArray(String paramName, boolean notNull) {
         List<Double> arrays = new ArrayList<>();
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
             arrays.add(FastNumberUtils.formatToDouble(parameterValue));
         }
         return arrays.toArray(new Double[]{});
@@ -379,6 +435,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @return Long[]
      */
@@ -388,14 +445,18 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Long[]
      */
     public Long[] getParamToLongArray(String paramName, boolean notNull) {
         List<Long> arrays = new ArrayList<>();
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
             arrays.add(FastNumberUtils.formatToLong(parameterValue));
         }
         return arrays.toArray(new Long[]{});
@@ -403,6 +464,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @return Float[]
      */
@@ -412,14 +474,18 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Float[]
      */
     public Float[] getParamToFloatArray(String paramName, boolean notNull) {
         List<Float> arrays = new ArrayList<>();
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
             arrays.add(FastNumberUtils.formatToFloat(parameterValue));
         }
         return arrays.toArray(new Float[]{});
@@ -427,6 +493,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @return Short[]
      */
@@ -436,14 +503,18 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Short[]
      */
     public Short[] getParamToShortArray(String paramName, boolean notNull) {
         List<Short> arrays = new ArrayList<>();
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
             arrays.add(FastNumberUtils.formatToShort(parameterValue));
         }
         return arrays.toArray(new Short[]{});
@@ -451,6 +522,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @return Boolean[]
      */
@@ -460,14 +532,18 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Boolean[]
      */
     public Boolean[] getParamToBooleanArray(String paramName, boolean notNull) {
         List<Boolean> arrays = new ArrayList<>();
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
             arrays.add(FastBooleanUtils.formatToBoolean(parameterValue));
         }
         return arrays.toArray(new Boolean[]{});
@@ -475,6 +551,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组，符合系统全局日期格式
+     *
      * @param paramName 参数名
      * @return Date[]
      */
@@ -484,8 +561,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组 ，符合系统全局日期格式
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Date[]
      */
     public Date[] getParamToDateArray(String paramName, boolean notNull) {
@@ -494,7 +572,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组，符合系统全局日期格式
-     * @param paramName 参数名
+     *
+     * @param paramName  参数名
      * @param dateFormat 日期格式类型，例如：yyyy-MM-dd
      * @return Date[]
      */
@@ -504,15 +583,19 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组，符合系统全局日期格式
-     * @param paramName 参数名
+     *
+     * @param paramName  参数名
      * @param dateFormat 日期格式类型，例如：yyyy-MM-dd
-     * @param notNull 是否不为空
+     * @param notNull    是否不为空
      * @return Date[]
      */
     public Date[] getParamToDateArray(String paramName, String dateFormat, boolean notNull) {
         List<Date> arrays = new ArrayList<>();
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
             arrays.add(FastDateUtils.parse(parameterValue, dateFormat));
         }
         return arrays.toArray(new Date[]{});
@@ -520,9 +603,10 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @param enumClass 枚举的类
-     * @param <T> 继承Enum的类
+     * @param <T>       继承Enum的类
      * @return T[]
      */
     public <T extends Enum> T[] getParamToEnumArray(String paramName, Class<T> enumClass) {
@@ -531,17 +615,22 @@ public abstract class FastAction {
 
     /**
      * 获得参数数组
+     *
      * @param paramName 参数名
      * @param enumClass 枚举的类
-     * @param notNull 是否不为空
-     * @param <T> 继承Enum的类
+     * @param notNull   是否不为空
+     * @param <T>       继承Enum的类
      * @return T[]
      */
     public <T extends Enum> T[] getParamToEnumArray(String paramName, Class<T> enumClass, boolean notNull) {
         String[] parameterValues = getParamToArray(paramName, notNull);
         Object array = Array.newInstance(enumClass, parameterValues.length);
         for (int i = 0; i < parameterValues.length; i++) {
-            T e = FastEnumUtils.formatToEnum(enumClass, parameterValues[i]);
+            String parameterValue = parameterValues[i];
+            if (FastStringUtils.isEmpty(parameterValue)) {
+                continue;
+            }
+            T e = FastEnumUtils.formatToEnum(enumClass, parameterValue);
             Array.set(array, i, e);
         }
         return (T[]) array;
@@ -550,6 +639,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
+     *
      * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @return List&lt;String&gt;
      */
@@ -559,7 +649,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     *
+     * @param prefix  参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param notNull 是否不为空
      * @return List&lt;String&gt;
      */
@@ -589,6 +680,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
+     *
      * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @return List&lt;Integer&gt;
      */
@@ -598,7 +690,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     *
+     * @param prefix  参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param notNull 是否不为空
      * @return List&lt;Integer&gt;
      */
@@ -606,6 +699,9 @@ public abstract class FastAction {
         List<Integer> list = new ArrayList<>();
         List<String> paramToList = getParamToList(prefix, notNull);
         for (String value : paramToList) {
+            if (FastStringUtils.isEmpty(value)) {
+                continue;
+            }
             list.add(FastNumberUtils.formatToInt(value));
         }
         return list;
@@ -613,6 +709,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
+     *
      * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @return List&lt;Double&gt;
      */
@@ -622,7 +719,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     *
+     * @param prefix  参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param notNull 是否不为空
      * @return List&lt;Double&gt;
      */
@@ -630,6 +728,9 @@ public abstract class FastAction {
         List<Double> list = new ArrayList<>();
         List<String> paramToList = getParamToList(prefix, notNull);
         for (String value : paramToList) {
+            if (FastStringUtils.isEmpty(value)) {
+                continue;
+            }
             list.add(FastNumberUtils.formatToDouble(value));
         }
         return list;
@@ -637,6 +738,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
+     *
      * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @return List&lt;Float&gt;
      */
@@ -646,7 +748,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     *
+     * @param prefix  参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param notNull 是否不为空
      * @return List&lt;Float&gt;
      */
@@ -654,6 +757,9 @@ public abstract class FastAction {
         List<Float> list = new ArrayList<>();
         List<String> paramToList = getParamToList(prefix, notNull);
         for (String value : paramToList) {
+            if (FastStringUtils.isEmpty(value)) {
+                continue;
+            }
             list.add(FastNumberUtils.formatToFloat(value));
         }
         return list;
@@ -661,6 +767,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
+     *
      * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @return List&lt;Long&gt;
      */
@@ -670,7 +777,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     *
+     * @param prefix  参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param notNull 是否不为空
      * @return List&lt;Long&gt;
      */
@@ -678,6 +786,9 @@ public abstract class FastAction {
         List<Long> list = new ArrayList<>();
         List<String> paramToList = getParamToList(prefix, notNull);
         for (String value : paramToList) {
+            if (FastStringUtils.isEmpty(value)) {
+                continue;
+            }
             list.add(FastNumberUtils.formatToLong(value));
         }
         return list;
@@ -685,6 +796,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
+     *
      * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @return List&lt;Short&gt;
      */
@@ -694,7 +806,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     *
+     * @param prefix  参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param notNull 是否不为空
      * @return List&lt;Short&gt;
      */
@@ -702,6 +815,9 @@ public abstract class FastAction {
         List<Short> list = new ArrayList<>();
         List<String> paramToList = getParamToList(prefix, notNull);
         for (String value : paramToList) {
+            if (FastStringUtils.isEmpty(value)) {
+                continue;
+            }
             list.add(FastNumberUtils.formatToShort(value));
         }
         return list;
@@ -709,9 +825,10 @@ public abstract class FastAction {
 
     /**
      * 获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     *
+     * @param prefix    参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param enumClass 枚举的类
-     * @param <T> 继承Enum的类
+     * @param <T>       继承Enum的类
      * @return List&lt;T&gt;
      */
     public <T extends Enum> List<T> getParamToEnumList(String prefix, Class<T> enumClass) {
@@ -719,11 +836,12 @@ public abstract class FastAction {
     }
 
     /**
-     *  获得参数集合
-     * @param prefix 参数前缀，例如参数为：map.userId 那么参数前缀为：map
+     * 获得参数集合
+     *
+     * @param prefix    参数前缀，例如参数为：map.userId 那么参数前缀为：map
      * @param enumClass 枚举的类
-     * @param notNull 是否不为空
-     * @param <T> 继承Enum的泛型类
+     * @param notNull   是否不为空
+     * @param <T>       继承Enum的泛型类
      * @return List&lt;T&gt;
      */
     public <T extends Enum> List<T> getParamToEnumList(String prefix, Class<T> enumClass, boolean notNull) {
@@ -732,7 +850,11 @@ public abstract class FastAction {
         List<String> paramToList = getParamToList(prefix, notNull);
         Object array = Array.newInstance(enumClass, paramToList.size());
         for (int i = 0; i < paramToList.size(); i++) {
-            T e = FastEnumUtils.formatToEnum(enumClass, paramToList.get(i));
+            String value = paramToList.get(i);
+            if (FastStringUtils.isEmpty(value)) {
+                continue;
+            }
+            T e = FastEnumUtils.formatToEnum(enumClass, value);
             Array.set(array, i, e);
         }
         list.addAll(Arrays.asList((T[]) array));
@@ -742,6 +864,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return int
      */
@@ -751,8 +874,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return int
      */
     public int getParamToInt(String paramName, boolean notNull) {
@@ -761,7 +885,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return int
      */
@@ -771,6 +896,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return short
      */
@@ -780,8 +906,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return short
      */
     public short getParamToShort(String paramName, boolean notNull) {
@@ -791,7 +918,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return int
      */
@@ -802,6 +930,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return double
      */
@@ -811,8 +940,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return double
      */
     public double getParamToDouble(String paramName, boolean notNull) {
@@ -821,7 +951,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return double
      */
@@ -831,8 +962,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param digit 精度，例如传2 表示保留2位小数
+     * @param digit     精度，例如传2 表示保留2位小数
      * @return double
      */
     public double getParamToDouble(String paramName, int digit) {
@@ -841,9 +973,10 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
-     * @param digit 精度，例如传2 表示保留2位小数
+     * @param digit        精度，例如传2 表示保留2位小数
      * @return double
      */
     public double getParamToDouble(String paramName, double defaultValue, int digit) {
@@ -852,6 +985,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return float
      */
@@ -861,8 +995,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return float
      */
     public float getParamToFloat(String paramName, boolean notNull) {
@@ -871,7 +1006,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return float
      */
@@ -881,9 +1017,10 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
-     * @param digit 精度，例如传2 表示保留2位小数
+     * @param digit        精度，例如传2 表示保留2位小数
      * @return float
      */
     public float getParamToFloat(String paramName, float defaultValue, int digit) {
@@ -892,8 +1029,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param digit 精度，例如传2 表示保留2位小数
+     * @param digit     精度，例如传2 表示保留2位小数
      * @return double
      */
     public float getParamToFloat(String paramName, int digit) {
@@ -902,6 +1040,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return boolean
      */
@@ -911,8 +1050,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return boolean
      */
     public boolean getParamToBoolean(String paramName, boolean notNull) {
@@ -921,7 +1061,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return boolean
      */
@@ -931,6 +1072,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return long
      */
@@ -940,8 +1082,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return long
      */
     public long getParamToLong(String paramName, boolean notNull) {
@@ -950,7 +1093,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return long
      */
@@ -960,6 +1104,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @return Date
      */
@@ -969,8 +1114,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
-     * @param notNull 是否不为空
+     * @param notNull   是否不为空
      * @return Date
      */
     public Date getParamToDate(String paramName, boolean notNull) {
@@ -979,7 +1125,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName    参数名
      * @param defaultValue 默认值
      * @return Date
      */
@@ -989,19 +1136,21 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName  参数名
      * @param dateFormat 日期格式，例如：yyyy-MM-dd
      * @return Date
      */
     public Date getParamToDate(String paramName, String dateFormat) {
-        return getParamToDate(paramName,dateFormat, null);
+        return getParamToDate(paramName, dateFormat, null);
     }
 
     /**
      * 获得参数
-     * @param paramName 参数名
+     *
+     * @param paramName  参数名
      * @param dateFormat 日期格式，例如：yyyy-MM-dd
-     * @param notNull 是否不为空
+     * @param notNull    是否不为空
      * @return Date
      */
     public Date getParamToDate(String paramName, String dateFormat, boolean notNull) {
@@ -1010,8 +1159,9 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
-     * @param dateFormat 日期格式，例如：yyyy-MM-dd
+     *
+     * @param paramName    参数名
+     * @param dateFormat   日期格式，例如：yyyy-MM-dd
      * @param defaultValue 默认值
      * @return Date
      */
@@ -1021,9 +1171,10 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @param enumClass 枚举的类
-     * @param <T> 继承Enum的类
+     * @param <T>       继承Enum的类
      * @return T
      */
     public <T extends Enum> T getParamToEnum(String paramName, Class<? extends Enum> enumClass) {
@@ -1032,10 +1183,11 @@ public abstract class FastAction {
 
     /**
      * 获得参数
+     *
      * @param paramName 参数名
      * @param enumClass 枚举的类
-     * @param notNull 是否不为空
-     * @param <T> 继承Enum的类
+     * @param notNull   是否不为空
+     * @param <T>       继承Enum的类
      * @return T
      */
     public <T extends Enum> T getParamToEnum(String paramName, Class<? extends Enum> enumClass, boolean notNull) {
@@ -1044,10 +1196,11 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
-     * @param enumClass 枚举的类
+     *
+     * @param paramName    参数名
+     * @param enumClass    枚举的类
      * @param defaultValue 默认值
-     * @param <T> 继承Enum的类
+     * @param <T>          继承Enum的类
      * @return T
      */
     public <T extends Enum> T getParamToEnum(String paramName, Class<? extends Enum> enumClass, Enum defaultValue) {
@@ -1056,11 +1209,12 @@ public abstract class FastAction {
 
     /**
      * 获得参数
-     * @param paramName 参数名
-     * @param enumClass 枚举的类
+     *
+     * @param paramName    参数名
+     * @param enumClass    枚举的类
      * @param defaultValue 默认值
-     * @param notNull 是否不为空
-     * @param <T> 继承Enum的类
+     * @param notNull      是否不为空
+     * @param <T>          继承Enum的类
      * @return T
      */
     private <T extends Enum> T getParamToEnum(String paramName, Class<? extends Enum> enumClass, Enum defaultValue, boolean notNull) {
@@ -1073,6 +1227,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数的map对象
+     *
      * @return Map&lt;String, Object&gt;
      */
     public Map<String, Object> getParamToMap() {
@@ -1096,6 +1251,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数的map对象
+     *
      * @param prefix 参数前缀，例如参数名：where.attr或where['attr']  前缀都为：where
      * @return Map&lt;String, Object&gt;
      */
@@ -1105,7 +1261,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数的map对象
-     * @param prefix 参数前缀，例如参数名：where.attr或where['attr']  前缀都为：where
+     *
+     * @param prefix  参数前缀，例如参数名：where.attr或where['attr']  前缀都为：where
      * @param notNull 是否不为空
      * @return Map&lt;String, Object&gt;
      */
@@ -1142,6 +1299,7 @@ public abstract class FastAction {
 
     /**
      * 获得参数的map集合
+     *
      * @param prefix 参数前缀，参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
      * @return List&lt;Map&lt;String, Object&gt;&gt;
      */
@@ -1151,7 +1309,8 @@ public abstract class FastAction {
 
     /**
      * 获得参数的map集合
-     * @param prefix 参数前缀，参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
+     *
+     * @param prefix  参数前缀，参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
      * @param notNull 是否不为空
      * @return List&lt;Map&lt;String, Object&gt;&gt;
      */
@@ -1182,9 +1341,10 @@ public abstract class FastAction {
 
     /**
      * 获得entity实体
-     * @param prefix 参数前缀，例如参数名：where.attr或where['attr']  前缀都为：where
+     *
+     * @param prefix      参数前缀，例如参数名：where.attr或where['attr']  前缀都为：where
      * @param targetClass 实体类
-     * @param <T> 继承FastEntity的类
+     * @param <T>         继承FastEntity的类
      * @return T
      */
     public <T extends FastEntity<?>> T getParamToEntity(String prefix, Class<T> targetClass) {
@@ -1194,10 +1354,11 @@ public abstract class FastAction {
 
     /**
      * 获得entity实体
-     * @param prefix 参数前缀，例如参数名：where.attr或where['attr']  前缀都为：where
+     *
+     * @param prefix      参数前缀，例如参数名：where.attr或where['attr']  前缀都为：where
      * @param targetClass 实体类
-     * @param notNull 是否不为空
-     * @param <T> 继承FastEntity的类
+     * @param notNull     是否不为空
+     * @param <T>         继承FastEntity的类
      * @return T
      */
     public <T extends FastEntity<?>> T getParamToEntity(String prefix, Class<T> targetClass,
@@ -1219,9 +1380,10 @@ public abstract class FastAction {
 
     /**
      * 获得entity实体集合
-     * @param prefix 参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
+     *
+     * @param prefix      参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
      * @param targetClass 实体类
-     * @param <T> 继承FastEntity的类
+     * @param <T>         继承FastEntity的类
      * @return List&lt;T&gt;
      */
     public <T extends FastEntity<?>> List<T> getParamToEntityList(String prefix, Class<T> targetClass) {
@@ -1230,10 +1392,11 @@ public abstract class FastAction {
 
     /**
      * 获得entity实体集合
-     * @param prefix 参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
+     *
+     * @param prefix      参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
      * @param targetClass 实体类
-     * @param notNull 是否不为空
-     * @param <T> 继承FastEntity的类
+     * @param notNull     是否不为空
+     * @param <T>         继承FastEntity的类
      * @return List&lt;T&gt;
      */
     public <T extends FastEntity<?>> List<T> getParamToEntityList(String prefix, Class<T> targetClass, boolean notNull) {
@@ -1261,9 +1424,10 @@ public abstract class FastAction {
 
     /**
      * 获得entity实体数组
-     * @param prefix 参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
+     *
+     * @param prefix      参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
      * @param targetClass 实体类
-     * @param <T> 继承FastEntity的类
+     * @param <T>         继承FastEntity的类
      * @return T[]
      */
     public <T extends FastEntity<?>> T[] getParamToEntityArray(String prefix, Class<T> targetClass) {
@@ -1272,10 +1436,11 @@ public abstract class FastAction {
 
     /**
      * 获得entity实体数组
-     * @param prefix 参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
+     *
+     * @param prefix      参数前缀，例如参数名：where[i].name或where[i]['name']  前缀都为：where，其中 i 是可变的数字
      * @param targetClass 实体类
-     * @param notNull 是否不为空
-     * @param <T> 继承FastEntity的类
+     * @param notNull     是否不为空
+     * @param <T>         继承FastEntity的类
      * @return T[]
      */
     public <T extends FastEntity<?>> T[] getParamToEntityArray(String prefix, Class<T> targetClass, boolean notNull) {
@@ -1289,9 +1454,10 @@ public abstract class FastAction {
 
     /**
      * 获得任意类型的参数，触发IFastParamConverter转换器进行转换
-     * @param paramName 参数名
+     *
+     * @param paramName   参数名
      * @param targetClass 目标类型
-     * @param <T> 泛型类
+     * @param <T>         泛型类
      * @return T
      * @throws Exception 抛出转换异常
      */
@@ -1300,11 +1466,12 @@ public abstract class FastAction {
     }
 
     /**
-     *  获得任意类型的参数，触发IFastParamConverter转换器进行转换
-     * @param paramName 参数名
-     * @param targetClass 目标类型
+     * 获得任意类型的参数，触发IFastParamConverter转换器进行转换
+     *
+     * @param paramName         参数名
+     * @param targetClass       目标类型
      * @param parameterizedType 目标类型
-     * @param <T> 泛型类
+     * @param <T>               泛型类
      * @return T
      * @throws Exception 抛出转换异常
      */
@@ -1319,6 +1486,7 @@ public abstract class FastAction {
 
     /**
      * 添加参数文件对象
+     *
      * @param fastFile 文件
      * @return 当前对象
      */
@@ -1335,18 +1503,22 @@ public abstract class FastAction {
      * 删除当前request下的所有本地附件
      */
     public void deleteAllParamFiles() {
-        for (FastFile fastFile : getParamListFile()) {
-            fastFile.getFile().delete();
+        List<FastFile<?>> paramListFile = getParamListFile();
+        if (paramListFile != null) {
+            for (FastFile fastFile : paramListFile) {
+                fastFile.getFile().delete();
+            }
         }
     }
 
     /**
      * 获得上传的附件
+     *
      * @return FastFile
      */
     public <T extends FastFile<?>> T getParamFile() {
         List<FastFile<?>> paramToListFile = getParamListFile();
-        if (paramToListFile.size() > 0) {
+        if (paramToListFile != null && paramToListFile.size() > 0) {
             return (T) paramToListFile.get(0);
         }
         return null;
@@ -1354,6 +1526,7 @@ public abstract class FastAction {
 
     /**
      * 获得上传的附件
+     *
      * @param paramName 参数名
      * @return FastFile
      */
@@ -1368,15 +1541,21 @@ public abstract class FastAction {
 
     /**
      * 获得上传的附件数组
+     *
      * @param paramName 参数名
      * @return List&lt;FastFile&lt;?&gt;&gt;
      */
     public <T extends FastFile<?>> List<T> getParamFileList(String paramName) {
-        return (List<T>) Arrays.asList(getParamFiles(paramName));
+        FastFile<?>[] paramFiles = getParamFiles(paramName);
+        if (paramFiles != null) {
+            return (List<T>) Arrays.asList(paramFiles);
+        }
+        return null;
     }
 
     /**
      * 获得上传的附件数组
+     *
      * @param paramName 参数名
      * @return FastFile[]
      */
@@ -1391,7 +1570,8 @@ public abstract class FastAction {
 
     /**
      * 获得上传的附件
-     * @param paramName 参数名
+     *
+     * @param paramName       参数名
      * @param moveToDirectory 保存到指定的目录下
      * @return FastFile
      * @throws FastFileException 抛出文件异常
@@ -1406,32 +1586,40 @@ public abstract class FastAction {
 
     /**
      * 获得上传的附件数组
+     *
      * @param paramName 参数名
      * @return List&lt;FastFile&lt;?&gt;&gt;
      */
-    public <T extends FastFile<?>> List<T> getParamFileList(String paramName, String moveToDirectory) throws FastFileException, IOException{
-        return (List<T>) Arrays.asList(getParamFiles(paramName, moveToDirectory));
+    public <T extends FastFile<?>> List<T> getParamFileList(String paramName, String moveToDirectory) throws FastFileException, IOException {
+        FastFile<?>[] paramFiles = getParamFiles(paramName, moveToDirectory);
+        if (paramFiles != null) {
+            return (List<T>) Arrays.asList(paramFiles);
+        }
+        return null;
     }
 
     /**
      * 获得上传的附件
-     * @param paramName 参数名
+     *
+     * @param paramName       参数名
      * @param moveToDirectory 保存到指定的目录下
      * @return FastFile
      * @throws FastFileException 抛出文件异常
      */
     public <T extends FastFile<?>> T[] getParamFiles(String paramName, String moveToDirectory) throws FastFileException, IOException {
-        FastFile<?>[] paramToFiles= getParamFiles(paramName);
-        for (FastFile<?> paramToFile : paramToFiles) {
-            paramToFile = paramToFile.moveFile(moveToDirectory);
+        FastFile<?>[] paramToFiles = getParamFiles(paramName);
+        if (paramToFiles != null && FastStringUtils.isNotEmpty(moveToDirectory)) {
+            for (FastFile<?> paramToFile : paramToFiles) {
+                paramToFile = paramToFile.moveFile(moveToDirectory);
+            }
         }
         return (T[]) paramToFiles;
     }
 
 
-
     /**
      * 获得上传的附件集合
+     *
      * @return List&lt;FastFile&lt;?&gt;&gt;
      */
     public <T extends FastFile<?>> List<T> getParamListFile() {
@@ -1472,6 +1660,7 @@ public abstract class FastAction {
 
     /**
      * 获得提交的xml数据
+     *
      * @return Document
      * @throws Exception 抛出异常
      */
@@ -1484,6 +1673,7 @@ public abstract class FastAction {
 
     /**
      * 获得提交的string数据
+     *
      * @return String
      * @throws Exception 抛出异常
      */
@@ -1493,6 +1683,7 @@ public abstract class FastAction {
 
     /**
      * 获得提交的string数据
+     *
      * @param encoding 编码格式
      * @return String
      * @throws Exception 抛出异常
@@ -1504,6 +1695,7 @@ public abstract class FastAction {
 
     /**
      * 响应数据
+     *
      * @param out 响应对象
      */
     public void response(FastOut out) {
@@ -1515,6 +1707,7 @@ public abstract class FastAction {
 
     /**
      * 响应Http状态码
+     *
      * @param status 状态码
      */
     public void responseStatus(int status) {
@@ -1523,6 +1716,7 @@ public abstract class FastAction {
 
     /**
      * 响应404界面
+     *
      * @param message 404的消息提醒
      */
     public void response404(String message) {
@@ -1531,6 +1725,7 @@ public abstract class FastAction {
 
     /**
      * 响应500界面
+     *
      * @param throwable 异常信息
      */
     public void response500(Throwable throwable) {
@@ -1546,6 +1741,7 @@ public abstract class FastAction {
 
     /**
      * 响应502界面
+     *
      * @param message 502的消息提醒
      */
     public void response502(String message) {
@@ -1555,6 +1751,7 @@ public abstract class FastAction {
 
     /**
      * 响应json数据
+     *
      * @param data 数据
      */
     public void responseJson(Object data) {
@@ -1563,6 +1760,7 @@ public abstract class FastAction {
 
     /**
      * 响应json数据
+     *
      * @param jsonFile json文件
      */
     public void responseJson(File jsonFile) {
@@ -1572,9 +1770,10 @@ public abstract class FastAction {
 
     /**
      * 响应指定格式的json数据，格式为：{code: *,success: *,message:*,data:*}
-     * @param code 错误码 0 为正常
+     *
+     * @param code    错误码 0 为正常
      * @param message 消息提示
-     * @param data 响应的数据
+     * @param data    响应的数据
      */
     public void responseJson(int code, String message, Object... data) {
         Map<String, Object> json = new HashMap<>();
@@ -1594,6 +1793,7 @@ public abstract class FastAction {
 
     /**
      * 响应文本
+     *
      * @param data 数据
      */
     public void responseText(Object data) {
@@ -1602,8 +1802,9 @@ public abstract class FastAction {
 
     /**
      * 响应文本
+     *
      * @param status 响应状态码
-     * @param data 数据
+     * @param data   数据
      */
     public void responseText(int status, Object data) {
         response(FastChar.getOverrides().newInstance(FastOutText.class).setData(data).setStatus(status));
@@ -1611,7 +1812,8 @@ public abstract class FastAction {
 
     /**
      * 响应文本
-     * @param data 数据
+     *
+     * @param data        数据
      * @param contentType 响应格式，例如：image/jpeg
      */
     public void responseText(Object data, String contentType) {
@@ -1620,8 +1822,9 @@ public abstract class FastAction {
 
     /**
      * 响应文本
-     * @param status 状态码
-     * @param data 数据
+     *
+     * @param status      状态码
+     * @param data        数据
      * @param contentType 响应格式，例如：image/jpeg
      */
     public void responseText(int status, Object data, String contentType) {
@@ -1630,6 +1833,7 @@ public abstract class FastAction {
 
     /**
      * 响应xml
+     *
      * @param data 数据
      */
     public void responseXml(Object data) {
@@ -1638,6 +1842,7 @@ public abstract class FastAction {
 
     /**
      * 响应xml
+     *
      * @param xmlFile xml文件
      */
     public void responseXml(File xmlFile) {
@@ -1646,6 +1851,7 @@ public abstract class FastAction {
 
     /**
      * 响应参数错误
+     *
      * @param paramName 参数名
      */
     public void responseParamError(String paramName) {
@@ -1654,8 +1860,9 @@ public abstract class FastAction {
 
     /**
      * 响应参数错误
+     *
      * @param paramName 参数名
-     * @param message 错误消息
+     * @param message   错误消息
      */
     public void responseParamError(String paramName, String message) {
         response(FastChar.getOverrides().newInstance(FastOutParamError.class)
@@ -1665,6 +1872,7 @@ public abstract class FastAction {
 
     /**
      * 响应网页
+     *
      * @param html 网页内容
      */
     public void responseHtml(Object html) {
@@ -1672,9 +1880,9 @@ public abstract class FastAction {
     }
 
 
-
     /**
      * 响应文件
+     *
      * @param file 文件
      */
     public void responseFile(File file) {
@@ -1683,7 +1891,8 @@ public abstract class FastAction {
 
     /**
      * 响应文件
-     * @param file 文件
+     *
+     * @param file     文件
      * @param fileName 文件名，一般用作下载时浏览器保存的文件名
      */
     public void responseFile(File file, String fileName) {
@@ -1692,7 +1901,8 @@ public abstract class FastAction {
 
     /**
      * 响应文件
-     * @param file 文件
+     *
+     * @param file        文件
      * @param disposition 是否提示浏览器下载
      */
     public void responseFile(File file, boolean disposition) {
@@ -1701,6 +1911,7 @@ public abstract class FastAction {
 
     /**
      * 响应文件
+     *
      * @param filePath 文件本地路径
      */
     public void responseFile(String filePath) {
@@ -1709,7 +1920,8 @@ public abstract class FastAction {
 
     /**
      * 响应文件
-     * @param filePath 文件本地路径
+     *
+     * @param filePath    文件本地路径
      * @param disposition 是否提示浏览器下载
      */
     public void responseFile(String filePath, boolean disposition) {
@@ -1718,6 +1930,7 @@ public abstract class FastAction {
 
     /**
      * 响应文件
+     *
      * @param filePath 文件本地路径
      * @param fileName 文件名，一般用作下载时浏览器保存的文件名
      */
@@ -1727,8 +1940,9 @@ public abstract class FastAction {
 
     /**
      * 响应文件
-     * @param filePath 文件本地路径
-     * @param fileName 文件名，一般用作下载时浏览器保存的文件名
+     *
+     * @param filePath    文件本地路径
+     * @param fileName    文件名，一般用作下载时浏览器保存的文件名
      * @param disposition 是否提示浏览器下载
      */
     public void responseFile(String filePath, String fileName, boolean disposition) {
@@ -1742,6 +1956,7 @@ public abstract class FastAction {
 
     /**
      * 响应jsp
+     *
      * @param jspPath jsp文件路径
      */
     public void responseJsp(String jspPath) {
@@ -1750,6 +1965,7 @@ public abstract class FastAction {
 
     /**
      * 响应Freemaker模板，使用Freemaker模板引擎
+     *
      * @param filePath 模板路径
      */
     public void responseFreemarker(String filePath) {
@@ -1758,7 +1974,8 @@ public abstract class FastAction {
 
     /**
      * 响应Freemaker模板，使用Freemaker模板引擎
-     * @param filePath 模板路径
+     *
+     * @param filePath    模板路径
      * @param contentType 响应格式，例如：image/jpeg
      */
     public void responseFreemarker(String filePath, String contentType) {
@@ -1767,6 +1984,7 @@ public abstract class FastAction {
 
     /**
      * 响应Thymeleaf模板，使用Thymeleaf模板引擎
+     *
      * @param filePath 模板路径
      */
     public void responseThymeleaf(String filePath) {
@@ -1775,7 +1993,8 @@ public abstract class FastAction {
 
     /**
      * 响应Thymeleaf模板，使用Thymeleaf模板引擎
-     * @param filePath 模板路径
+     *
+     * @param filePath    模板路径
      * @param contentType 响应格式，例如：image/jpeg
      */
     public void responseThymeleaf(String filePath, String contentType) {
@@ -1784,6 +2003,7 @@ public abstract class FastAction {
 
     /**
      * 响应Velocity模板，使用Velocity模板引擎
+     *
      * @param filePath 模板路径
      */
     public void responseVelocity(String filePath) {
@@ -1792,7 +2012,8 @@ public abstract class FastAction {
 
     /**
      * 响应Velocity模板，使用Velocity模板引擎
-     * @param filePath 模板路径
+     *
+     * @param filePath    模板路径
      * @param contentType 响应格式，例如：image/jpeg
      */
     public void responseVelocity(String filePath, String contentType) {
@@ -1808,6 +2029,7 @@ public abstract class FastAction {
 
     /**
      * 响应图片
+     *
      * @param image 图片流
      */
     public void responseImage(RenderedImage image) {
@@ -1816,17 +2038,18 @@ public abstract class FastAction {
 
     /**
      * 响应图片
-     * @param image 图片流
-     * @param formatName 图片格式
      *
+     * @param image      图片流
+     * @param formatName 图片格式
      */
-    public void responseImage(RenderedImage image,String formatName) {
+    public void responseImage(RenderedImage image, String formatName) {
         response(FastChar.getOverrides().newInstance(FastOutImage.class).setData(image).setFormatName(formatName).setStatus(this.status));
     }
 
 
     /**
      * 判断验证码是否正确
+     *
      * @param code 图片验证码
      * @return boolean
      */
@@ -1849,6 +2072,7 @@ public abstract class FastAction {
 
     /**
      * 重定向请求
+     *
      * @param url 路径
      */
     public void redirect(String url) {
@@ -1857,6 +2081,7 @@ public abstract class FastAction {
 
     /**
      * 重定向请求，响应状态码为：301
+     *
      * @param url 路径
      */
     public void redirect301(String url) {
@@ -1866,6 +2091,7 @@ public abstract class FastAction {
 
     /**
      * 转发请求
+     *
      * @param url 路径
      */
     public void forward(String url) {
@@ -1875,6 +2101,7 @@ public abstract class FastAction {
 
     /**
      * 获得请求的类型，POST或GET
+     *
      * @return String
      */
     public final String getRequestMethod() {
@@ -1883,6 +2110,7 @@ public abstract class FastAction {
 
     /**
      * 获得请求的contentType
+     *
      * @return String
      */
     public String getContentType() {
@@ -1891,6 +2119,7 @@ public abstract class FastAction {
 
     /**
      * 获取Session对象
+     *
      * @return HttpSession
      */
     public final HttpSession getSession() {
@@ -1901,8 +2130,9 @@ public abstract class FastAction {
 
     /**
      * 获取Session属性值
+     *
      * @param attr 属性
-     * @param <T> 泛型
+     * @param <T>  泛型
      * @return T
      */
     public <T> T getSession(String attr) {
@@ -1911,7 +2141,8 @@ public abstract class FastAction {
 
     /**
      * 设置session
-     * @param attr 属性名
+     *
+     * @param attr  属性名
      * @param value 属性值
      */
     public void setSession(String attr, Object value) {
@@ -1921,6 +2152,7 @@ public abstract class FastAction {
 
     /**
      * 删除session
+     *
      * @param attr 属性名
      */
     public void removeSession(String attr) {
@@ -1929,7 +2161,8 @@ public abstract class FastAction {
 
     /**
      * 设置Request属性值
-     * @param attr 属性名
+     *
+     * @param attr  属性名
      * @param value 属性值
      * @return 当前对象
      */
@@ -1940,6 +2173,7 @@ public abstract class FastAction {
 
     /**
      * 设置Request属性值
+     *
      * @param attrs 属性map集合
      * @return 当前对象
      */
@@ -1952,6 +2186,7 @@ public abstract class FastAction {
 
     /**
      * 获取Request属性值
+     *
      * @param attr 属性名
      * @return 属性值
      */
@@ -1962,6 +2197,7 @@ public abstract class FastAction {
 
     /**
      * 删除Request属性
+     *
      * @param attr 名称
      */
     public void removeRequestAttr(String attr) {
@@ -1971,6 +2207,7 @@ public abstract class FastAction {
 
     /**
      * 获取请求的头信息
+     *
      * @param name 名称
      * @return 字符串
      */
@@ -1980,6 +2217,7 @@ public abstract class FastAction {
 
     /**
      * 获取请求的头信息
+     *
      * @param name 名称
      * @return Enumeration&lt;String&gt;
      */
@@ -1989,6 +2227,7 @@ public abstract class FastAction {
 
     /**
      * 获取请求的头信息
+     *
      * @return Enumeration&lt;String&gt;
      */
     public Enumeration<String> getRequestHeaderNames() {
@@ -1998,10 +2237,11 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
-     * @param value 值
+     *
+     * @param name   名称
+     * @param value  值
      * @param maxAge 有效期，单位：秒
-     * @param path 路径
+     * @param path   路径
      * @param domain 域名
      * @return 当前对象
      */
@@ -2011,10 +2251,11 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
-     * @param value 值
+     *
+     * @param name   名称
+     * @param value  值
      * @param maxAge 有效期，单位：秒
-     * @param path 路径
+     * @param path   路径
      * @return 当前对象
      */
     public FastAction setCookie(String name, Object value, int maxAge, String path) {
@@ -2023,10 +2264,11 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
-     * @param value 值
-     * @param maxAge 有效期，单位：秒
-     * @param path 路径
+     *
+     * @param name     名称
+     * @param value    值
+     * @param maxAge   有效期，单位：秒
+     * @param path     路径
      * @param httpOnly 是否启用HttpOnly，启用后将无法通过js获取当前cookie值
      * @return 当前对象
      */
@@ -2036,9 +2278,10 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
-     * @param value 值
-     * @param maxAge 有效期，单位：秒
+     *
+     * @param name     名称
+     * @param value    值
+     * @param maxAge   有效期，单位：秒
      * @param httpOnly 是否启用HttpOnly，启用后将无法通过js获取当前cookie值
      * @return 当前对象
      */
@@ -2048,8 +2291,9 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
-     * @param value 值
+     *
+     * @param name   名称
+     * @param value  值
      * @param maxAge 有效期，单位：秒
      * @return 当前对象
      */
@@ -2059,7 +2303,8 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
+     *
+     * @param name  名称
      * @param value 值
      * @return 当前对象
      */
@@ -2069,8 +2314,9 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
-     * @param value 值
+     *
+     * @param name     名称
+     * @param value    值
      * @param httpOnly 是否启用HttpOnly，启用后将无法通过js获取当前cookie值
      * @return 当前对象
      */
@@ -2081,11 +2327,12 @@ public abstract class FastAction {
 
     /**
      * 设置cookie
-     * @param name 名称
-     * @param value 值
-     * @param maxAge 有效期，单位：秒
-     * @param path 路径
-     * @param domain 域名
+     *
+     * @param name     名称
+     * @param value    值
+     * @param maxAge   有效期，单位：秒
+     * @param path     路径
+     * @param domain   域名
      * @param httpOnly 是否启用HttpOnly，启用后将无法通过js获取当前cookie值
      * @return 当前对象
      */
@@ -2111,7 +2358,8 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
-     * @param name 名称
+     *
+     * @param name         名称
      * @param defaultValue 默认值
      * @return String
      */
@@ -2122,6 +2370,7 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
+     *
      * @param name 名称
      * @return String
      */
@@ -2131,6 +2380,7 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
+     *
      * @param name 名称
      * @return int
      */
@@ -2140,7 +2390,8 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
-     * @param name 名称
+     *
+     * @param name         名称
      * @param defaultValue 默认值
      * @return int
      */
@@ -2151,6 +2402,7 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
+     *
      * @param name 名称
      * @return double
      */
@@ -2160,7 +2412,8 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
-     * @param name 名称
+     *
+     * @param name         名称
      * @param defaultValue 默认值
      * @return double
      */
@@ -2171,6 +2424,7 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
+     *
      * @param name 名称
      * @return long
      */
@@ -2180,7 +2434,8 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
-     * @param name 名称
+     *
+     * @param name         名称
      * @param defaultValue 默认值
      * @return long
      */
@@ -2191,6 +2446,7 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
+     *
      * @param name 名称
      * @return boolean
      */
@@ -2200,7 +2456,8 @@ public abstract class FastAction {
 
     /**
      * 获得cookie值
-     * @param name 名称
+     *
+     * @param name         名称
      * @param defaultValue 默认值
      * @return boolean
      */
@@ -2211,6 +2468,7 @@ public abstract class FastAction {
 
     /**
      * 获得cookie
+     *
      * @param name 名称
      * @return Cookie
      */
@@ -2250,8 +2508,8 @@ public abstract class FastAction {
     /**
      * 删除cookie
      *
-     * @param name 名称
-     * @param path 相对路径
+     * @param name   名称
+     * @param path   相对路径
      * @param domain domain
      * @return 当前对象
      */
@@ -2272,6 +2530,7 @@ public abstract class FastAction {
 
     /**
      * 获得cookie数组
+     *
      * @return Cookie[]
      */
     public Cookie[] getCookieObjects() {
@@ -2281,6 +2540,7 @@ public abstract class FastAction {
 
     /**
      * 获取响应对象
+     *
      * @return HttpServletResponse
      */
     public HttpServletResponse getResponse() {
@@ -2289,6 +2549,7 @@ public abstract class FastAction {
 
     /**
      * 获取路径参数，例如实际路径为：/user  请求路径为：/user/1/abc 那么路径参数为：[1,abc]
+     *
      * @return List&lt;String&gt;
      */
     public List<String> getUrlParams() {
@@ -2297,6 +2558,7 @@ public abstract class FastAction {
 
     /**
      * 获取路径参数，例如实际路径为：/user  请求路径为：/user/1/abc 那么路径参数为：[1,abc]
+     *
      * @param index 索引
      * @return String
      */
@@ -2309,6 +2571,7 @@ public abstract class FastAction {
 
     /**
      * 获取当前Action的路由对象
+     *
      * @return FastRoute
      */
     public FastRoute getFastRoute() {
@@ -2317,6 +2580,7 @@ public abstract class FastAction {
 
     /**
      * 获取最终响应的类型
+     *
      * @return FastOut
      */
     public FastOut getFastOut() {
@@ -2325,6 +2589,7 @@ public abstract class FastAction {
 
     /**
      * 获取转发到当前action的action
+     *
      * @return FastAction
      */
     public FastAction getForwarder() {
@@ -2333,6 +2598,7 @@ public abstract class FastAction {
 
     /**
      * 是否打印日志
+     *
      * @return 布尔值，默认：true
      */
     public boolean isLog() {
@@ -2341,6 +2607,7 @@ public abstract class FastAction {
 
     /**
      * 设置是否打印日志
+     *
      * @param log 布尔值
      * @return 当前对象
      */
@@ -2351,6 +2618,7 @@ public abstract class FastAction {
 
     /**
      * 是否打印响应日志
+     *
      * @return 布尔值
      */
     public boolean isLogResponse() {
@@ -2359,6 +2627,7 @@ public abstract class FastAction {
 
     /**
      * 设置是否打印响应日志
+     *
      * @param logResponse 布尔值
      * @return 当前对象
      */
@@ -2369,6 +2638,7 @@ public abstract class FastAction {
 
     /**
      * 获取设置的响应状态码
+     *
      * @return 状态码
      */
     public int getStatus() {
@@ -2377,6 +2647,7 @@ public abstract class FastAction {
 
     /**
      * 设置响应状态码
+     *
      * @param status 状态码
      * @return 当前对象
      */
@@ -2387,6 +2658,7 @@ public abstract class FastAction {
 
     /**
      * 获取对方的ip地址
+     *
      * @return String
      */
     public String getRemoteIp() {
@@ -2422,9 +2694,9 @@ public abstract class FastAction {
     }
 
 
-
     /**
      * 获得request的user-agent
+     *
      * @return String
      */
     public final String getUserAgent() {
@@ -2434,6 +2706,7 @@ public abstract class FastAction {
 
     /**
      * 添加参数验证，会触发IFastValidator验证码器，只对getParam*相关方法有效
+     *
      * @param validator 验证标识
      * @return 当前对象
      */
@@ -2443,11 +2716,12 @@ public abstract class FastAction {
 
     /**
      * 添加参数验证，会触发IFastValidator验证码器，只对getParam*相关方法有效
+     *
      * @param validator 验证标识
-     * @param index 插入指定位置
+     * @param index     插入指定位置
      * @return 当前对象
      */
-    public FastAction check(int index,String validator) {
+    public FastAction check(int index, String validator) {
         return fastCheck.check(index, validator);
     }
 

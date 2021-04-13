@@ -143,3 +143,12 @@ V1.5.5
 4、优化FastDateUtils类！
 5、优化FastSerializeUtils类！
 6、优化FastEntity类，新增getColumns方法！
+7、优化FastEnumUtils类！
+8、新增表格xml配置名称"*"可通用配置所有表格列！
+9、新增setParam方法，可以强制设置提交的参数！
+10、优化FastFile类！
+
+V1.5.6
+1、优化FastAction的获取附件方法。
+2、优化FastBaseValidator验证器！
+3、优化Jedis读取Redis问题！

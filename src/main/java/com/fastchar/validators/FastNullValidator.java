@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
  */
 public class FastNullValidator extends FastBaseValidator {
 
-
     @Override
     public String validate(String validator, String key, Object value) {
         if (checkKey(validator, key)) {

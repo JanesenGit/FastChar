@@ -72,7 +72,9 @@ public class FastRedisNormalProvider implements IFastCache {
             return false;
         }
         try (Jedis jedis = getJedis()) {
-            return jedis.exists(wrapKey(tag, key));
+            return jedis.get(wrapKey(tag, key)) != null;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -97,7 +99,11 @@ public class FastRedisNormalProvider implements IFastCache {
             return;
         }
         try (Jedis jedis = getJedis()) {
-            jedis.set(wrapKey(tag, key).getBytes(), FastSerializeUtils.serialize(data));
+            if (data == null) {
+                jedis.del(wrapKey(tag, key).getBytes());
+            }else{
+                jedis.set(wrapKey(tag, key).getBytes(), FastSerializeUtils.serialize(data));
+            }
         }
     }
 

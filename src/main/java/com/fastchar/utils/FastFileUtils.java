@@ -11,6 +11,7 @@ import java.net.URLConnection;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -76,7 +77,6 @@ public class FastFileUtils {
     }
 
 
-
     public static boolean isImageFileByMimeType(String mimeType) {
         String[] mimeTypes = new String[]{
                 "image/bmp",
@@ -93,6 +93,7 @@ public class FastFileUtils {
 
         return isTargetFileByMimeType(mimeType, mimeTypes);
     }
+
     public static boolean isMP4FileByMimeType(String mimeType) {
         String[] extensions = new String[]{
                 "video/mp4"
@@ -121,6 +122,7 @@ public class FastFileUtils {
         };
         return isTargetFileByMimeType(mimeType, extensions);
     }
+
     public static boolean isExcelFileByMimeType(String mimeType) {
         String[] extensions = new String[]{
                 "application/vnd.ms-excel",
@@ -128,6 +130,7 @@ public class FastFileUtils {
         };
         return isTargetFileByMimeType(mimeType, extensions);
     }
+
     public static boolean isWordFileByMimeType(String mimeType) {
         String[] extensions = new String[]{
                 "application/msword",
@@ -169,7 +172,6 @@ public class FastFileUtils {
         return Pattern.matches(regex, mimeType
                 .toLowerCase());
     }
-
 
 
     public static FileInputStream openInputStream(File file) throws IOException {
@@ -826,7 +828,7 @@ public class FastFileUtils {
                 return urlType;
             }
             InputStream inputStream = conn.getInputStream();
-            String guessType = HttpURLConnection.guessContentTypeFromStream( new BufferedInputStream(inputStream));
+            String guessType = HttpURLConnection.guessContentTypeFromStream(new BufferedInputStream(inputStream));
             if (FastStringUtils.isEmpty(guessType)) {
                 return urlType;
             }
@@ -835,8 +837,6 @@ public class FastFileUtils {
         }
         return urlType;
     }
-
-
 
 
     public static void writeByteArrayToFile(File file, byte[] data) throws IOException {
@@ -852,6 +852,23 @@ public class FastFileUtils {
             out.close();
         } finally {
             FastIOUtils.closeQuietly(out);
+        }
+    }
+
+
+    public static String getFileSize(File file) {
+        if (file == null || !file.exists()) {
+            return "0B";
+        }
+        if (file.length() < 1024) {
+            return file.length() + "B";
+        }
+        long size = (long) Math.ceil(file.length() / 1024.0);
+        if (size < 1024) {
+            return size + "KB";
+        } else {
+            double endSize = size / 1024.0;
+            return FastNumberUtils.formatToDouble(endSize, 1) + "MB";
         }
     }
 

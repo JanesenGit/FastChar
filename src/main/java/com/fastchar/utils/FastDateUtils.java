@@ -13,7 +13,7 @@ public class FastDateUtils {
         return parse(date, pattern, null);
     }
 
-    public static Date parse(String date, String pattern, Date defaultValue){
+    public static Date parse(String date, String pattern, Date defaultValue) {
         try {
             if (FastStringUtils.isEmpty(date)) {
                 return defaultValue;
@@ -43,7 +43,6 @@ public class FastDateUtils {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
         return simpleDateFormat.format(date);
     }
-
 
 
     public static Date addYears(Date date, int amount) {
@@ -141,7 +140,7 @@ public class FastDateUtils {
             return "";
         }
         SimpleDateFormat sdf2 = new SimpleDateFormat(timePattern);
-        int subDay = diffDay(dateTime, new Date());
+        int subDay = (int) diffDay(dateTime, new Date());
         switch (subDay) {
             case 0:
                 return FastChar.getLocal().getInfo(FastCharLocal.DATE_ERROR1) + sdf2.format(dateTime);
@@ -153,42 +152,41 @@ public class FastDateUtils {
         return format(dateTime, "yyyy-MM-dd ") + sdf2.format(dateTime);
     }
 
-    public static int diffDay(Date first, Date two) {
+    public static double diffDay(Date first, Date two) {
         try {
-            return (int) Math.abs( (first.getTime() - two.getTime()) / (60 * 60 * 1000 * 24));
+            return Math.abs(first.getTime() - two.getTime()) / (60.0 * 60 * 1000 * 24);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    public static int diffHour(Date first, Date two) {
+    public static double diffHour(Date first, Date two) {
         try {
-            return (int) Math.abs((first.getTime() - two.getTime()) / (60 * 60 * 1000));
+            return Math.abs(first.getTime() - two.getTime()) / (60.0 * 60 * 1000);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    public static int diffMinute(Date first, Date two) {
+    public static double diffMinute(Date first, Date two) {
         try {
-            return (int) Math.abs((first.getTime() - two.getTime()) / (60 * 1000));
+            return Math.abs(first.getTime() - two.getTime()) / (60.0 * 1000);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    public static int diffSecond(Date first, Date two) {
+    public static double diffSecond(Date first, Date two) {
         try {
-            return (int) Math.abs((first.getTime() - two.getTime()) / (1000));
+            return Math.abs(first.getTime() - two.getTime()) / 1000.0;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
-
 
     public static int diffYear(Date first, Date two) {
         try {

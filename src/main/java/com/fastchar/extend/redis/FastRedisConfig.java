@@ -23,7 +23,9 @@ public class FastRedisConfig implements IFastConfig {
     private JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
 
     public FastRedisConfig() {
-        jedisPoolConfig.setSoftMinEvictableIdleTimeMillis(1800000);
+        jedisPoolConfig.setSoftMinEvictableIdleTimeMillis(60000);
+        jedisPoolConfig.setMinEvictableIdleTimeMillis(60000);
+        jedisPoolConfig.setTestWhileIdle(true);
     }
 
     public String getPassword() {

@@ -10,7 +10,9 @@ import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
+import java.net.URLDecoder;
 import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,17 +35,20 @@ public class FastFile<T> {
 
     public static FastFile<?> newInstance(String attachDirectory, String fileName) {
         return FastChar.getOverrides().newInstance(FastFile.class)
-                .setAttachDirectory(attachDirectory).setFileName(fileName);
+                .setAttachDirectory(attachDirectory).setFileName(fileName).setParamName(fileName);
     }
     public static FastFile<?> newInstance( String fileName) {
         return FastChar.getOverrides().newInstance(FastFile.class)
                 .setAttachDirectory(FastChar.getConstant().getAttachDirectory())
+                .setParamName(fileName)
                 .setFileName(fileName);
     }
 
     public static FastFile<?> newInstance(File file) {
-        return FastChar.getOverrides().newInstance(FastFile.class)
+        return FastChar.getOverrides()
+                .newInstance(FastFile.class)
                 .setAttachDirectory(file.getParent())
+                .setParamName(file.getName())
                 .setFileName(file.getName());
     }
 
@@ -104,6 +109,15 @@ public class FastFile<T> {
 
     public FastFile<T> setUploadFileName(String uploadFileName) {
         this.uploadFileName = uploadFileName;
+        if (FastChar.getConstant().isDecodeUploadFileName()) {
+            if (FastStringUtils.isNotEmpty(this.uploadFileName)) {
+                try {
+                    this.uploadFileName = URLDecoder.decode(this.uploadFileName, FastChar.getConstant().getDecodeUploadFileNameEncoding());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
         return this;
     }
 

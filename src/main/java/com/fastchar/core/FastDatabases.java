@@ -209,6 +209,9 @@ public final class FastDatabases {
                     }
 
                     for (FastTableInfo<?> table : databaseInfo.getTables()) {
+                        if (table.getName().contains("*")) {
+                            continue;
+                        }
                         if (table.getBoolean("enable", true) && table.isFromXml()) {
                             if (!databaseOperate.checkTableExists(databaseInfo, table)) {
                                 if (notifyListener(1, databaseInfo, table, null)) {

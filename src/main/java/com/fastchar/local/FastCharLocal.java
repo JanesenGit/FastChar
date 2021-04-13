@@ -94,6 +94,14 @@ public final class FastCharLocal {
 
     /**
      * 描述模板：
+     * 参数{0}值错误！
+     */
+    public static final String PARAM_ERROR3 = "Param_Error3";
+
+
+
+    /**
+     * 描述模板：
      * 请求前置的拦截器{0}没有执行response或invoke方法！
      */
     public static final String INTERCEPTOR_ERROR1 = "Interceptor_Error1";
