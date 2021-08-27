@@ -79,8 +79,8 @@ public class FastMultipartWrapper extends HttpServletRequestWrapper {
         return map;
     }
 
-    public Enumeration getFileNames() {
-        return this.multipartRequest.getFileNames();
+    public Enumeration getFileParameterNames() {
+        return this.multipartRequest.getFileParameterNames();
     }
 
     public String getFilesystemName(String name) {

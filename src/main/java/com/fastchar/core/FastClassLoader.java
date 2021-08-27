@@ -14,6 +14,7 @@ import java.util.Arrays;
 public final class FastClassLoader extends URLClassLoader {
 
     private boolean closed;
+    private String desc;
 
     public FastClassLoader(URL[] urls, ClassLoader parent) {
         super(urls, parent);
@@ -93,6 +94,15 @@ public final class FastClassLoader extends URLClassLoader {
 
     public FastClassLoader setClosed(boolean closed) {
         this.closed = closed;
+        return this;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public FastClassLoader setDesc(String desc) {
+        this.desc = desc;
         return this;
     }
 }

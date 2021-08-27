@@ -15,7 +15,7 @@ public class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FAST_CHAR_VERSION = "1.5.5";
+    public static final String FAST_CHAR_VERSION = "1.6.0";
 
     /**
      * 数据库xml配置文件的前缀
@@ -66,7 +66,9 @@ public class FastConstant {
     private boolean logFilterResponseTime = false;//是否只打印 超时的路由日志
     private boolean logSql = true;//是否打印sql语句日志
     private boolean logExtract = false;//是否打印解压jar包的文件日志
+    private boolean logExtractNewFile = false;//是否打印新版本的文件消息
     private boolean logSameJar = false;//是否打印不同版本的jar包
+    private boolean logActionResolver = false;//是否打印解析FastAction的类名
 
     private boolean systemOutPrint = true;//是否允许system.out输出
 
@@ -88,7 +90,6 @@ public class FastConstant {
     private String decodeUploadFileNameEncoding = encoding;//URLDecoder解码时的编码
 
     private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
-
 
     /**
      * 是否加密fast-database.xml相关的数据库配置文件
@@ -797,21 +798,84 @@ public class FastConstant {
         return this;
     }
 
+    /**
+     * 是否打印解析FastAction的类名
+     *
+     * @return 布尔值
+     */
+    public boolean isLogActionResolver() {
+        return logActionResolver;
+    }
+
+    /**
+     * 配置是否打印解析FastAction的类名
+     *
+     * @param logActionResolver 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setLogActionResolver(boolean logActionResolver) {
+        this.logActionResolver = logActionResolver;
+        return this;
+    }
+
+
+    /**
+     * 是否使用URLDecoder解码上传文件的名称 默认：true
+     *
+     * @return 布尔值
+     */
     public boolean isDecodeUploadFileName() {
         return decodeUploadFileName;
     }
 
+    /**
+     * 是否使用URLDecoder解码上传文件的名称
+     *
+     * @param decodeUploadFileName 布尔值
+     * @return 当前对象
+     */
     public FastConstant setDecodeUploadFileName(boolean decodeUploadFileName) {
         this.decodeUploadFileName = decodeUploadFileName;
         return this;
     }
 
+    /**
+     * URLDecoder解码时的编码
+     *
+     * @return 字符串
+     */
     public String getDecodeUploadFileNameEncoding() {
         return decodeUploadFileNameEncoding;
     }
 
+    /**
+     * 设置URLDecoder解码时的编码
+     *
+     * @param decodeUploadFileNameEncoding 字符串
+     * @return 当前对象
+     */
     public FastConstant setDecodeUploadFileNameEncoding(String decodeUploadFileNameEncoding) {
         this.decodeUploadFileNameEncoding = decodeUploadFileNameEncoding;
+        return this;
+    }
+
+    /**
+     * 是否打印插件中新版本的文件消息
+     *
+     * @return 布尔值
+     */
+    public boolean isLogExtractNewFile() {
+        return logExtractNewFile;
+    }
+
+    /**
+     * 是否打印插件中新版本的文件消息
+     *
+     * @param logExtractNewFile 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setLogExtractNewFile(boolean logExtractNewFile) {
+        this.logExtractNewFile = logExtractNewFile;
         return this;
     }
 
@@ -839,7 +903,9 @@ public class FastConstant {
                 ", logFilterResponseTime=" + logFilterResponseTime +
                 ", logSql=" + logSql +
                 ", logExtract=" + logExtract +
+                ", logExtractNewFile=" + logExtractNewFile +
                 ", logSameJar=" + logSameJar +
+                ", logActionResolver=" + logActionResolver +
                 ", systemOutPrint=" + systemOutPrint +
                 ", errorPage404='" + errorPage404 + '\'' +
                 ", errorPage500='" + errorPage500 + '\'' +

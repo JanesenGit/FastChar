@@ -1,5 +1,8 @@
 package com.fastchar.utils;
 
+import com.fastchar.core.FastChar;
+import com.fastchar.interfaces.IFastMemoryCache;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -18,6 +21,11 @@ public class FastLockUtils {
      * @return ReentrantLock
      */
     public static ReentrantLock getLock(String key) {
+        IFastMemoryCache iFastMemoryCache = FastChar.safeGetMemoryCache();
+        if (iFastMemoryCache != null) {
+            return iFastMemoryCache.get(key, new ReentrantLock());
+        }
+
         ReentrantLock lock = LOCK_MAP.get(key);
         if (lock != null) {
             return lock;
@@ -32,7 +40,11 @@ public class FastLockUtils {
      *
      * @param key 唯一key
      */
-    public static void removeLock(String key) {
+    public static  void removeLock(String key) {
+        IFastMemoryCache iFastMemoryCache = FastChar.safeGetMemoryCache();
+        if (iFastMemoryCache != null) {
+            iFastMemoryCache.remove(key);
+        }
         LOCK_MAP.remove(key);
     }
 

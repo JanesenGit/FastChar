@@ -15,6 +15,7 @@ import com.fastchar.utils.FastStringUtils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
  */
 public final class FastDatabases {
     private static final ThreadLocal<String> LOCKER_DATABASE_NAME = new ThreadLocal<String>();
+    private static final ConcurrentHashMap<String, String> LOCKER_PACKAGE_DATABASE_NAME = new ConcurrentHashMap<>();
 
     private static final String MYSQL_REG = "jdbc:mysql://(.*):(\\d{2,4})/([^?&;=]*)";
     private static final String SQL_SERVER_REG = "jdbc:sqlserver://(.*):(\\d{2,4});databaseName=([^?&;=]*)";
@@ -69,6 +71,13 @@ public final class FastDatabases {
         return databaseInfos;
     }
 
+    public String getLockDatabase() {
+        return LOCKER_DATABASE_NAME.get();
+    }
+
+    public String getLockDatabase(String packageName) {
+        return LOCKER_PACKAGE_DATABASE_NAME.get(packageName);
+    }
 
     public void lock(String databaseName) {
         LOCKER_DATABASE_NAME.set(databaseName);
@@ -77,6 +86,16 @@ public final class FastDatabases {
     public void unlock() {
         LOCKER_DATABASE_NAME.remove();
     }
+
+
+    public void lock(String databaseName, String packageName) {
+        LOCKER_PACKAGE_DATABASE_NAME.put(packageName, databaseName);
+    }
+
+    public void unlock(String packageName) {
+        LOCKER_PACKAGE_DATABASE_NAME.remove(packageName);
+    }
+
 
     public FastDatabaseInfo get() {
         return get(null);
@@ -100,6 +119,21 @@ public final class FastDatabases {
             }
         }
         throw new FastDatabaseInfoException(FastChar.getLocal().getInfo(FastCharLocal.DB_ERROR2, databaseName));
+    }
+
+
+    public List<FastDatabaseInfo> getByTableName(String tableName) {
+        if (databaseInfos.size() == 0) {
+            throw new FastDatabaseInfoException(FastChar.getLocal().getInfo(FastCharLocal.DB_ERROR3));
+        }
+        List<FastDatabaseInfo> result = new ArrayList<>();
+        for (FastDatabaseInfo databaseInfo : databaseInfos) {
+            FastTableInfo<?> tableInfo = databaseInfo.getTableInfo(tableName);
+            if (tableInfo != null) {
+                result.add(databaseInfo);
+            }
+        }
+        return result;
     }
 
 
@@ -192,8 +226,8 @@ public final class FastDatabases {
      */
     public synchronized void flushDatabase() throws Exception {
         restoreTicket();
-
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
+            databaseInfo.releaseTableMap();
             databaseInfo.validate();
 
             IFastDatabaseOperate databaseOperate = databaseInfo.getOperate();
@@ -203,7 +237,8 @@ public final class FastDatabases {
             }
 
             if (FastChar.getConstant().isSyncDatabaseXml()) {
-                if (databaseInfo.getBoolean("enable", true) && databaseInfo.isFromXml()) {
+                if (databaseInfo.getBoolean("enable", true) && databaseInfo.isFromXml()
+                        && databaseInfo.isSyncDatabaseXml()) {
                     if (notifyListener(0, databaseInfo, null, null)) {
                         databaseOperate.createDatabase(databaseInfo);
                     }
@@ -239,7 +274,10 @@ public final class FastDatabases {
                     }
                 }
             }
-            databaseOperate.fetchDatabaseInfo(databaseInfo);
+
+            if (databaseInfo.isFetchDatabaseInfo()) {
+                databaseOperate.fetchDatabaseInfo(databaseInfo);
+            }
         }
         saveTicket();
         for (FastDatabaseInfo fastDatabaseInfo : FastChar.getDatabases().getAll()) {

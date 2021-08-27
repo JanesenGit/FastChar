@@ -23,4 +23,10 @@ public final class FastFindClass {
         }
         return this;
     }
+
+    public boolean test(String className) {
+        Class<?> aClass = FastClassUtils.getClass(className, false);
+        return aClass != null;
+    }
+
 }

@@ -27,7 +27,7 @@ public final class FastRoute {
     Method method;
     private boolean beforeInvoked;
     boolean responseInvoked;
-    private  boolean afterInvoked;
+    private boolean afterInvoked;
     boolean actionLog = true;
     boolean interceptorBefore = true;
     boolean interceptorAfter = true;
@@ -156,25 +156,15 @@ public final class FastRoute {
         Collections.sort(doAfterInterceptor, comparator);
     }
 
+    void clearInterceptors() {
+        rootInterceptor.clear();
+        doBeforeInterceptor.clear();
+        doAfterInterceptor.clear();
+    }
+
 
     public void invoke() {
         try {
-            if (responseCache != null && responseCache.isCache()) {
-                responseCache.setCacheTag(actionClass.getName());
-                if (FastStringUtils.isEmpty(responseCache.getCacheKey())) {
-                    responseCache.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() + request.getRequestURI() + request.getQueryString()));
-                }
-                FastResponseWrapper.setCacheInfo(responseCache);
-                FastResponseCacheInfo cacheInfo = FastChar.getCache().get(responseCache.getCacheTag(), responseCache.getCacheKey());
-                if (cacheInfo != null && !cacheInfo.isTimeout()) {
-                    cacheInfo.response(request, response);
-                    return;
-                }
-            } else {
-                FastResponseWrapper.setCacheInfo(null);
-            }
-
-
             if (fastAction == null) {
                 fastAction = FastChar.getOverrides().newInstance(actionClass);
                 fastAction.request = request;
@@ -191,6 +181,23 @@ public final class FastRoute {
                 }
                 FastChar.setThreadLocalAction(fastAction);
             }
+
+            if (responseCache != null && responseCache.isCache()) {
+                responseCache.setCacheTag(actionClass.getName());
+                if (FastStringUtils.isEmpty(responseCache.getCacheKey())) {
+                    responseCache.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() + request.getRequestURI() + request.getQueryString()));
+                }
+                FastResponseWrapper.setCacheInfo(responseCache);
+                FastResponseCacheInfo cacheInfo = FastChar.getCache().get(responseCache.getCacheTag(), responseCache.getCacheKey());
+                if (cacheInfo != null && !cacheInfo.isTimeout()) {
+                    cacheInfo.response(request, response);
+                    return;
+                }
+            } else {
+                FastResponseWrapper.setCacheInfo(null);
+            }
+
+
             if (responseInvoked) {
                 response();
                 return;
@@ -335,8 +342,7 @@ public final class FastRoute {
 
 
     private Object parseData(FastAction action, FastParameter parameter) throws Exception {
-        return FastEngine.instance().getConverters()
-                .convertParam(action, parameter);
+        return FastEngine.instance().getConverters().convertParam(action, parameter);
     }
 
 
@@ -370,6 +376,11 @@ public final class FastRoute {
             afterInterceptorUseTotal = System.currentTimeMillis() - afterInterceptorTime;
             outBase.setOutTime(new Date());
             fastAction.getResponse().setHeader("Powered-By", "FastChar " + FastConstant.FAST_CHAR_VERSION);
+//            if (fastAction.getResponse() instanceof FastResponseWrapper) {
+//                FastResponseWrapper response = (FastResponseWrapper) fastAction.getResponse();
+//                response.setGzip(outBase.isGzip());
+//            }
+
             outBase.response(fastAction);
             //转发请求 取消日志打印
             if (!FastOutForward.class.isAssignableFrom(outBase.getClass())) {
@@ -460,7 +471,7 @@ public final class FastRoute {
     }
 
 
-     static class RouteInterceptor {
+    static class RouteInterceptor {
         int priority;
         int index;
         int firstMethodLineNumber;

@@ -15,7 +15,6 @@ import java.lang.reflect.Modifier;
 @SuppressWarnings("unchecked")
 public class FastEntityScannerAccepter implements IFastScannerAccepter {
 
-
     @Override
     public boolean onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception {
         if (FastEntity.class.isAssignableFrom(scannedClass)) {

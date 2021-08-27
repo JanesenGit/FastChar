@@ -32,8 +32,8 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
     }
 
     private Set<String> tables = null;
-    private Map<String, Set<String>> tableColumns = new HashMap<>();
-    private FastDb fastDb = new FastDb().setLog(false).setUseCache(false);
+    private final Map<String, Set<String>> tableColumns = new HashMap<>();
+    private final FastDb fastDb = new FastDb().setLog(false).setUseCache(false);
 
     @Override
     public void fetchDatabaseInfo(FastDatabaseInfo databaseInfo) throws Exception {
@@ -125,11 +125,11 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                         if (FastStringUtils.isEmpty(columnInfo.getComment())) {
                             columnInfo.setComment(getColumnComment(databaseInfo, tableInfo, columnInfo));
                         }
-                        if (!columnInfo.getType().contains("text")) {
-                            if (FastStringUtils.isEmpty(columnInfo.getLength())) {
-                                columnInfo.setLength(String.valueOf(displaySize));
-                            }
-                        }
+//                        if (!columnInfo.getType().contains("text")) {
+//                            if (FastStringUtils.isEmpty(columnInfo.getLength())) {
+//                                columnInfo.setLength(String.valueOf(displaySize));
+//                            }
+//                        }
                     }
                 } finally {
                     fastDb.close(statement, columnsRs);

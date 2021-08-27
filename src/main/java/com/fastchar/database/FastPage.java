@@ -69,4 +69,15 @@ public class FastPage<T extends FastEntity<?>> {
         this.list = null;
     }
 
+    @Override
+    public String toString() {
+        return "FastPage{" +
+                "sqlInfo=" + sqlInfo +
+                ", page=" + page +
+                ", totalPage=" + totalPage +
+                ", totalRow=" + totalRow +
+                ", pageSize=" + pageSize +
+                ", list=" + list.size() +
+                '}';
+    }
 }

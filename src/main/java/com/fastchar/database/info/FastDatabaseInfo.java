@@ -7,6 +7,7 @@ import com.fastchar.interfaces.IFastDataSource;
 import com.fastchar.interfaces.IFastDatabaseOperate;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastStringUtils;
+import com.sun.org.apache.xpath.internal.functions.FuncTrue;
 
 import javax.sql.DataSource;
 import java.util.*;
@@ -28,9 +29,15 @@ public class FastDatabaseInfo extends FastBaseInfo {
     private String cache;
     private long lastModified;
     private boolean ignoreCase = true;
+    private boolean syncDatabaseXml = true;//是否允许将fast-database-*.xml表格同步到数据库中
+    private boolean fetchDatabaseInfo = true;//是否从数据库中抓取表格信息
 
-    private List<FastTableInfo<?>> tables = new ArrayList<>();
+    private List<FastTableInfo<?>> tables;
     private FastMapWrap mapTable;
+
+    public FastDatabaseInfo() {
+        tagName = "database";
+    }
 
     public long getLastModified() {
         return lastModified;
@@ -148,12 +155,15 @@ public class FastDatabaseInfo extends FastBaseInfo {
     }
 
     public <T extends FastTableInfo<?>> List<T> getTables() {
+        if (tables == null) {
+            tables = new ArrayList<>();
+        }
         return (List<T>) tables;
     }
 
     public <T extends FastTableInfo<?>> List<T> findTables(String name) {
         List<T> findTales = new ArrayList<>();
-        for (FastTableInfo<?> table : tables) {
+        for (FastTableInfo<?> table : getTables()) {
             if (table.getName().contains(name)) {
                 findTales.add((T) table);
             }
@@ -208,9 +218,11 @@ public class FastDatabaseInfo extends FastBaseInfo {
     }
 
     public DataSource getDataSource() {
-        String databaseCode = FastChar.getSecurity().MD5_Encrypt("DataSource" + getName());
-        return FastChar.getOverrides().singleInstance(databaseCode,
-                IFastDataSource.class).getDataSource(this);
+        String databaseCode = FastChar.getSecurity().MD5_Encrypt("FastChar-DataSource" + getName());
+        if (FastStringUtils.isEmpty(getName())) {
+            databaseCode = FastChar.getSecurity().MD5_Encrypt("FastChar-DataSource");
+        }
+        return FastChar.getOverrides().singleInstance(databaseCode,IFastDataSource.class).getDataSource(this);
     }
 
     public IFastDatabaseOperate getOperate() {
@@ -220,12 +232,29 @@ public class FastDatabaseInfo extends FastBaseInfo {
         return FastChar.getOverrides().newInstance(IFastDatabaseOperate.class, getType());
     }
 
+    public boolean isSyncDatabaseXml() {
+        return syncDatabaseXml;
+    }
+
+    public FastDatabaseInfo setSyncDatabaseXml(boolean syncDatabaseXml) {
+        this.syncDatabaseXml = syncDatabaseXml;
+        return this;
+    }
+
+    public boolean isFetchDatabaseInfo() {
+        return fetchDatabaseInfo;
+    }
+
+    public FastDatabaseInfo setFetchDatabaseInfo(boolean fetchDatabaseInfo) {
+        this.fetchDatabaseInfo = fetchDatabaseInfo;
+        return this;
+    }
 
     public FastTableInfo<?> getTableInfo(String name) {
         if (mapTable != null) {
             return mapTable.getObject(name);
         }
-        for (FastTableInfo<?> table : this.tables) {
+        for (FastTableInfo<?> table : this.getTables()) {
             if (isIgnoreCase()) {
                 if (table.getName().equalsIgnoreCase(name)) {
                     return table;
@@ -245,6 +274,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
     public LinkedHashMap<String, List<FastSqlInfo>> getDefaultData() {
         return defaultData;
     }
+
 
 
     public String toUrl() {
@@ -336,14 +366,28 @@ public class FastDatabaseInfo extends FastBaseInfo {
 
     }
 
+
+    public void releaseTableMap() {
+        if (mapTable != null) {
+            mapTable.clear();
+            mapTable = null;
+        }
+        for (FastTableInfo<?> table : this.getTables()) {
+            table.releaseColumnMap();
+        }
+    }
+
     public void tableToMap() {
         mapTable = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
         mapTable.setIgnoreCase(isIgnoreCase());
-        for (FastTableInfo<?> table : this.tables) {
+        for (FastTableInfo<?> table : this.getTables()) {
+            table.setDatabaseName(this.getName());
             table.setIgnoreCase(isIgnoreCase());
+            table.fromProperty();
             table.columnToMap();
             this.mapTable.set(table.getName(), table);
         }
+        this.fromProperty();
     }
 
 
@@ -352,7 +396,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
 
         List<FastTableInfo<?>> matchesTableList = findTables("*");
         for (FastTableInfo<?> matchesTable : matchesTableList) {
-            for (FastTableInfo<?> table : this.tables) {
+            for (FastTableInfo<?> table : this.getTables()) {
                 if (table.isLock()) {
                     continue;
                 }
@@ -364,7 +408,11 @@ public class FastDatabaseInfo extends FastBaseInfo {
 
         List<FastTableInfo<?>> tables = new ArrayList<>(getTables());
         for (FastTableInfo<?> table : tables) {
+            table.setDatabaseName(getName());
+            table.fromProperty();
             for (FastColumnInfo<?> column : table.getColumns()) {
+                column.setDatabaseName(table.getDatabaseName());
+                column.fromProperty();
                 if (column.isFromXml()) {
                     column.validate();
                 }
@@ -373,8 +421,6 @@ public class FastDatabaseInfo extends FastBaseInfo {
                 table.validate();
             }
         }
-
-
     }
 
 }

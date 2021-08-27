@@ -200,6 +200,14 @@ public final class FastCharLocal {
 
     /**
      * 描述模板：
+     * 加载新的{0}成功!
+     */
+    public static final String SCANNER_ERROR7 = "Scanner_Error7";
+
+
+
+    /**
+     * 描述模板：
      * 数据库名称{0}已存在！
      */
     public static final String DB_ERROR1 = "Db_Error1";
@@ -330,6 +338,11 @@ public final class FastCharLocal {
      */
     public static final String ACTION_ERROR5 = "Action_Error5";
 
+    /**
+     * 描述模板：
+     * Action {0} 已被禁用！
+     */
+    public static final String ACTION_ERROR6 = "Action_Error6";
 
     /**
      * 描述模板：

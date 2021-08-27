@@ -124,7 +124,7 @@ public class FastMultipartRequest {
         return this.parameters.keys();
     }
 
-    public Enumeration getFileNames() {
+    public Enumeration getFileParameterNames() {
         return this.files.keys();
     }
 

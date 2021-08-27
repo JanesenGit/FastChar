@@ -21,19 +21,19 @@ public class FastTableInfo<T> extends FastBaseInfo {
     }
 
     protected FastTableInfo() {
+        tagName = "table";
     }
 
-    private String databaseName;
-    private String name;
-    private String comment = "";
-    private String data;
-    private boolean ignoreCase = true;
-    private String lock ;//锁定表格，不能*匹配表格合并
+   protected String databaseName;
+   protected String name;
+   protected String comment = "";
+   protected String data;
+   protected boolean ignoreCase = true;
+   protected String lock ;//锁定表格，不能*匹配表格合并
+   protected List<FastColumnInfo<?>> columns = new ArrayList<>();
+   protected FastMapWrap mapColumn;
+   protected FastMapWrap mapPrimary;
 
-
-    private List<FastColumnInfo<?>> columns = new ArrayList<>();
-    private FastMapWrap mapColumn;
-    private FastMapWrap mapPrimary;
 
     public String getName() {
         return name;
@@ -54,6 +54,9 @@ public class FastTableInfo<T> extends FastBaseInfo {
     }
 
     public <E extends FastColumnInfo<?>> List<E> getColumns() {
+        if (columns == null) {
+            columns = new ArrayList<>();
+        }
         return (List<E>) columns;
     }
 
@@ -208,12 +211,22 @@ public class FastTableInfo<T> extends FastBaseInfo {
     }
 
 
+    public void releaseColumnMap() {
+        if (mapColumn != null) {
+            mapColumn.clear();
+            mapColumn = null;
+        }
+    }
+
+
     public void columnToMap() {
         mapColumn = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
         mapColumn.setIgnoreCase(isIgnoreCase());
         mapPrimary = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
         mapPrimary.setIgnoreCase(isIgnoreCase());
         for (FastColumnInfo<?> column : this.columns) {
+            column.setDatabaseName(this.getDatabaseName());
+            column.fromProperty();
             mapColumn.set(column.getName(), column);
             if (column.isPrimary()) {
                 mapPrimary.set(column.getName(), column);

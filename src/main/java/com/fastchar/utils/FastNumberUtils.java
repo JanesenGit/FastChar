@@ -4,6 +4,7 @@
 package com.fastchar.utils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -74,15 +75,6 @@ public class FastNumberUtils {
     }
 
 
-    public static float formatToFloat(Object value) {
-        return formatToNumber(value).floatValue();
-    }
-
-    public static float formatToFloat(Object value, float defaultValue) {
-        return formatToNumber(value, defaultValue).floatValue();
-    }
-
-
     public static double formatToDouble(Object value) {
         return formatToNumber(value).doubleValue();
     }
@@ -93,40 +85,69 @@ public class FastNumberUtils {
 
     public static double formatToDouble(Object value, int digit) {
         try {
-            return new BigDecimal(Double.toString(formatToDouble(value))).setScale(digit,
-                    BigDecimal.ROUND_HALF_UP).doubleValue();
+            return formatToDouble(value, 0, digit);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public static double formatToDouble(Object value, int digit, RoundingMode roundingMode) {
+        try {
+            return formatToDouble(value, 0, digit, roundingMode);
         } catch (Exception e) {
             return 0;
         }
     }
 
     public static double formatToDouble(Object value, double defaultValue, int digit) {
+        return formatToDouble(value, defaultValue, digit, RoundingMode.HALF_UP);
+    }
+
+    public static double formatToDouble(Object value, double defaultValue, int digit, RoundingMode roundingMode) {
         try {
             return new BigDecimal(Double.toString(formatToDouble(value, defaultValue))).setScale(digit,
-                    BigDecimal.ROUND_HALF_UP).doubleValue();
+                    roundingMode).doubleValue();
         } catch (Exception e) {
             return 0;
         }
     }
 
+    public static float formatToFloat(Object value) {
+        return formatToNumber(value).floatValue();
+    }
+
+    public static float formatToFloat(Object value, float defaultValue) {
+        return formatToNumber(value, defaultValue).floatValue();
+    }
+
     public static float formatToFloat(Object value, int digit) {
         try {
-            return new BigDecimal(Float.toString(formatToFloat(value))).setScale(digit,
-                    BigDecimal.ROUND_HALF_UP).floatValue();
+            return formatToFloat(value, 0, digit);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public static float formatToFloat(Object value, int digit, RoundingMode roundingMode) {
+        try {
+            return formatToFloat(value, 0, digit, roundingMode);
         } catch (Exception e) {
             return 0;
         }
     }
 
     public static float formatToFloat(Object value, float defaultValue, int digit) {
+        return formatToFloat(value, defaultValue, digit, RoundingMode.HALF_UP);
+    }
+
+    public static float formatToFloat(Object value, float defaultValue, int digit, RoundingMode roundingMode) {
         try {
             return new BigDecimal(Float.toString(formatToFloat(value, defaultValue))).setScale(digit,
-                    BigDecimal.ROUND_HALF_UP).floatValue();
+                    roundingMode).floatValue();
         } catch (Exception e) {
             return 0;
         }
     }
-
 
     public static long formatToLong(Object value) {
         return formatToNumber(value).longValue();

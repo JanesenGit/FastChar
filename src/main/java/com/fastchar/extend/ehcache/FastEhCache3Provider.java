@@ -23,7 +23,7 @@ public class FastEhCache3Provider implements IFastCache {
 
     private CacheManager cacheManager;
 
-    private CacheManager getCacheManager() {
+    private synchronized CacheManager getCacheManager() {
         if (cacheManager == null) {
             FastEhCache3Config ehCacheConfig = FastChar.getConfigs().getEhCache3Config();
             if (ehCacheConfig != null) {

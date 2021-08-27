@@ -4,10 +4,15 @@ import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.utils.FastStringUtils;
 
+import javax.servlet.ServletOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Date;
+import java.util.zip.GZIPOutputStream;
 
 public abstract class FastOut<T> {
+
     protected Object data;
     protected Date outTime;
     protected String contentType;
@@ -42,14 +47,12 @@ public abstract class FastOut<T> {
 
     public String toContentType(FastAction action) {
         //通过参数强制设置contentType
-        if (action.isParamNotEmpty("__accept")) {
-            this.contentType = action.getParam("__accept");
+        if (action.isParamNotEmpty(FastAction.PARAM_ACCPET)) {
+            this.contentType = action.getParam(FastAction.PARAM_ACCPET);
         }
-
         if (FastStringUtils.isEmpty(contentType)) {
             return null;
         }
-
         StringBuilder stringBuilder = new StringBuilder(contentType);
         if (FastStringUtils.isNotEmpty(charset)) {
             if (!contentType.endsWith(";")) {
@@ -60,6 +63,8 @@ public abstract class FastOut<T> {
         }
         return stringBuilder.toString();
     }
+
+
 
     public String getContentType() {
         return contentType;
@@ -117,7 +122,6 @@ public abstract class FastOut<T> {
         this.description = description;
         return (T) this;
     }
-
 
     public enum Type {
         TEXT,

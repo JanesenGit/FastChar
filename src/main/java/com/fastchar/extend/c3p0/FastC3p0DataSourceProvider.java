@@ -12,7 +12,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
 
-@AFastObserver
+@AFastObserver(priority = -9)//数据源监听关闭，放到最终
 @AFastPriority(AFastPriority.P_NORMAL)
 @AFastClassFind("com.mchange.v2.c3p0.ComboPooledDataSource")
 public class FastC3p0DataSourceProvider implements IFastDataSource {
@@ -20,7 +20,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
     private FastDatabaseInfo databaseInfo;
 
     @Override
-    public DataSource getDataSource(FastDatabaseInfo databaseInfo) {
+    public synchronized DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (dataSource == null) {
             try {
                 dataSource = new ComboPooledDataSource();
@@ -71,7 +71,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
         return "select 1";
     }
 
-    public void onWebStop() {
+    public synchronized void onWebStop() {
         try {
             if (dataSource != null) {
                 dataSource.close();

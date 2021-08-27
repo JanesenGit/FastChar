@@ -1,12 +1,13 @@
 package com.fastchar.response;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 import java.io.IOException;
 import java.io.PrintWriter;
 
 public class FastResponseWrapper extends HttpServletResponseWrapper {
-    private static ThreadLocal<FastResponseCacheConfig> CacheKey = new ThreadLocal<>();
+    private static final ThreadLocal<FastResponseCacheConfig> CacheKey = new ThreadLocal<>();
 
     public static void setCacheInfo(FastResponseCacheConfig responseCache) {
         CacheKey.set(responseCache);
@@ -17,7 +18,8 @@ public class FastResponseWrapper extends HttpServletResponseWrapper {
     }
 
     private FastPrintWriterWrapper printWriter;
-    private FastResponseCacheInfo cacheInfo = new FastResponseCacheInfo();
+    private FastOutStreamWrapper outStreamWrapper;
+    private final FastResponseCacheInfo cacheInfo = new FastResponseCacheInfo();
     public FastResponseWrapper(HttpServletResponse response) {
         super(response);
     }
@@ -25,12 +27,20 @@ public class FastResponseWrapper extends HttpServletResponseWrapper {
     @Override
     public PrintWriter getWriter() throws IOException {
         if (printWriter == null) {
-            printWriter = new FastPrintWriterWrapper(super.getWriter());
-        }else{
-            printWriter.setPrintWriter(super.getWriter());
+            printWriter = new FastPrintWriterWrapper(getOutputStream());
         }
         printWriter.setResponse(this);
         return printWriter;
+    }
+
+
+    @Override
+    public ServletOutputStream getOutputStream() throws IOException {
+        if (outStreamWrapper == null) {
+            outStreamWrapper = new FastOutStreamWrapper();
+        }
+        outStreamWrapper.setOutputStream(this, super.getOutputStream());
+        return outStreamWrapper;
     }
 
     @Override
@@ -138,5 +148,6 @@ public class FastResponseWrapper extends HttpServletResponseWrapper {
     public FastResponseCacheInfo getCacheInfo() {
         return cacheInfo;
     }
+
 }
 

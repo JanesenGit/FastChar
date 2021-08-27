@@ -11,11 +11,12 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.File;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应图片
  */
-public class FastOutImage  extends FastOut<FastOutImage>  {
+public class FastOutImage extends FastOut<FastOutImage> {
     private String formatName = "jpg";
 
     public String getFormatName() {
@@ -36,12 +37,13 @@ public class FastOutImage  extends FastOut<FastOutImage>  {
         response.setHeader("Cache-Control", "no-cache");
         response.setDateHeader("Expires", 0);
         response.setStatus(getStatus());
-        response.setContentType(getContentType());
+        response.setContentType(toContentType(action));
+
         try (ServletOutputStream outputStream = response.getOutputStream()) {
             if (data instanceof RenderedImage) {
                 RenderedImage renderedImage = (RenderedImage) getData();
                 ImageIO.write(renderedImage, formatName, outputStream);
-            }else if (data instanceof File) {
+            } else if (data instanceof File) {
                 File file = (File) getData();
                 ImageIO.write(ImageIO.read(file), formatName, outputStream);
             }

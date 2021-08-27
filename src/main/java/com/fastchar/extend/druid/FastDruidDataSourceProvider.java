@@ -18,7 +18,7 @@ import javax.sql.DataSource;
 import java.lang.reflect.Field;
 
 //具体详细配置介绍，请参看官方文档 https://github.com/alibaba/druid/wiki
-@AFastObserver
+@AFastObserver(priority = -9)//数据源监听关闭，放到最终
 @AFastPriority(AFastPriority.P_HIGH)
 @AFastClassFind("com.alibaba.druid.pool.DruidDataSource")
 public class FastDruidDataSourceProvider implements IFastDataSource {
@@ -30,7 +30,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
     }
 
     @Override
-    public DataSource getDataSource(FastDatabaseInfo databaseInfo) {
+    public synchronized DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (dataSource == null) {
             dataSource = new DruidDataSource();
             dataSource.setUrl(databaseInfo.toUrl());
@@ -39,10 +39,6 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
             dataSource.setDriverClassName(databaseInfo.getDriver());
             dataSource.setValidationQuery(buildValidationQuery(databaseInfo.toUrl()));
             this.databaseInfo = databaseInfo;
-
-            if (FastChar.getConstant().isDebug()) {
-                FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, "Druid of " + databaseInfo.getName()));
-            }
 
             try {
                 FastDruidConfig druid = FastChar.getConfigs().getDruidConfig();
@@ -59,6 +55,10 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+
+            if (FastChar.getConstant().isDebug()) {
+                FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, "Druid of " + databaseInfo.getName() + "[" + databaseInfo.getType() + "] "));
             }
         }
         return dataSource;
@@ -79,13 +79,12 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
     }
 
 
-
-    public void onWebStop() {
+    public synchronized void onWebStop() {
         try {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Druid of " + databaseInfo.getName()));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Druid of " + databaseInfo.getName() + "[" + databaseInfo.getType() + "]"));
                 }
             }
         } finally {

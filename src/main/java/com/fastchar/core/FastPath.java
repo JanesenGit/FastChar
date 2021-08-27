@@ -24,7 +24,9 @@ public final class FastPath {
         if (classRootPath == null) {
             try {
                 URL resource = FastPath.class.getResource("/");
-                classRootPath = new File(resource.toURI()).getAbsolutePath();
+                if (resource != null) {
+                    classRootPath = new File(resource.toURI()).getAbsolutePath();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }

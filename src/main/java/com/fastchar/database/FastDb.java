@@ -8,6 +8,7 @@ import com.fastchar.database.info.FastSqlInfo;
 
 import com.fastchar.database.sql.FastSql;
 import com.fastchar.interfaces.IFastCache;
+import com.fastchar.interfaces.IFastSqlListener;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastNumberUtils;
@@ -39,6 +40,7 @@ public class FastDb {
 
 
     private boolean log = true;
+    private boolean listener = true;
     private boolean useCache = true;
     private boolean cache;
     private String database;
@@ -127,6 +129,7 @@ public class FastDb {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
+        int fetchSize = -1;
         try {
             connection = getConnection();
             if (connection == null) {
@@ -147,15 +150,9 @@ public class FastDb {
                 IFastCache iFastCacheProvider = FastChar.getCache();
                 iFastCacheProvider.set(cacheTag, cacheKey, listResult);
             }
+            fetchSize = listResult.size();
             return listResult;
         } finally {
-            int fetchSize = 0;
-            if (resultSet != null) {
-                if (FastChar.getConstant().isLogSql() && isLog()) {
-                    resultSet.last();
-                    fetchSize= resultSet.getRow();
-                }
-            }
             close(connection, preparedStatement, resultSet);
             log(sqlStr, params, fetchSize);
         }
@@ -182,8 +179,11 @@ public class FastDb {
         if (page > 0) {
             String countSql = FastSql.getInstance(type).getCountSql(sqlStr, "ct");
 
+            int countRow = 0;
             FastEntity<?> countResult = selectFirst(countSql, params);
-            int countRow = countResult.getInt("ct");
+            if (countResult != null) {
+                countRow = countResult.getInt("ct");
+            }
             fastPage.setTotalRow(countRow);
             fastPage.setPage(page);
             fastPage.setPageSize(pageSize);
@@ -259,14 +259,20 @@ public class FastDb {
             return firstResult;
         } finally {
             int fetchSize = 0;
-            if (resultSet != null) {
-                if (FastChar.getConstant().isLogSql() && isLog()) {
-                    resultSet.last();
-                    fetchSize= resultSet.getRow();
+            try {
+                fetchSize = -1;
+                if (resultSet != null) {
+                    if (FastChar.getConstant().isLogSql() && isLog()) {
+                        if (getDatabaseInfo().isMySql() || getDatabaseInfo().isOracle()) {
+                            resultSet.last();
+                            fetchSize = resultSet.getRow();
+                        }
+                    }
                 }
+            } catch (Exception ignored) {
             }
             close(connection, preparedStatement, resultSet);
-            log(sqlStr, params,fetchSize);
+            log(sqlStr, params, fetchSize);
         }
     }
 
@@ -324,14 +330,20 @@ public class FastDb {
             return lastResult;
         } finally {
             int fetchSize = 0;
-            if (resultSet != null) {
-                if (FastChar.getConstant().isLogSql() && isLog()) {
-                    resultSet.last();
-                    fetchSize= resultSet.getRow();
+            try {
+                fetchSize = -1;
+                if (resultSet != null) {
+                    if (FastChar.getConstant().isLogSql() && isLog()) {
+                        if (getDatabaseInfo().isMySql() || getDatabaseInfo().isOracle()) {
+                            resultSet.last();
+                            fetchSize = resultSet.getRow();
+                        }
+                    }
                 }
+            } catch (Exception ignored) {
             }
             close(connection, preparedStatement, resultSet);
-            log(sqlStr, params,fetchSize);
+            log(sqlStr, params, fetchSize);
         }
     }
 
@@ -383,7 +395,7 @@ public class FastDb {
             count = preparedStatement.executeUpdate();
         } finally {
             close(connection, preparedStatement);
-            log(sqlStr, params,count);
+            log(sqlStr, params, count);
         }
         return count;
     }
@@ -440,15 +452,18 @@ public class FastDb {
                 primary = resultSet.getInt(1);
             }
         } finally {
-            int fetchSize = 0;
-            if (resultSet != null) {
-                if (FastChar.getConstant().isLogSql() && isLog()) {
-                    resultSet.last();
-                    fetchSize= resultSet.getRow();
+            try {
+                int fetchSize = 0;
+                if (resultSet != null) {
+                    if (FastChar.getConstant().isLogSql() && isLog()) {
+                        resultSet.last();
+                        fetchSize = resultSet.getRow();
+                    }
                 }
+                log(sqlStr, params, fetchSize);
+            } catch (Exception ignored) {
             }
             close(connection, preparedStatement, resultSet);
-            log(sqlStr, params,fetchSize);
         }
         return primary;
     }
@@ -636,7 +651,7 @@ public class FastDb {
      * @param entities  FastEntity实体集合
      * @param batchSize 单次批量提交的数据大小
      * @param checks    检测属性值
-     * @return 结果结婚
+     * @return 结果集合
      * @throws Exception 异常信息
      */
     public int[] batchSaveEntity(List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
@@ -930,6 +945,15 @@ public class FastDb {
 
 
     public void log(Object sql, Object params, int resultCount) {
+        if (isListener()) {
+            List<IFastSqlListener> iFastSqlListeners = FastChar.getOverrides().singleInstances(false, IFastSqlListener.class);
+            for (IFastSqlListener iFastSqlListener : iFastSqlListeners) {
+                if (iFastSqlListener != null) {
+                    iFastSqlListener.onRunSql(this, sql, params, resultCount);
+                }
+            }
+        }
+
         if (FastChar.getConstant().isLogSql() && isLog()) {
             if (FastStringUtils.isEmpty(String.valueOf(sql))) {
                 return;
@@ -1068,5 +1092,26 @@ public class FastDb {
 
     public void setDatabaseInfo(FastDatabaseInfo databaseInfo) {
         this.databaseInfo = databaseInfo;
+    }
+
+    public long getInTime() {
+        return inTime;
+    }
+
+    public long getFirstBuildTime() {
+        return firstBuildTime;
+    }
+
+    public long getLastBuildTime() {
+        return lastBuildTime;
+    }
+
+    public boolean isListener() {
+        return listener;
+    }
+
+    public FastDb setListener(boolean listener) {
+        this.listener = listener;
+        return this;
     }
 }

@@ -50,6 +50,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Scanner_Error4 = "解压{0}中……";
     private final String Scanner_Error5 = "解压{0}成功!";
     private final String Scanner_Error6 = "移除被释放的扫描接收器类 {0} ";
+    private final String Scanner_Error7 = "加载新的{0}成功!";
 
     //数据库相关错误
     private final String Db_Error1 = "数据库名称{0}已存在！";
@@ -83,6 +84,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Action_Error3 = "路由 {0} 已被重写！";
     private final String Action_Error4 = "路由 {0} 的前缀 {1} 是WebRoot下的文件夹！不可与WebRoot下的文件夹重复！";
     private final String Action_Error5 = "Action {0} 已被禁用！";
+    private final String Action_Error6 = "解析Action类 {0}";
 
 
     //Entity相关错误

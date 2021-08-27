@@ -1,10 +1,7 @@
 package com.fastchar.utils;
 
 import com.fastchar.core.FastClassLoader;
-import com.fastchar.core.FastFile;
 import com.fastchar.exception.FastClassException;
-import com.fastchar.exception.FastOverrideException;
-import org.terracotta.offheapstore.pinning.PinnableCache;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
@@ -34,11 +31,43 @@ public class FastClassUtils {
                 e.printStackTrace();
             }
         }
+        return findClass(loader, className, printException);
+    }
+
+
+    public static Class<?> findClass(String className) {
+        return findClass(className, true);
+    }
+    public static Class<?> findClass(String className, boolean printException) {
+        return findClass(FastClassUtils.class.getClassLoader(), className, printException);
+    }
+
+    public static Class<?> findClass(ClassLoader loader, String className, boolean printException) {
+        try {
+            if (className == null || className.length() == 0) {
+                return null;
+            }
+            Method findClass = ClassLoader.class.getDeclaredMethod("findClass", String.class);
+            findClass.setAccessible(true);
+            Object invoke = findClass.invoke(loader, className);
+            findClass.setAccessible(false);
+            if (invoke != null) {
+                return (Class<?>) invoke;
+            }
+        } catch (Throwable e) {
+            if (printException) {
+                e.printStackTrace();
+            } else if (e instanceof UnsupportedClassVersionError) {
+                e.printStackTrace();
+            }
+        }
         return null;
     }
 
 
-    public static boolean checkNewInstance(Class targetClass) {
+
+
+    public static boolean checkNewInstance(Class<?> targetClass) {
         if (Modifier.isAbstract(targetClass.getModifiers())) {
             return false;
         }
@@ -93,12 +122,25 @@ public class FastClassUtils {
     }
 
 
-    public static List<Method> getDeclaredMethod(Class targetClass, String name) {
+    public static List<Method> getDeclaredMethod(Class<?> targetClass, String name) {
         List<Method> methods = new ArrayList<>();
         try {
             for (Method declaredMethod : targetClass.getDeclaredMethods()) {
                 if (declaredMethod.getName().equals(name)) {
                     methods.add(declaredMethod);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return methods;
+    }
+
+    public static List<Method> getMethod(Class<?> targetClass, String methodName) {
+        List<Method> methods = new ArrayList<>();
+        try {
+            for (Method method : targetClass.getMethods()) {
+                if (method.getName().equals(methodName)) {
+                    methods.add(method);
                 }
             }
         } catch (Exception ignored) {
@@ -114,6 +156,9 @@ public class FastClassUtils {
                     if (declaredConstructor.getParameterTypes().length == constructorParams.length) {
                         boolean matchParam = true;
                         for (int i = 0; i < declaredConstructor.getParameterTypes().length; i++) {
+                            if (constructorParams[i] == null) {
+                                continue;
+                            }
                             Class<?> parameterType = declaredConstructor.getParameterTypes()[i];
                             if (!parameterType.isAssignableFrom(constructorParams[i].getClass())) {
                                 matchParam = false;
@@ -147,7 +192,7 @@ public class FastClassUtils {
     }
 
 
-    public static Field getDeclaredField(Class targetClass, String name) {
+    public static Field getDeclaredField(Class<?> targetClass, String name) {
         if (targetClass == null) {
             return null;
         }
@@ -178,11 +223,11 @@ public class FastClassUtils {
     }
 
 
-    public static Class getSuperClassGenricType(Class clazz) {
-        return getSuperClassGenricType(clazz, 0);
+    public static Class<?> getSuperClassGenericType(Class<?> clazz) {
+        return getSuperClassGenericType(clazz, 0);
     }
 
-    public static Class getSuperClassGenricType(Class clazz, int index)
+    public static Class<?> getSuperClassGenericType(Class<?> clazz, int index)
             throws IndexOutOfBoundsException {
         Type genType = clazz.getGenericSuperclass();
         if (!(genType instanceof ParameterizedType)) {
@@ -195,7 +240,7 @@ public class FastClassUtils {
         if (!(params[index] instanceof Class)) {
             return Object.class;
         }
-        return (Class) params[index];
+        return (Class<?>) params[index];
     }
 
     public static void deepCopy(Object fromSource, Object toSource) {
@@ -223,6 +268,12 @@ public class FastClassUtils {
     }
 
 
+    /**
+     * 相同的类名，但是类加载器不同
+     * @param classA
+     * @param classB
+     * @return
+     */
     public static boolean isSameRefined(Class<?> classA, Class<?> classB) {
         if (classB == null || classA == null) {
             return true;
@@ -250,6 +301,16 @@ public class FastClassUtils {
         return false;
     }
 
+
+    public static boolean isSameClass(Class<?> classA, Class<?> classB) {
+        if (classA == null || classB == null) {
+            return false;
+        }
+        if (classA == classB) {
+            return true;
+        }
+        return isSameRefined(classA, classB);
+    }
 
 }
 

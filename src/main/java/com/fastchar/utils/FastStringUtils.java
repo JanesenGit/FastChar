@@ -1,7 +1,8 @@
 package com.fastchar.utils;
 
-import java.io.File;
-import java.io.UnsupportedEncodingException;
+import javax.print.PrintException;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.text.SimpleDateFormat;
@@ -681,6 +682,55 @@ public class FastStringUtils {
                 .replace("\\", replace)
                 .replace(File.separator, replace);
     }
+
+
+
+    public static String toThrowableInfo(Throwable throwable) {
+        if (throwable != null) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            Throwable pluckThrowable = pluckThrowable(throwable);
+            if (pluckThrowable != null) {
+                pluckThrowable.printStackTrace(pw);
+            }
+            String info = sw.toString();
+            try {
+                sw.close();
+                pw.close();
+            } catch (IOException ignored) {}
+            return info;
+        }
+        return null;
+    }
+
+    public static String getThrowableMessage(Throwable throwable) {
+        if (throwable != null) {
+            Throwable pluckThrowable = pluckThrowable(throwable);
+            if (pluckThrowable != null) {
+                return pluckThrowable.getMessage();
+            }
+        }
+        return null;
+    }
+
+    public static Throwable pluckThrowable(Throwable throwable) {
+        try {
+            if (throwable == null) {
+                return null;
+            }
+            if (throwable instanceof PrintException) {
+                return pluckThrowable(throwable.getCause());
+            } else if (throwable.getCause() instanceof PrintException) {
+                return pluckThrowable(throwable.getCause());
+            } else if (throwable instanceof InvocationTargetException) {
+                return pluckThrowable(throwable.getCause());
+            }
+            return throwable;
+        } catch (Exception ignored) {}
+        return throwable;
+    }
+
+
 
 }
 

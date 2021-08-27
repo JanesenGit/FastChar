@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应文件流，下载文件
@@ -22,8 +23,8 @@ public class FastOutFile extends FastOut<FastOutFile> {
 
     private String fileName;
     private boolean disposition = true;
-    private int inputSize = 2048;
-    private int outputSize = 2048;
+    private int inputSize = 1024 * 4;
+    private int outputSize = 1024 * 4;
 
 
     public FastOutFile() {
@@ -70,8 +71,8 @@ public class FastOutFile extends FastOut<FastOutFile> {
     public void response(FastAction action) throws Exception {
         File file;
         if (data instanceof File) {
-            file= (File) data;
-        }else{
+            file = (File) data;
+        } else {
             file = new File(String.valueOf(data));
         }
         if (!file.exists()) {
@@ -132,25 +133,19 @@ public class FastOutFile extends FastOut<FastOutFile> {
         }
     }
 
-    private void responseAllFile(HttpServletResponse response , File file) {
+    private void responseAllFile(HttpServletResponse response, File file) {
         response.setContentLength((int) file.length());
         InputStream inputStream = null;
         try {
             inputStream = new BufferedInputStream(new FileInputStream(file));
+
             try (ServletOutputStream outputStream = response.getOutputStream()) {
                 byte[] buffer = new byte[inputSize];
                 int len;
-                while (true) {
-                    try {
-                        len = inputStream.read(buffer);
-                        if (len == -1) {
-                            break;
-                        }
-                        outputStream.write(buffer, 0, len);
-                    } catch (IOException e) {
-                        break;
-                    }
+                while ((len = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, len);
                 }
+                outputStream.flush();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -177,6 +172,7 @@ public class FastOutFile extends FastOut<FastOutFile> {
             if (inputStream.skip(start) != start) {
                 throw new RuntimeException("File skip error");
             }
+
             try (ServletOutputStream outputStream = response.getOutputStream()) {
                 byte[] buffer = new byte[inputSize];
                 long position = start;
@@ -191,6 +187,7 @@ public class FastOutFile extends FastOut<FastOutFile> {
                         }
                     }
                 }
+                outputStream.flush();
             }
         } catch (Exception e) {
             e.printStackTrace();

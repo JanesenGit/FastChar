@@ -15,8 +15,6 @@ import java.util.Set;
 @SuppressWarnings("unchecked")
 @AFastClassFind("redis.clients.jedis.Jedis")
 public class FastRedisClusterProvider implements IFastCache {
-    private static final Object LOCKER = new Object();
-
     public static boolean isOverride() {
         FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
         if (redisConfig.getServers().size() == 0) {
@@ -27,21 +25,18 @@ public class FastRedisClusterProvider implements IFastCache {
 
     private JedisCluster jedisCluster;
 
-    private JedisCluster getJedis() {
+    private synchronized JedisCluster getJedis() {
         if (jedisCluster == null) {
-            synchronized (LOCKER) {
-                FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
-                if (redisConfig.getServers().size() == 0) {
-                    throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR1));
-                }
-                jedisCluster = new JedisCluster(redisConfig.getServers(),
-                        redisConfig.getTimeout(),
-                        redisConfig.getSoTimeout(),
-                        redisConfig.getMaxAttempts(),
-                        redisConfig.getPassword(),
-                        redisConfig.getJedisPoolConfig());
-
+            FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
+            if (redisConfig.getServers().size() == 0) {
+                throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR1));
             }
+            jedisCluster = new JedisCluster(redisConfig.getServers(),
+                    redisConfig.getTimeout(),
+                    redisConfig.getSoTimeout(),
+                    redisConfig.getMaxAttempts(),
+                    redisConfig.getPassword(),
+                    redisConfig.getJedisPoolConfig());
         }
         return jedisCluster;
     }

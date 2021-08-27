@@ -22,6 +22,7 @@ public class FastSqlInfo extends FastBaseInfo {
     private String type;//数据库类型
     private String sql;
     private boolean log = true;
+    private boolean listener = true;
     private List<Object> params = new ArrayList<>();
     private List<FastSqlInfo> children = new ArrayList<>();
 
@@ -77,6 +78,15 @@ public class FastSqlInfo extends FastBaseInfo {
 
     public FastSqlInfo setLog(boolean log) {
         this.log = log;
+        return this;
+    }
+
+    public boolean isListener() {
+        return listener;
+    }
+
+    public FastSqlInfo setListener(boolean listener) {
+        this.listener = listener;
         return this;
     }
 

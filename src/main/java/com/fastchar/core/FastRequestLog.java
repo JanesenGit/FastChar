@@ -58,6 +58,7 @@ public final class FastRequestLog {
 
 
                 LinkedHashMap<String, String> printRequestMap = new LinkedHashMap<>();
+                printRequestMap.put("Thread-Info", Thread.currentThread().getName() + " - " + Thread.currentThread().getId());
                 int rootIndex = 0;
                 for (int i = rootInterceptorStacks.size() - 1; i >= 0; i--) {
                     printRequestMap.put(ROOT_INTERCEPTOR_CHAR + "@RootInterceptor-" + rootIndex, rootInterceptorStacks.get(i).toString());
@@ -149,6 +150,7 @@ public final class FastRequestLog {
                 }
 
                 printResponseMap.put("ContentType", fastOut.toContentType(action));
+                printResponseMap.put("ContentEncoding", action.getResponse().getHeader("Content-Encoding"));
                 printResponseMap.put("Status", String.valueOf(fastOut.getStatus()));
 
                 if (FastStringUtils.isNotEmpty(fastOut.getDescription())) {

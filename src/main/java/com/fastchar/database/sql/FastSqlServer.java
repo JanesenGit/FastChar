@@ -88,6 +88,7 @@ public class FastSqlServer extends FastSql {
         }
         sqlInfo.setLog(entity.getBoolean("log", true));
         sqlInfo.setParams(values);
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         return sqlInfo;
     }
 

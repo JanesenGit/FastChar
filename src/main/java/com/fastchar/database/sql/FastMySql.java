@@ -19,7 +19,6 @@ public class FastMySql extends FastSql {
         return false;
     }
 
-
     public FastMySql() {
         this.type = "mysql";
     }
@@ -82,6 +81,7 @@ public class FastMySql extends FastSql {
         }
         sqlInfo.setLog(entity.getBoolean("log", true));
         sqlInfo.setParams(values);
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         return sqlInfo;
     }
 

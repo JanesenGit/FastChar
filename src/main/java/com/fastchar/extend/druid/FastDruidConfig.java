@@ -16,23 +16,24 @@ public class FastDruidConfig implements IFastConfig {
     private int initialSize = 10;
     private int minIdle = 10;
     private int maxActive = 100;
-    private int removeAbandonedTimeoutMillis = 300 * 1000;
     private int maxWait;
     private boolean testWhileIdle = true;
     private boolean testOnBorrow = false;
     private boolean testOnReturn = false;
-    private boolean removeAbandoned = false;
+    private int removeAbandonedTimeoutMillis = 600 * 1000;
+    private boolean removeAbandoned = true;
+    private boolean logAbandoned = true;
     private boolean keepAlive = true;
 
     private boolean clearFiltersEnable;
 
-    private long timeBetweenEvictionRunsMillis= DruidDataSource.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS;
-    private long minEvictableIdleTimeMillis= DruidDataSource.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS;
+    private long timeBetweenEvictionRunsMillis = DruidDataSource.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS;
+    private long minEvictableIdleTimeMillis = DruidDataSource.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS;
     private long timeBetweenConnectErrorMillis = DruidDataSource.DEFAULT_TIME_BETWEEN_CONNECT_ERROR_MILLIS;
     private boolean poolPreparedStatements = false;
     private int maxPoolPreparedStatementPerConnectionSize = -1;
     private int maxOpenPreparedStatements = 20;
-    private boolean logAbandoned;
+
 
     private List<Filter> filters = new ArrayList<>();
 
@@ -243,7 +244,7 @@ public class FastDruidConfig implements IFastConfig {
                 String[] var3 = filterArray;
                 int var4 = filterArray.length;
 
-                for(int var5 = 0; var5 < var4; ++var5) {
+                for (int var5 = 0; var5 < var4; ++var5) {
                     String item = var3[var5];
                     FilterManager.loadFilter(this.filters, item.trim());
                 }
@@ -253,7 +254,6 @@ public class FastDruidConfig implements IFastConfig {
             e.printStackTrace();
         }
     }
-
 
 
 }

@@ -10,7 +10,6 @@ import com.fastchar.exception.FastSqlException;
 import com.fastchar.interfaces.IFastColumnSecurity;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastArrayUtils;
-import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.lang.reflect.Array;
@@ -63,6 +62,7 @@ public abstract class FastSql {
         FastSqlInfo sqlInfo = newSqlInfo();
         sqlInfo.setSql(sqlBuilder.toString());
         sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         sqlInfo.setParams(values);
         return sqlInfo;
     }
@@ -104,6 +104,7 @@ public abstract class FastSql {
         FastSqlInfo sqlInfo = newSqlInfo();
         sqlInfo.setSql(sqlBuilder.toString());
         sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         sqlInfo.setParams(values);
         return sqlInfo;
     }
@@ -127,6 +128,7 @@ public abstract class FastSql {
         FastSqlInfo sqlInfo = newSqlInfo();
         sqlInfo.setSql(sqlBuilder.toString());
         sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         sqlInfo.setParams(Arrays.asList(ids));
         return sqlInfo;
     }
@@ -196,6 +198,7 @@ public abstract class FastSql {
         FastSqlInfo sqlInfo = newSqlInfo();
         sqlInfo.setSql(sqlBuilder.toString());
         sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         sqlInfo.setParams(values);
         return sqlInfo;
     }
@@ -236,6 +239,7 @@ public abstract class FastSql {
         FastSqlInfo sqlInfo = newSqlInfo();
         sqlInfo.setSql(sqlBuilder.toString());
         sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         sqlInfo.setParams(values);
         return sqlInfo;
     }
@@ -257,6 +261,7 @@ public abstract class FastSql {
         FastSqlInfo sqlInfo = newSqlInfo();
         sqlInfo.setSql(sqlBuilder.toString());
         sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         sqlInfo.setParams(Arrays.asList(ids));
         return sqlInfo;
     }
@@ -308,6 +313,7 @@ public abstract class FastSql {
         FastSqlInfo sqlInfo = newSqlInfo();
         sqlInfo.setSql(sqlBuilder.toString());
         sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setListener(entity.getBoolean("sqlListener", true));
         sqlInfo.setParams(values);
         return sqlInfo;
     }
@@ -320,11 +326,11 @@ public abstract class FastSql {
             selectSql = selectSql.replace(orderSql, "");
         }
 
-        int startIndex = selectSql.toLowerCase().indexOf("select") + 6;
+        int startIndex = selectSql.toLowerCase().indexOf("select");
         int endIndex = selectSql.toLowerCase().indexOf("from");
         if (endIndex > 0) {
             String select = selectSql.substring(startIndex, endIndex);
-            return selectSql.replace(select, " count(1) as " + alias + " ");
+            return "select count(1) as " + alias + " from (" + selectSql.replace(select, "select 1 ") + ") as temp ";
         }
         throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR2));
     }
@@ -333,12 +339,20 @@ public abstract class FastSql {
         return FastChar.getOverrides().newInstance(FastSqlInfo.class).setType(this.type);
     }
 
-    protected Object getColumnValue(FastEntity<?> entity, FastColumnInfo<?> columnInfo) {
-        Object value = entity.get(columnInfo.getName());
+    protected Object getAttrValue(FastEntity<?> entity, String attr) {
+        Object value = entity.get(attr);
         if (value == null) {
             return null;
         }
         if ("<null>".equalsIgnoreCase(value.toString())) {
+            return null;
+        }
+        return value;
+    }
+
+    protected Object getColumnValue(FastEntity<?> entity, FastColumnInfo<?> columnInfo) {
+        Object value = getAttrValue(entity, columnInfo.getName());
+        if (value == null) {
             return null;
         }
         if (FastStringUtils.isNotEmpty(columnInfo.getEncrypt())) {
@@ -385,6 +399,7 @@ public abstract class FastSql {
         return null;
     }
 
+    //获取主sql的关键值位置
     protected int[] getTokenIndex(String token, String sql, String... endToken) {
         String[] tokens = token.split(" ");
         int tokenIndex = 0;
@@ -469,10 +484,11 @@ public abstract class FastSql {
      * 条件属性格式：
      * <br/>
      * 分组符号+连接符号+属性名+比较符号（例如：&name?% 翻译后为：and name like '值%' ）
-     * </p>
-     * <p>
-     * 分组符号 $[0-9]  翻译成sql ()
-     * </p>
+     * <br/>
+     * 分组符号 @[0-9]  翻译成sql and ()
+     * <br/>
+     * 分组符号 |[0-9]  翻译成sql or ()
+     * <br/>
      * 连接符号：&  翻译成sql  and
      * <br/>
      * 连接符号：@  翻译成sql  and
@@ -487,16 +503,19 @@ public abstract class FastSql {
      * <br/>
      * 比较符号：!# 翻译成sql  not in
      * <br/>
+     * 比较符号：~  翻译成sql  is null
+     * <br/>
+     * 比较符号：!~  翻译成sql is not null
+     * <br/>
      * 前缀符号：__ 翻译成sql  . (别名前缀，例如：a__name 翻译后为：a.name)
-     * </p>
-     * <p>
+     * <br/>
      * 以下特性被忽略转换：
      * 以^符号开头的属性 （例如：^test ）
      * </p>
      */
     public FastSqlInfo appendWhere(String sqlStr, FastEntity<?> entity) {
         sqlStr = sqlStr.trim();
-        String regStr = "([$]?[0-9]+)?(&|@|\\|{2})?([_a-zA-Z0-9.]*)([?!#><=%]+)?([:sort]+)?";
+        String regStr = "([@|]?[0-9]+)?(&|@|\\|{2})?([_a-zA-Z0-9.]*)([?!#><=%~]+)?([:sort]+)?";
         Pattern compile = Pattern.compile(regStr);
 
         FastSqlInfo sqlInfo = newSqlInfo();
@@ -569,24 +588,65 @@ public abstract class FastSql {
                     link = "and";
                 }
 
-                if (groupKey.startsWith("$")) {
+                if (groupKey.startsWith("@") || groupKey.startsWith("$")) {
                     if (FastStringUtils.isEmpty(lastGroupKey)) {
                         if (FastStringUtils.isNotEmpty(groupKey)) {
-                            before_2 = " ( ";
+                            before_2 = " and ( ";
+                            link = "";
                             lastGroupKey = groupKey;
                         }
                     } else if (!lastGroupKey.equalsIgnoreCase(groupKey)) {
                         before_1 = " ) ";
                         if (FastStringUtils.isNotEmpty(groupKey)) {
-                            before_2 = " ( ";
+                            before_2 = " and ( ";
+                            link = "";
                             lastGroupKey = groupKey;
                         } else {
                             lastGroupKey = "";
                         }
                     }
+                } else if (groupKey.startsWith("|")) {
+                    if (FastStringUtils.isEmpty(lastGroupKey)) {
+                        if (FastStringUtils.isNotEmpty(groupKey)) {
+                            before_2 = " or ( ";
+                            link = "";
+                            lastGroupKey = groupKey;
+                        }
+                    } else if (!lastGroupKey.equalsIgnoreCase(groupKey)) {
+                        before_1 = " ) ";
+                        if (FastStringUtils.isNotEmpty(groupKey)) {
+                            before_2 = " or ( ";
+                            link = "";
+                            lastGroupKey = groupKey;
+                        } else {
+                            lastGroupKey = "";
+                        }
+                    }
+                } else if (FastStringUtils.isNotEmpty(lastGroupKey)) {
+                    whereBuilder.append(" ) ");
+                    lastGroupKey = "";
                 }
-
                 switch (compare) {
+                    case "~":
+                        compare = "is null";
+                        placeholder = "";
+                        break;
+                    case "=":
+                        if ("<null>".equalsIgnoreCase(value.toString())) {
+                            compare = "is null";
+                            placeholder = "";
+                        }
+                        break;
+                    case "!~":
+                        compare = "is not null";
+                        placeholder = "";
+                        break;
+                    case "!=":
+                        if ("<null>".equalsIgnoreCase(value.toString())) {
+                            compare = "is not null";
+                            placeholder = "";
+                        }
+                        break;
                     case "?":
                         compare = "like";
                         break;
@@ -631,9 +691,9 @@ public abstract class FastSql {
             whereBuilder
                     .append(before_1)
                     .append(" ")
-                    .append(link)
-                    .append(" ")
                     .append(before_2)
+                    .append(" ")
+                    .append(link)
                     .append(" ")
                     .append(attr)
                     .append(" ")
@@ -680,5 +740,6 @@ public abstract class FastSql {
     public String getType() {
         return type;
     }
+
 
 }

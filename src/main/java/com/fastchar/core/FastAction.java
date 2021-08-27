@@ -4,6 +4,7 @@ import com.fastchar.asm.FastParameter;
 import com.fastchar.exception.FastFileException;
 import com.fastchar.exception.FastReturnException;
 import com.fastchar.local.FastCharLocal;
+import com.fastchar.multipart.FastMultipartRequest;
 import com.fastchar.multipart.FastMultipartWrapper;
 import com.fastchar.out.*;
 import com.fastchar.utils.*;
@@ -23,7 +24,6 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.net.URL;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,6 +35,9 @@ import java.util.regex.Pattern;
  */
 @SuppressWarnings("all")
 public abstract class FastAction {
+    public static final String PARAM_ACCPET = "__accept";
+    public static final String DATA_PREFIX = "^prefix";
+
     HttpServletRequest request;
     HttpServletResponse response;
     ServletContext servletContext;
@@ -185,7 +188,7 @@ public abstract class FastAction {
     /**
      * 判断参数是否为空
      *
-     * @param paramName 参数名称
+     * @param paramName 参数名称，不包含附件参数
      * @return 布尔值
      */
     public boolean isParamEmpty(String paramName) {
@@ -195,7 +198,7 @@ public abstract class FastAction {
     /**
      * 判断参数是否不为空
      *
-     * @param paramName 参数名
+     * @param paramName 参数名，不包含附件参数
      * @return 布尔值
      */
     public boolean isParamNotEmpty(String paramName) {
@@ -203,7 +206,7 @@ public abstract class FastAction {
     }
 
     /**
-     * 判断参数是否为【空白】值
+     * 判断参数是否为【空白】值，不包含附件参数
      *
      * @param paramName 参数名
      * @return 布尔值
@@ -213,7 +216,7 @@ public abstract class FastAction {
     }
 
     /**
-     * 判断参数是否不为【空白】值
+     * 判断参数是否不为【空白】值，不包含附件参数
      *
      * @param paramName 参数名
      * @return 布尔值
@@ -223,13 +226,13 @@ public abstract class FastAction {
     }
 
     /**
-     * 判断参数是否存在
+     * 判断参数是否存在，包含了附件参数名判断
      *
      * @param paramName 参数名
      * @return 布尔值
      */
     public boolean isParamExists(String paramName) {
-        return getParamNames().contains(paramName);
+        return getParamNames().contains(paramName) || getFileParameterNames().contains(paramName);
     }
 
     /**
@@ -281,6 +284,23 @@ public abstract class FastAction {
             strings.add(param.getName());
         }
         strings.addAll(fastCheck.getParamNames());
+        return strings;
+    }
+
+    /**
+     * 获取文件参数的参数名
+     *
+     * @return
+     */
+    public Set<String> getFileParameterNames() {
+        LinkedHashSet<String> strings = new LinkedHashSet<>();
+        HttpServletRequest request = getRequest();
+        if (request instanceof FastMultipartWrapper) {
+            Enumeration<String> fileParameterNames = ((FastMultipartWrapper) request).getFileParameterNames();
+            while (fileParameterNames.hasMoreElements()) {
+                strings.add(fileParameterNames.nextElement());
+            }
+        }
         return strings;
     }
 
@@ -1271,7 +1291,7 @@ public abstract class FastAction {
         Map<String, Object> mapParam = new HashMap<>();
 
         //2020-3-13 新增
-        mapParam.put("^prefix", prefix);
+        mapParam.put(DATA_PREFIX, prefix);
 
         Set<String> paramNames = getParamNames();
 
@@ -1755,7 +1775,8 @@ public abstract class FastAction {
      * @param data 数据
      */
     public void responseJson(Object data) {
-        response(FastChar.getOverrides().newInstance(FastOutJson.class).setData(data).setStatus(this.status));
+        response(FastChar.getOverrides().newInstance(FastOutJson.class)
+                .setData(data).setStatus(this.status));
     }
 
     /**
@@ -2703,6 +2724,7 @@ public abstract class FastAction {
         String agent = getRequest().getHeader("User-Agent");
         return agent;
     }
+
 
     /**
      * 添加参数验证，会触发IFastValidator验证码器，只对getParam*相关方法有效

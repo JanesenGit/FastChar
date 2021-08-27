@@ -1,16 +1,18 @@
 package com.fastchar.core;
 
+import com.fastchar.database.FastDatabaseXml;
 import com.fastchar.database.FastDb;
 import com.fastchar.interfaces.*;
 import javax.servlet.ServletContext;
 
 /**
  * FastChar全局工具类，涵盖了所有FastChar提供功能
+ * @see <a href="https://www.fastchar.com">FastChar</a>
  * @author 沈建（Janesen）
  */
 public final class FastChar {
-    private static ThreadLocal<FastAction> THREAD_LOCAL_ACTION = new ThreadLocal<FastAction>();
-
+    private static final ThreadLocal<FastAction> THREAD_LOCAL_ACTION = new ThreadLocal<FastAction>();
+    private static boolean TEST_STARTED = false;
 
     private FastChar() {
     }
@@ -25,10 +27,15 @@ public final class FastChar {
                 FastChar.getLog().info(FastChar.class, "The current web server is running! ");
                 return true;
             }
+            if (TEST_STARTED) {
+                FastChar.getLog().info(FastChar.class, "Test environment started!  ");
+                return true;
+            }
             instance.getConstant().setSyncDatabaseXml(false);
             instance.getConstant().setTestEnvironment(true);
             instance.init(null);
             instance.run();
+            TEST_STARTED = true;
             FastChar.getLog().info(FastChar.class, "Test environment started successfully！");
             return true;
         } catch (Exception e) {
@@ -73,6 +80,10 @@ public final class FastChar {
 
     public static FastScanner getScanner() {
         return FastEngine.instance().getScanner();
+    }
+
+    public static FastModules getModules() {
+        return FastEngine.instance().getModules();
     }
 
     public static FastDb getDb() {
@@ -131,9 +142,24 @@ public final class FastChar {
         return FastEngine.instance().getDatabases();
     }
 
+    public static FastDatabaseXml getDatabaseXml() {
+        return FastEngine.instance().getDatabaseXml();
+    }
 
     public static IFastCache getCache() {
         return FastChar.getOverrides().singleInstance(IFastCache.class);
+    }
+
+    public static IFastCache safeGetCache() {
+        return FastChar.getOverrides().singleInstance(false, IFastCache.class);
+    }
+
+    public static IFastMemoryCache getMemoryCache() {
+        return FastChar.getOverrides().singleInstance(IFastMemoryCache.class);
+    }
+
+    public static IFastMemoryCache safeGetMemoryCache() {
+        return FastChar.getOverrides().singleInstance(false, IFastMemoryCache.class);
     }
 
     public static FastValidators getValidators() {

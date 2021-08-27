@@ -6,8 +6,30 @@ import com.fastchar.local.FastCharLocal;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 public class FastDateUtils {
+
+    private static final Map<String, String> DATE_FORMAT_MAP = new HashMap<>();
+    static {
+        DATE_FORMAT_MAP.put("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "yyyy-MM-dd HH:mm:ss");
+        DATE_FORMAT_MAP.put("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "yyyy-MM-dd HH:mm");
+        DATE_FORMAT_MAP.put("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}", "yyyy-MM-dd HH");
+        DATE_FORMAT_MAP.put("[0-9]{4}-[0-9]{2}-[0-9]{2}", "yyyy-MM-dd");
+        DATE_FORMAT_MAP.put("[0-9]{4}-[0-9]{2}", "yyyy-MM");
+        DATE_FORMAT_MAP.put("[0-9]{4}}", "yyyy");
+
+
+        DATE_FORMAT_MAP.put("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "yyyy/MM/dd HH:mm:ss");
+        DATE_FORMAT_MAP.put("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}", "yyyy/MM/dd HH:mm");
+        DATE_FORMAT_MAP.put("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}", "yyyy/MM/dd HH");
+        DATE_FORMAT_MAP.put("[0-9]{4}/[0-9]{2}/[0-9]{2}", "yyyy/MM/dd");
+        DATE_FORMAT_MAP.put("[0-9]{4}/[0-9]{2}", "yyyy/MM");
+
+    }
+
 
     public static Date parse(String date, String pattern) {
         return parse(date, pattern, null);
@@ -200,6 +222,16 @@ public class FastDateUtils {
             e.printStackTrace();
         }
         return 0;
+    }
+
+
+    public static String guessDateFormat(String dateValue) {
+        for (String regStr : DATE_FORMAT_MAP.keySet()) {
+            if (Pattern.matches(regStr, dateValue.trim())) {
+                return DATE_FORMAT_MAP.get(regStr);
+            }
+        }
+        return null;
     }
 
 

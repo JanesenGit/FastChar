@@ -5,12 +5,15 @@ import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import freemarker.template.Template;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应Freemarker模板
@@ -43,7 +46,6 @@ public class FastOutFreemarker extends FastOut<FastOutFreemarker> {
             String attrName = attrs.nextElement();
             data.put(attrName, request.getSession().getAttribute(attrName));
         }
-
 
         Template template = FastChar.getTemplates().getFreemarker().getTemplate(String.valueOf(data));
         try (PrintWriter writer = response.getWriter()){

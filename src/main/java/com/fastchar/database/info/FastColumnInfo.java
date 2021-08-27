@@ -17,6 +17,7 @@ public class FastColumnInfo<T> extends FastBaseInfo {
     }
 
     protected FastColumnInfo() {
+        tagName = "column";
     }
 
 
@@ -221,20 +222,22 @@ public class FastColumnInfo<T> extends FastBaseInfo {
     }
 
 
+    public String getPlainTick() {
+        return this.name
+                + this.type
+                + this.length
+                + this.nullable
+                + this.autoincrement
+                + this.index
+                + this.charset
+                + this.primary
+                + this.value
+                + this.comment;
+    }
 
     public String getModifyTick() {
         if (FastStringUtils.isEmpty(modifyTick)) {
-            String tick = this.name
-                    + this.type
-                    + this.length
-                    + this.nullable
-                    + this.autoincrement
-                    + this.index
-                    + this.charset
-                    + this.primary
-                    + this.value
-                    + this.comment;
-            modifyTick = FastChar.getSecurity().MD5_Encrypt(tick);
+            modifyTick = FastChar.getSecurity().MD5_Encrypt(getPlainTick());
         }
         return modifyTick;
     }

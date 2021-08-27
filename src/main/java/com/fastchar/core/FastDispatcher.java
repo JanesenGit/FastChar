@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * FastChar核心路由转发器
+ *
  * @author 沈建（Janesen）
  */
 @SuppressWarnings("unchecked")
@@ -38,7 +39,7 @@ public final class FastDispatcher {
     static final ConcurrentHashMap<String, FastRoute> FAST_ROUTE_MAP = new ConcurrentHashMap<>();
     private static final Set<Class<?>> RESOLVED = new HashSet<>();
 
-    static void initDispatcher() {
+    synchronized static void initDispatcher() {
         FastEngine.instance().getInterceptors().sortRootInterceptor();
         RESOLVED.clear();
     }
@@ -149,7 +150,10 @@ public final class FastDispatcher {
         return classMethodRoutes;
     }
 
-    static void actionResolver(Class<? extends FastAction> actionClass) throws Exception {
+    synchronized static void actionResolver(Class<? extends FastAction> actionClass) throws Exception {
+        if (FastChar.getConstant().isLogActionResolver()) {
+            FastChar.getLog().info(actionClass, FastChar.getLocal().getInfo(FastCharLocal.ACTION_ERROR6, actionClass.getName()));
+        }
         if (FastChar.getServletContext() == null) {
             return;
         }
@@ -281,9 +285,8 @@ public final class FastDispatcher {
                 }
                 fastRoute.returnOut = defaultOut;
 
-                initInterceptor(null, fastRoute, 0);
-                initInterceptor(actionClass, fastRoute, 1);
-                initInterceptor(declaredMethod, fastRoute, 2);
+                initAnnotationInterceptor(actionClass, fastRoute, 1);
+                initAnnotationInterceptor(declaredMethod, fastRoute, 2);
 
                 if (FAST_ROUTE_MAP.containsKey(classMethodRoute)) {
                     FastRoute existFastRoute = FAST_ROUTE_MAP.get(classMethodRoute);
@@ -328,9 +331,8 @@ public final class FastDispatcher {
     }
 
 
-    private static void initInterceptor(GenericDeclaration target, FastRoute fastRoute, int index) throws Exception {
+    private static void initAnnotationInterceptor(GenericDeclaration target, FastRoute fastRoute, int index) throws Exception {
         IFastMethodRead read = FastChar.getOverrides().newInstance(IFastMethodRead.class);
-
         if (target != null) {
             AFastBefore beforeInterceptor = null;
             AFastAfter afterInterceptor = null;
@@ -370,12 +372,18 @@ public final class FastDispatcher {
                     fastRoute.addAfterInterceptor(routeInterceptor);
                 }
             }
-        } else {
-            List<FastInterceptors.InterceptorInfo<IFastInterceptor>> beforeInterceptors = FastEngine.instance().getInterceptors().getBeforeInterceptors(fastRoute.getRoute());
+        }
+    }
+
+    synchronized static void initMethodInterceptors() throws Exception {
+        IFastMethodRead read = FastChar.getOverrides().newInstance(IFastMethodRead.class);
+        for (String routeUrl : FAST_ROUTE_MAP.keySet()) {
+            FastRoute fastRoute = FAST_ROUTE_MAP.get(routeUrl);
+            List<FastInterceptors.InterceptorInfo<IFastInterceptor>> beforeInterceptors = FastEngine.instance().getInterceptors().getBeforeInterceptors(routeUrl);
             for (FastInterceptors.InterceptorInfo<IFastInterceptor> beforeInterceptor : beforeInterceptors) {
                 List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(beforeInterceptor.getInterceptor(), "onInterceptor");
                 FastRoute.RouteInterceptor routeInterceptor = new FastRoute.RouteInterceptor();
-                routeInterceptor.index = index;
+                routeInterceptor.index = 0;
                 routeInterceptor.priority = beforeInterceptor.getPriority();
                 routeInterceptor.interceptorClass = beforeInterceptor.getInterceptor();
                 if (lineNumber.size() > 0) {
@@ -385,11 +393,11 @@ public final class FastDispatcher {
                 fastRoute.addBeforeInterceptor(routeInterceptor);
             }
 
-            List<FastInterceptors.InterceptorInfo<IFastInterceptor>> afterInterceptors = FastEngine.instance().getInterceptors().getAfterInterceptors(fastRoute.getRoute());
+            List<FastInterceptors.InterceptorInfo<IFastInterceptor>> afterInterceptors = FastEngine.instance().getInterceptors().getAfterInterceptors(routeUrl);
             for (FastInterceptors.InterceptorInfo<IFastInterceptor> afterInterceptor : afterInterceptors) {
                 List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(afterInterceptor.getInterceptor(), "onInterceptor");
                 FastRoute.RouteInterceptor routeInterceptor = new FastRoute.RouteInterceptor();
-                routeInterceptor.index = index;
+                routeInterceptor.index = 0;
                 routeInterceptor.priority = afterInterceptor.getPriority();
                 routeInterceptor.interceptorClass = afterInterceptor.getInterceptor();
                 if (lineNumber.size() > 0) {
@@ -401,10 +409,28 @@ public final class FastDispatcher {
         }
     }
 
+    public static void flush() {
+        List<String> waitRemove = new ArrayList<>();
+        for (String s : FAST_ROUTE_MAP.keySet()) {
+            if (FastClassUtils.isRelease(FAST_ROUTE_MAP.get(s).actionClass)) {
+                waitRemove.add(s);
 
-    private FilterChain filterChain;
-    private HttpServletRequest request;
-    private HttpServletResponse response;
+                if (FastChar.getConstant().isDebug()) {
+                    FastChar.getLog().warn(FastDispatcher.class,
+                            FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR4, s));
+                }
+            }
+        }
+        for (String s : waitRemove) {
+            FAST_ROUTE_MAP.remove(s);
+        }
+        RESOLVED.clear();
+    }
+
+
+    private final FilterChain filterChain;
+    private final HttpServletRequest request;
+    private final HttpServletResponse response;
     private String contentUrl;
     private List<Class<? extends IFastRootInterceptor>> rootInterceptor;
     private int interceptorIndex = -1;
@@ -475,24 +501,6 @@ public final class FastDispatcher {
     }
 
 
-    public static void flush() {
-        List<String> waitRemove = new ArrayList<>();
-        for (String s : FAST_ROUTE_MAP.keySet()) {
-            if (FastClassUtils.isRelease(FAST_ROUTE_MAP.get(s).actionClass)) {
-                waitRemove.add(s);
-
-                if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastDispatcher.class,
-                            FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR4, s));
-                }
-            }
-        }
-        for (String s : waitRemove) {
-            FAST_ROUTE_MAP.remove(s);
-        }
-        RESOLVED.clear();
-    }
-
     public void invoke() throws FastWebException {
         try {
             if (!validateUrl(contentUrl)) {
@@ -548,9 +556,13 @@ public final class FastDispatcher {
                 return;
             }
 
+            if (FastUrlParser.isFileUrl(contentUrl)) {
+                doFilter();
+                return;
+            }
+
             Date inTime = new Date();
-            for (int i = 0; i < parse.size(); i++) {
-                FastUrl fastUrl = parse.get(i);
+            for (FastUrl fastUrl : parse) {
                 FastRoute baseRoute = FAST_ROUTE_MAP.get(fastUrl.getMethodRoute());
                 if (baseRoute != null) {
                     FastRoute fastRoute = baseRoute.copy();
@@ -611,12 +623,6 @@ public final class FastDispatcher {
                     }
                     return;
                 }
-                if (i == 0) {
-                    if (contentUrl.lastIndexOf(".") > 0) {
-                        doFilter();
-                        return;
-                    }
-                }
             }
             response404(inTime);
         } catch (Throwable e) {
@@ -632,7 +638,6 @@ public final class FastDispatcher {
             FastChar.removeThreadLocalAction();
         }
     }
-
 
     private boolean initCrossDomain(FastRoute route) {
         boolean cross = false;

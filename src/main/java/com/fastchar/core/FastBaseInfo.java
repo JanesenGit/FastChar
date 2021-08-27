@@ -13,16 +13,17 @@ import java.util.Map;
 
 /**
  * 便捷的信息存储类
+ *
  * @author 沈建（Janesen）
  */
 public class FastBaseInfo extends LinkedHashMap<String, Object> {
 
     private transient static final long serialVersionUID = -8188484441789855067L;
-    private transient int lineNumber = 1;
-    private transient List<Field> fields;
-    private transient String tagName;
-    private transient String fileName;
-    private transient FastMapWrap mapWrap;
+    protected transient int lineNumber = 1;
+    protected transient List<Field> fields;
+    protected transient String tagName;
+    protected transient String fileName;
+    protected transient FastMapWrap mapWrap;
 
     public FastBaseInfo() {
         try {
@@ -45,7 +46,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
                 }
                 if (FastBaseInfo.class.isAssignableFrom(tempClass.getSuperclass())) {
                     tempClass = tempClass.getSuperclass();
-                }else{
+                } else {
                     tempClass = null;
                 }
             }
@@ -62,7 +63,8 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
             try {
                 field.setAccessible(true);
                 field.set(this, null);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -78,7 +80,8 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
 
     /**
      * 设置属性值
-     * @param attr 属性名
+     *
+     * @param attr  属性名
      * @param value 属性值
      */
     public void set(String attr, Object value) {
@@ -94,8 +97,13 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
                     continue;
                 }
                 if (field.getName().equals(attr)) {
-                    field.setAccessible(true);
-                    field.set(this, value);
+                    if (field.getType() == value.getClass()) {
+                        field.setAccessible(true);
+                        field.set(this, value);
+                    } else if (field.getType() == String.class) {
+                        field.setAccessible(true);
+                        field.set(this, String.valueOf(value));
+                    }
                 }
             }
             put(attr, value);
@@ -106,6 +114,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
 
     /**
      * 删除属性
+     *
      * @param attr 属性名
      */
     public void delete(String attr) {
@@ -131,7 +140,6 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
             e.printStackTrace();
         }
     }
-
 
 
     /**
@@ -186,7 +194,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
     }
 
 
-    protected String buildErrorInfo(String info,String attr) {
+    protected String buildErrorInfo(String info, String attr) {
         String error = info;
         StackTraceElement stackTrace = getStackTrace(attr);
         if (stackTrace != null) {
@@ -219,7 +227,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
         return getString(attr, null);
     }
 
-    public String getString(String attr,String defaultValue) {
+    public String getString(String attr, String defaultValue) {
         return FastStringUtils.defaultValue(get(attr), defaultValue);
     }
 
@@ -233,7 +241,7 @@ public class FastBaseInfo extends LinkedHashMap<String, Object> {
 
     public String toJson() {
         fromProperty();
-        return  FastChar.getJson().toJson(this);
+        return FastChar.getJson().toJson(this);
     }
 
 

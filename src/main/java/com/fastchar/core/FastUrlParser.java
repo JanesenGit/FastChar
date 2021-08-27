@@ -22,6 +22,10 @@ final class FastUrlParser {
         return url;
     }
 
+    public static boolean isFileUrl(String url) {
+        return url.split("[?]")[0].lastIndexOf(".") > 0;
+    }
+
 
     public static List<FastUrl> parse(String url) {
         List<FastRequestParam> params = parseParams(url);

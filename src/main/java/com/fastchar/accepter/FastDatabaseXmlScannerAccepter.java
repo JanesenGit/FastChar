@@ -5,6 +5,7 @@ import com.fastchar.core.FastEngine;
 import com.fastchar.interfaces.IFastScannerAccepter;
 
 import java.io.File;
+import java.util.jar.JarFile;
 
 /**
  * fast-database文件扫码接收器

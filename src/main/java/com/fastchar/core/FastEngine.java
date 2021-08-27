@@ -1,7 +1,5 @@
 package com.fastchar.core;
 
-import com.fastchar.accepter.*;
-import com.fastchar.converters.*;
 import com.fastchar.database.FastDatabaseXml;
 import com.fastchar.database.FastDb;
 import com.fastchar.enums.FastObservableEvent;
@@ -12,8 +10,6 @@ import com.fastchar.observer.FastDatabaseObserver;
 import com.fastchar.system.FastErrorPrintStream;
 import com.fastchar.system.FastOutPrintStream;
 import com.fastchar.utils.FastStringUtils;
-import com.fastchar.validators.FastNullValidator;
-import com.fastchar.validators.FastRegularValidator;
 
 import javax.servlet.ServletContext;
 import java.io.File;
@@ -22,7 +18,7 @@ import java.io.FileOutputStream;
 
 /**
  * FastChar核心框架引擎
- *
+ * @see <a href="https://www.fastchar.com">FastChar</a>
  * @author 沈建（Janesen）
  */
 @SuppressWarnings("all")
@@ -49,6 +45,7 @@ public final class FastEngine {
     private final FastDatabases dataSources = new FastDatabases();
     private final FastScanner scanner = new FastScanner();
     private final FastPath path = new FastPath();
+    private final FastModules modules = new FastModules();
     private final FastConstant constant = FastEnhancer.getBySafe(FastConstant.class).addBeforeInterceptor(FastConstant.FastConstantMethodInterceptor.class).create();
     private final FastInterceptors interceptors = new FastInterceptors();
     private final FastObservable observable = new FastObservable();
@@ -93,6 +90,7 @@ public final class FastEngine {
         if (!isMain()) {
             webs.runWeb(this);
             observable.notifyObservers(FastObservableEvent.onWebRun.name(), this);
+            FastDispatcher.initMethodInterceptors();
         }
     }
 
@@ -337,6 +335,7 @@ public final class FastEngine {
                 FastProperties.class).setFile(new File(path.getClassRootPath(), fileName));
     }
 
+
     /**
      * 获取类加载预检测器，可用于第三方jar包引用的检测
      *
@@ -369,10 +368,19 @@ public final class FastEngine {
         return databaseXml;
     }
 
+
+    /**
+     * 获取系统模块加载器
+     * @return
+     */
+    public FastModules getModules() {
+        return modules;
+    }
+
     /**
      * 刷新已被释放的类或对象
      */
-    public void flush() {
+    public synchronized void flush() {
         FastDispatcher.flush();
         FastEngine.instance().getEntities().flush();
         FastEngine.instance().getObservable().flush();

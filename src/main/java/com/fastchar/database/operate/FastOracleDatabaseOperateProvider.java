@@ -31,8 +31,8 @@ public class FastOracleDatabaseOperateProvider implements IFastDatabaseOperate {
     }
 
     private Set<String> tables = null;
-    private Map<String, Set<String>> tableColumns = new HashMap<>();
-    private FastDb fastDb = new FastDb().setLog(false).setIgnoreCase(true).setUseCache(false);
+    private final Map<String, Set<String>> tableColumns = new HashMap<>();
+    private final FastDb fastDb = new FastDb().setLog(false).setIgnoreCase(true).setUseCache(false);
 
     @Override
     public void fetchDatabaseInfo(FastDatabaseInfo databaseInfo) throws Exception {

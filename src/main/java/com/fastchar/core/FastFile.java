@@ -64,6 +64,10 @@ public class FastFile<T> {
     private final ConcurrentHashMap<String, Object> attrs = new ConcurrentHashMap<>();
     private final FastMapWrap mapWrap = FastMapWrap.newInstance(attrs);
 
+    /**
+     * 获取文件的唯一标识key
+     * @return 字符串
+     */
     public String getKey() {
         if (FastStringUtils.isEmpty(key)) {
             this.key = FastChar.getSecurity().MD5_Encrypt(FastStringUtils.buildOnlyCode(paramName));
@@ -71,42 +75,83 @@ public class FastFile<T> {
         return key;
     }
 
+    /**
+     * 设置文件的唯一标识key
+     * @param key 唯一标识string
+     * @return 当前对象
+     */
     public FastFile<T> setKey(String key) {
         this.key = key;
         return this;
     }
 
+    /**
+     * 获取附件post提交的参数名
+     * @return 字符串
+     */
     public String getParamName() {
         return paramName;
     }
 
+    /**
+     * 设置附件post提交的参数名
+     * @param paramName 参数名
+     * @return 当前对象
+     */
     public FastFile<T> setParamName(String paramName) {
         this.paramName = paramName;
         return this;
     }
 
+    /**
+     * 获取附件保存后的文件名
+     * @return 字符串
+     */
     public String getFileName() {
         return fileName;
     }
 
+    /**
+     * 设置附件保存后的文件名
+     * @param fileName 文件名
+     * @return 当前对象
+     */
     public FastFile<T> setFileName(String fileName) {
         this.fileName = fileName;
         return this;
     }
 
+    /**
+     * 获取附件保存到文件夹目录地址
+     * @return 字符串
+     */
     public String getAttachDirectory() {
         return attachDirectory;
     }
 
+    /**
+     * 设置附件保存到文件夹目录地址
+     * @param attachDirectory 目录地址
+     * @return 当前对象
+     */
     public FastFile<T> setAttachDirectory(String attachDirectory) {
         this.attachDirectory = attachDirectory;
         return this;
     }
 
+    /**
+     * 获取附件上传时原始的文件名
+     * @return 字符串
+     */
     public String getUploadFileName() {
         return uploadFileName;
     }
 
+    /**
+     * 设置附件的原始文件名
+     * @param uploadFileName 文件名
+     * @return 当前对象
+     */
     public FastFile<T> setUploadFileName(String uploadFileName) {
         this.uploadFileName = uploadFileName;
         if (FastChar.getConstant().isDecodeUploadFileName()) {
@@ -121,19 +166,27 @@ public class FastFile<T> {
         return this;
     }
 
+    /**
+     * 获取附件的content-type类型
+     * @return 字符串
+     */
     public String getContentType() {
         return contentType;
     }
 
+    /**
+     * 设置附件的content-type类型
+     * @param contentType 文件类型
+     * @return 当前对象
+     */
     public FastFile<T> setContentType(String contentType) {
         this.contentType = contentType;
         return this;
     }
 
     /**
-     * 获得文件扩展名，包含(.)
-     *
-     * @return
+     * 获得文件扩展名，包含(.) 例如：.png
+     * @return 字符串
      */
     public String getExtensionName() {
         if (fileName != null && fileName.length() > 0 && fileName.lastIndexOf(".") > -1) {
@@ -143,10 +196,9 @@ public class FastFile<T> {
     }
 
     /**
-     * 获取短文件名,不带扩展名
-     *
-     * @param fileName
-     * @return
+     * 获取短文件名,不带扩展名，原始文件名：test.png 获取后为：test
+     * @param fileName 文件名
+     * @return 字符串
      */
     public static String getShortName(String fileName) {
         if (fileName != null && fileName.length() > 0 && fileName.lastIndexOf(".") > -1) {
@@ -202,6 +254,12 @@ public class FastFile<T> {
         return FastFileUtils.isAVIFile(uploadFileName)||
                 FastFileUtils.isAVIFile(fileName)||
                 FastFileUtils.isAVIFileByMimeType(contentType);
+    }
+
+    public boolean isMP3File() {
+        return FastFileUtils.isMP3File(uploadFileName)||
+                FastFileUtils.isMP3File(fileName)||
+                FastFileUtils.isMP3FileByMimeType(contentType);
     }
 
     public boolean isTargetFile(String... extensions) {
@@ -266,11 +324,20 @@ public class FastFile<T> {
 
     }
 
+    /**
+     * 删除附件
+     * @throws IOException 异常信息
+     */
     public void delete() throws IOException {
         FastFileUtils.forceDelete(getFile());
     }
 
 
+    /**
+     * 获取附件的访问地址
+     * @return 字符串
+     * @throws Exception 异常信息
+     */
     public String getUrl() throws Exception {
         if (getFile() == null) {
             return null;
@@ -280,22 +347,45 @@ public class FastFile<T> {
     }
 
 
+    /**
+     * 设置附件的扩展属性
+     * @param name 属性名
+     * @param value 属性值
+     */
     public void setAttr(String name, Object value) {
         this.attrs.put(name, value);
     }
 
+    /**
+     * 判断是否存在扩展属性
+     * @param name 属性名
+     * @return 布尔值
+     */
     public boolean existAttr(String name) {
         return this.attrs.contains(name);
     }
 
+    /**
+     * 获取扩展属性值
+     * @param name 属性名
+     * @return Object
+     */
     public Object getAttr(String name) {
         return this.attrs.get(name);
     }
 
+    /**
+     * 获取附件扩展属性Map对象
+     * @return FastMapWrap对象
+     */
     public FastMapWrap getAttrWrap() {
         return mapWrap;
     }
 
+    /**
+     * 获取附件所有的扩展属性值
+     * @return ConcurrentHashMap对象
+     */
     public ConcurrentHashMap<String, Object> getAttrs() {
         return attrs;
     }

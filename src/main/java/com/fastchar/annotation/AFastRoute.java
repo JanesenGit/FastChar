@@ -37,13 +37,14 @@ public @interface AFastRoute {
 
     /**
      * 是否允许被Before拦截器拦截
-     * @return 布尔值
+     * @return boolean
      */
     boolean interceptorBefore() default true;
 
     /**
      * 是否允许被After拦截器拦截
-     * @return 布尔值
+     * @return boolean
      */
     boolean interceptorAfter() default true;
+
 }

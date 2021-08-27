@@ -4,10 +4,12 @@ import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.utils.FastFileUtils;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应Html
@@ -38,5 +40,6 @@ public class FastOutHtml extends FastOut<FastOutHtml> {
             }
             writer.flush();
         }
+
     }
 }

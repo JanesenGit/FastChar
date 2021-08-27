@@ -8,7 +8,7 @@ public class FastTransaction {
     private int isolation = -1;
     private boolean commit;
     private boolean rollback;
-    private ConcurrentHashMap<String, Connection> connectionMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Connection> connectionMap = new ConcurrentHashMap<>();
 
     public int getIsolation() {
         return isolation;

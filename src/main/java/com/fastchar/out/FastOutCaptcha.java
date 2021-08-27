@@ -3,6 +3,7 @@ package com.fastchar.out;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.utils.FastMD5Utils;
+import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream;
 import sun.font.FontDesignMetrics;
 
 import javax.imageio.ImageIO;
@@ -12,6 +13,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.OutputStream;
 import java.util.Random;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应验证码图片
@@ -36,13 +38,11 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
         response.setHeader("Cache-Control", "no-cache");
         response.setDateHeader("Expires", 0);
         response.setStatus(getStatus());
-        response.setContentType(getContentType());
+        response.setContentType(toContentType(action));
 
-        try (ServletOutputStream outputStream = response.getOutputStream()) {
-            char[] chars = randomChar();
-            action.setSession(FastMD5Utils.MD5(FastChar.getConstant().getProjectName()), new String(chars));
-            outCaptcha(outputStream, chars);
-        }
+        char[] chars = randomChar();
+        action.setSession(FastMD5Utils.MD5(FastChar.getConstant().getProjectName()), new String(chars));
+        outCaptcha(action, chars);
     }
 
 
@@ -64,7 +64,7 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
     }
 
 
-    private void outCaptcha(OutputStream outputStream,char[] codes) throws Exception {
+    private void outCaptcha(FastAction action,char[] codes) throws Exception {
         Random random = new Random();
 
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -133,8 +133,11 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
             image.setRGB(x, y, lastColor.getRGB());
         }
         g2d.dispose();
-        ImageIO.write(image, "jpg", outputStream);
-        outputStream.flush();
+
+        try (OutputStream outputStream = action.getResponse().getOutputStream()) {
+            ImageIO.write(image, "jpg", outputStream);
+            outputStream.flush();
+        }
     }
 
 }

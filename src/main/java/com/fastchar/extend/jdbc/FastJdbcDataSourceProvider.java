@@ -13,7 +13,7 @@ import org.apache.tomcat.jdbc.pool.PoolProperties;
 
 import java.lang.reflect.Field;
 
-@AFastObserver
+@AFastObserver(priority = -9)//数据源监听关闭，放到最终
 @AFastPriority
 @AFastClassFind("org.apache.tomcat.jdbc.pool.DataSource")
 public class FastJdbcDataSourceProvider implements IFastDataSource {
@@ -22,7 +22,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
 
 
     @Override
-    public DataSource getDataSource(FastDatabaseInfo databaseInfo) {
+    public synchronized DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (datasource == null) {
             datasource = new DataSource();
             PoolProperties poolProperties = new PoolProperties();
@@ -51,7 +51,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
             this.databaseInfo = databaseInfo;
 
             if (FastChar.getConstant().isDebug()) {
-                FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, "Tomcat jdbc pool of " + databaseInfo.getName()));
+                FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, "Tomcat jdbc pool of " + databaseInfo.getName()+ "[" + databaseInfo.getType() + "]"));
             }
         }
         return datasource;
@@ -70,12 +70,12 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
         return "select 1";
     }
 
-    public void onWebStop() {
+    public synchronized void onWebStop() {
         try {
             if (datasource != null) {
                 datasource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Tomcat jdbc pool of " + databaseInfo.getName()));
+                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Tomcat jdbc pool of " + databaseInfo.getName()+"[" + databaseInfo.getType() + "]"));
                 }
             }
         } finally {

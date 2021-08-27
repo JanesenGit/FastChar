@@ -63,10 +63,12 @@ public final class FastDatabaseXml {
         databaseInfoHandler.databaseInfo.delete("name");
         boolean hasDatabaseMatch = false;
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
-            if (FastStringUtils.matches(name, databaseInfo.getName())) {
-                databaseInfo.merge(databaseInfoHandler.databaseInfo.copy());
-                databaseInfo.fromProperty();
-                hasDatabaseMatch = true;
+            if (databaseInfo.isSyncDatabaseXml()) {
+                if (FastStringUtils.matches(name, databaseInfo.getName())) {
+                    databaseInfo.merge(databaseInfoHandler.databaseInfo.copy());
+                    databaseInfo.fromProperty();
+                    hasDatabaseMatch = true;
+                }
             }
         }
         if (!hasDatabaseMatch) {
@@ -98,6 +100,9 @@ public final class FastDatabaseXml {
     }
 
     public void writeDatabaseXml(File file, FastDatabaseInfo databaseInfo) throws Exception {
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
         SAXTransformerFactory factory = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
         TransformerHandler handler = factory.newTransformerHandler();
         Transformer info = handler.getTransformer();
@@ -119,8 +124,12 @@ public final class FastDatabaseXml {
                 if (FastStringUtils.isEmpty(content)) {
                     continue;
                 }
-                String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
+                if (FastChar.getConstant().isEncryptDatabaseXml()) {
+                    String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
+                    impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
+                }else{
+                    impl.addAttribute("", "", String.valueOf(attr), "", content);
+                }
             }
         }
         handler.startElement("", "", databaseInfo.getTagName(), impl);
@@ -133,8 +142,12 @@ public final class FastDatabaseXml {
                     if (FastStringUtils.isEmpty(content)) {
                         continue;
                     }
-                    String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                    impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
+                    if (FastChar.getConstant().isEncryptDatabaseXml()) {
+                        String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
+                        impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
+                    }else{
+                        impl.addAttribute("", "", String.valueOf(attr), "", content);
+                    }
                 }
             }
             handler.startElement("", "", table.getTagName(), impl);
@@ -147,8 +160,12 @@ public final class FastDatabaseXml {
                         if (FastStringUtils.isEmpty(content)) {
                             continue;
                         }
-                        String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                        impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
+                        if (FastChar.getConstant().isEncryptDatabaseXml()) {
+                            String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
+                            impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
+                        }else{
+                            impl.addAttribute("", "", String.valueOf(attr), "", content);
+                        }
                     }
                 }
                 handler.startElement("", "", column.getTagName(), impl);

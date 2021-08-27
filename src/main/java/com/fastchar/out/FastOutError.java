@@ -3,10 +3,15 @@ package com.fastchar.out;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastConstant;
+import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应错误

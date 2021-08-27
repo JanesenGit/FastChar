@@ -6,7 +6,6 @@ import com.fastchar.annotation.AFastObserver;
 import com.fastchar.annotation.AFastOverrideError;
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.asm.FastMethodRead;
-import com.fastchar.asm.FastMethodRead7;
 import com.fastchar.converters.*;
 import com.fastchar.database.operate.FastMySqlDatabaseOperateProvider;
 import com.fastchar.database.operate.FastOracleDatabaseOperateProvider;
@@ -15,9 +14,9 @@ import com.fastchar.database.sql.FastMySql;
 import com.fastchar.database.sql.FastOracle;
 import com.fastchar.database.sql.FastSqlServer;
 import com.fastchar.exception.FastFindClassException;
-import com.fastchar.exception.FastFindException;
 import com.fastchar.exception.FastOverrideException;
 import com.fastchar.extend.c3p0.FastC3p0DataSourceProvider;
+import com.fastchar.extend.caffeine.FastCaffeineProvider;
 import com.fastchar.extend.druid.FastDruidDataSourceProvider;
 import com.fastchar.extend.ehcache.FastEhCache2Provider;
 import com.fastchar.extend.ehcache.FastEhCache3Provider;
@@ -31,6 +30,7 @@ import com.fastchar.local.FastCharLocal;
 import com.fastchar.local.FastCharLocal_CN;
 import com.fastchar.provider.FastColumnSecurity;
 import com.fastchar.provider.FastFileRename;
+import com.fastchar.provider.FastMemoryCacheProvider;
 import com.fastchar.provider.FastSecurity;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastClassUtils;
@@ -46,6 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * FastChar核心类，代理器
+ *
  * @author 沈建（Janesen）
  */
 @SuppressWarnings({"unchecked", "UnusedReturnValue"})
@@ -56,7 +57,6 @@ public final class FastOverrides {
 
     FastOverrides() {
         add(FastMethodRead.class);
-        add(FastMethodRead7.class);
 
         add(FastMySql.class);
         add(FastSqlServer.class);
@@ -81,6 +81,9 @@ public final class FastOverrides {
         add(FastEhCache2Provider.class);
         add(FastRedisNormalProvider.class);
         add(FastRedisClusterProvider.class);
+
+        add(FastMemoryCacheProvider.class);
+        add(FastCaffeineProvider.class);
 
         add(FastCharLocal_CN.class);
 
@@ -214,8 +217,9 @@ public final class FastOverrides {
 
     /**
      * 检查是否存在指定类的单例对象
+     *
      * @param targetClass 目标类
-     * @param <T>  目标类
+     * @param <T>         目标类
      * @return 布尔值
      */
     public <T> boolean hasSingleInstance(Class<T> targetClass, Object... constructorParams) {
@@ -237,9 +241,8 @@ public final class FastOverrides {
     }
 
 
-
     /**
-     * 获取目标类的单例对象
+     * 获取目标类的单例对象，线程安全
      *
      * @param targetClass       目标类
      * @param constructorParams 构造函数参数
@@ -251,7 +254,7 @@ public final class FastOverrides {
     }
 
     /**
-     * 获取目标类的单例对象
+     * 获取目标类的单例对象，线程安全
      *
      * @param check             是否检测目标类对象，true则获取对象失败后抛出异常，默认true
      * @param targetClass       目标类
@@ -265,7 +268,7 @@ public final class FastOverrides {
 
 
     /**
-     * 获取目标类的单例对象
+     * 获取目标类的单例对象，线程安全
      *
      * @param onlyCode          单例的唯一编号
      * @param targetClass       目标类
@@ -278,7 +281,7 @@ public final class FastOverrides {
     }
 
     /**
-     * 获取目标类的单例对象
+     * 获取目标类的单例对象，线程安全
      *
      * @param check             是否检测目标类对象，true则获取对象失败后抛出异常，默认true
      * @param onlyCode          单例的唯一编号
@@ -292,7 +295,6 @@ public final class FastOverrides {
         if (FastStringUtils.isEmpty(onlyCode)) {
             onlyCode = FastMD5Utils.MD5(targetClass.getName() + Arrays.toString(constructorParams));
         }
-
         if (instanceMap.containsKey(onlyCode)) {
             Object instance = instanceMap.get(onlyCode);
             if (instance.getClass() != targetClass) {
@@ -305,15 +307,17 @@ public final class FastOverrides {
         if (t == null) {
             return null;
         }
-        if (t.getClass().isAnnotationPresent(AFastObserver.class)) {
-            FastChar.getObservable().addObserver(t);
+        T presentLockValue = (T) instanceMap.putIfAbsent(onlyCode, t);
+        T finalValue = presentLockValue == null ? t : presentLockValue;
+
+        if (finalValue.getClass().isAnnotationPresent(AFastObserver.class)) {
+            FastChar.getObservable().addObserver(finalValue);
         }
-        instanceMap.put(onlyCode, t);
-        return t;
+        return finalValue;
     }
 
     /**
-     * 获取目标类的多个实现类的单例对象
+     * 获取目标类的多个实现类的单例对象，线程安全
      *
      * @param onlyCode          单例的唯一编号
      * @param targetClass       目标类
@@ -326,7 +330,7 @@ public final class FastOverrides {
     }
 
     /**
-     * 获取目标类的多个实现类的单例对象
+     * 获取目标类的多个实现类的单例对象，线程安全
      *
      * @param check             是否检测目标类对象，true则获取对象失败后抛出异常，默认true
      * @param targetClass       目标类
@@ -339,7 +343,7 @@ public final class FastOverrides {
     }
 
     /**
-     * 获取目标类的多个实现类的单例对象
+     * 获取目标类的多个实现类的单例对象，线程安全
      *
      * @param targetClass       目标类
      * @param constructorParams 构造函数参数
@@ -351,7 +355,7 @@ public final class FastOverrides {
     }
 
     /**
-     * 获取目标类的多个实现类的单例对象
+     * 获取目标类的多个实现类的单例对象，线程安全
      *
      * @param check             是否检测目标类对象，true则获取对象失败后抛出异常，默认true
      * @param onlyCode          单例的唯一编号
@@ -384,11 +388,12 @@ public final class FastOverrides {
             if (t == null) {
                 continue;
             }
-            if (t.getClass().isAnnotationPresent(AFastObserver.class)) {
-                FastChar.getObservable().addObserver(t);
+            T presentLockValue = (T) instanceMap.putIfAbsent(instanceOnlyCode, t);
+            T finalValue = presentLockValue == null ? t : presentLockValue;
+            if (finalValue.getClass().isAnnotationPresent(AFastObserver.class)) {
+                FastChar.getObservable().addObserver(finalValue);
             }
-            instanceMap.put(instanceOnlyCode, t);
-            instances.add(t);
+            instances.add(finalValue);
         }
         String errorInfo = "can not get instances for " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
         if (instances.size() == 0 && check) {
@@ -439,7 +444,7 @@ public final class FastOverrides {
                 if (FastClassUtils.getClass(className, false) == null) {
                     if (i < url.length) {
                         throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, url[i]));
-                    }else{
+                    } else {
                         throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR3, className));
                     }
                 }
@@ -540,7 +545,7 @@ public final class FastOverrides {
                 if (FastClassUtils.getClass(className, false) == null) {
                     if (i < url.length) {
                         throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, url[i]));
-                    }else{
+                    } else {
                         throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR3, className));
                     }
                 }
@@ -622,11 +627,14 @@ public final class FastOverrides {
         for (int r = classes.size() - 1; r >= 0; r--) {
             Class<?> aClass = classes.get(r).targetClass;
             if (targetClass.isAssignableFrom(aClass) && targetClass != aClass) {
-                List<Method> overrideMethods = FastClassUtils.getDeclaredMethod(aClass, "isOverride");
-                if (overrideMethods.size() > 0) {
-                    Method method = overrideMethods.get(0);
+                List<Method> overrideMethods = FastClassUtils.getMethod(aClass, "isOverride");
+                boolean isOverrideClass = true;
+                for (Method overrideMethod : overrideMethods) {
+                    if (!Modifier.isStatic(overrideMethod.getModifiers())) {
+                        continue;
+                    }
                     List<Object> params = new ArrayList<>();
-                    for (int i = 0; i < method.getParameterTypes().length; i++) {
+                    for (int i = 0; i < overrideMethod.getParameterTypes().length; i++) {
                         if (i < constructorParams.length) {
                             params.add(constructorParams[i]);
                         } else {
@@ -634,13 +642,17 @@ public final class FastOverrides {
                         }
                     }
                     try {
-                        Object isOverride = method.invoke(aClass, params.toArray());
+                        Object isOverride = overrideMethod.invoke(aClass, params.toArray());
                         if (!FastBooleanUtils.formatToBoolean(isOverride, true)) {
-                            continue;
+                            isOverrideClass = false;
+                            break;
                         }
                     } catch (Exception e) {
                         throw new FastOverrideException(e);
                     }
+                }
+                if (!isOverrideClass) {
+                    continue;
                 }
                 return (Class<T>) findClass(aClass, constructorParams);
             }
@@ -686,6 +698,8 @@ public final class FastOverrides {
         Collections.sort(classes, new Comparator<ClassInfo>() {
             @Override
             public int compare(ClassInfo o1, ClassInfo o2) {
+                //FastOverrides 原则：后进先出
+                //此处由于FastOverrides 反向遍历classes 所以优先级反向排序，不可更改！
                 return Integer.compare(o1.priority, o2.priority);
             }
         });

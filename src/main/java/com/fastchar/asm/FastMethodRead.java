@@ -1,29 +1,26 @@
 package com.fastchar.asm;
 
 
-import com.fastchar.annotation.AFastClassFind;
+import com.fastchar.asm.org.objectweb.*;
 import com.fastchar.interfaces.IFastMethodRead;
-import jdk.internal.org.objectweb.asm.*;
 
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
-@AFastClassFind("jdk.internal.org.objectweb.asm.ClassReader")
 public class FastMethodRead implements IFastMethodRead {
 
     @Override
     public List<FastParameter> getParameter(final Method method) throws Exception {
         return getParameter(method, null);
     }
+
     /**
      * 获得方法参数
-     *
-     * @param method
-     * @return
      */
     @Override
     public List<FastParameter> getParameter(final Method method, final List<MethodLine> numbers) throws Exception {
@@ -41,8 +38,7 @@ public class FastMethodRead implements IFastMethodRead {
             numbers.clear();
         }
         ClassReader reader = new ClassReader(resourceAsStream);
-        ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        reader.accept(new FastClassAdapter(classWriter) {
+        reader.accept(new ClassVisitor(FastOpcodesHelper.getLastASM()) {
 
             @Override
             public MethodVisitor visitMethod(final int access, final String name, final String desc,
@@ -54,28 +50,26 @@ public class FastMethodRead implements IFastMethodRead {
                     if (numbers != null) {
                         numbers.add(methodLine);
                     }
-                    return new FastMethodAdapter(superMethodVisitor) {
-                        int localIndex = 0;
-
+                    return new MethodVisitor(FastOpcodesHelper.getLastASM(), superMethodVisitor) {
                         @Override
                         public void visitLocalVariable(String name1, String desc1, String signature1, Label start, Label end, int index) {
                             super.visitLocalVariable(name1, desc1, signature1, start, end, index);
-                            if ("this".equals(name1)) {
-                                return;
+                            int paramIndex = index;
+                            if (!Modifier.isStatic(method.getModifiers())) {
+                                paramIndex = index - 1;
                             }
-                            if (localIndex >= parameterTypes.length) {//非方法参数
+                            if (paramIndex >= parameterTypes.length || paramIndex < 0) {
                                 return;
                             }
                             FastParameter parameter = new FastParameter();
                             parameter.setName(name1);
-                            parameter.setIndex(localIndex);
+                            parameter.setIndex(paramIndex);
                             parameter.setType(parameterTypes[parameter.getIndex()]);
                             parameter.setParameterizedType(genericParameterTypes[parameter.getIndex()]);
                             if (parameter.getIndex() < parameterAnnotations.length) {
                                 parameter.setAnnotations(parameterAnnotations[parameter.getIndex()]);
                             }
                             parameters.add(parameter);
-                            localIndex++;
                         }
 
                         @Override
@@ -107,8 +101,7 @@ public class FastMethodRead implements IFastMethodRead {
             return numbers;
         }
         ClassReader reader = new ClassReader(resourceAsStream);
-        ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        reader.accept(new FastClassAdapter(classWriter) {
+        reader.accept(new ClassVisitor(FastOpcodesHelper.getLastASM()) {
 
             @Override
             public MethodVisitor visitMethod(final int access, final String name, final String desc,
@@ -117,7 +110,7 @@ public class FastMethodRead implements IFastMethodRead {
                 if (name.equals(methodName)) {
                     final MethodLine methodLine = new MethodLine();
                     numbers.add(methodLine);
-                    return new FastMethodAdapter(superMethodVisitor) {
+                    return new MethodVisitor(FastOpcodesHelper.getLastASM()) {
                         @Override
                         public void visitLineNumber(int line, Label start) {
                             super.visitLineNumber(line, start);
@@ -134,5 +127,4 @@ public class FastMethodRead implements IFastMethodRead {
         }
         return numbers;
     }
-
 }

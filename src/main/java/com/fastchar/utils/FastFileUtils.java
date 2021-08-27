@@ -56,6 +56,9 @@ public class FastFileUtils {
         return isTargetFile(fileName, ".avi");
     }
 
+    public static boolean isMP3File(String fileName) {
+        return isTargetFile(fileName, ".mp3");
+    }
     public static boolean isTxtFile(String fileName) {
         return isTargetFile(fileName, ".txt");
     }
@@ -116,6 +119,12 @@ public class FastFileUtils {
         return isTargetFileByMimeType(mimeType, extensions);
     }
 
+    public static boolean isMP3FileByMimeType(String mimeType) {
+        String[] extensions = new String[]{
+                "audio/mpeg"
+        };
+        return isTargetFileByMimeType(mimeType, extensions);
+    }
     public static boolean isTxtFileByMimeType(String mimeType) {
         String[] extensions = new String[]{
                 "text/plain"

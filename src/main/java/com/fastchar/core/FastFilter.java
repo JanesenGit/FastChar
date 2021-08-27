@@ -1,6 +1,7 @@
 package com.fastchar.core;
 
 import com.fastchar.local.FastCharLocal;
+import com.fastchar.request.FastRequestWrapper;
 import com.fastchar.response.FastResponseWrapper;
 import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.exception.FastWebException;
@@ -15,6 +16,7 @@ import java.io.IOException;
 
 /**
  * FastChar核心拦截器
+ *
  * @author 沈建（Janesen）
  */
 @SuppressWarnings("unchecked")
@@ -43,7 +45,8 @@ public final class FastFilter implements Filter {
             e.printStackTrace();
             try {
                 FastEngine.instance().destroy();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             throw new FastWebException(e);
         }
@@ -58,8 +61,10 @@ public final class FastFilter implements Filter {
         request.setCharacterEncoding(FastEngine.instance().getConstant().getEncoding());
 
         FastResponseWrapper responseWrapper = new FastResponseWrapper(response);
-        new FastDispatcher(filterChain, request, responseWrapper).invoke();
+        FastRequestWrapper requestWrapper = new FastRequestWrapper(request);
+        new FastDispatcher(filterChain, requestWrapper, responseWrapper).invoke();
     }
+
 
     @Override
     public void destroy() {

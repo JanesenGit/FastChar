@@ -7,6 +7,7 @@ import com.fastchar.interfaces.IFastMethodRead;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
+import net.sf.cglib.reflect.FastClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.List;
 public final class FastEntities {
     private final List<EntityInfo> entityInfos = new ArrayList<>();
 
-     FastEntities() {
+    FastEntities() {
     }
 
     public FastEntities addEntity(Class<? extends FastEntity<?>> targetClass) throws Exception {
@@ -39,6 +40,14 @@ public final class FastEntities {
         if (fastEntity == null) {
             return this;
         }
+
+        for (EntityInfo info : entityInfos) {
+            if (info.getTableName().equalsIgnoreCase(fastEntity.getTableName())
+                    && FastClassUtils.isSameClass(targetClass, info.getTargetClass())) {
+                return this;
+            }
+        }
+
         String tableName = fastEntity.getTableName();
 
         if (FastStringUtils.isEmpty(tableName)) {
@@ -48,39 +57,34 @@ public final class FastEntities {
             throw new FastEntityException(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR1) +
                     "\n\tat " + stackTraceElement);
         }
+
         entityInfo.setMethodLine(lineNumber.get(0))
                 .setTableName(tableName)
-                .setDatabaseName(fastEntity.getDatabase())
                 .setTargetClass(targetClass);
         entityInfos.add(entityInfo);
         return this;
     }
 
 
-    private void checkTableExists() throws Exception {
-        for (EntityInfo entityInfo : entityInfos) {
-            FastTableInfo<?> tableInfo = FastChar.getDatabases().get(entityInfo.getDatabaseName()).getTableInfo(entityInfo.getTableName());
-            if (tableInfo == null) {
-                Class<? extends FastEntity<?>> aClass = entityInfo.getTargetClass();
-                StackTraceElement stackTraceElement = new StackTraceElement(aClass.getName(),
-                        "getTableName", aClass.getSimpleName() + ".java",
-                        entityInfo.getMethodLine().getLastLine());
-                throw new FastEntityException(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR2, "'" + entityInfo.getTableName() + "'") +
-                        "\n\tat " + stackTraceElement);
-            }
-        }
-    }
-
-
+    /**
+     * 根据FastEntity类获取EntityInfo
+     * @param targetClass 目标类
+     * @return EntityInfo
+     */
     public EntityInfo getEntityInfo(Class<? extends FastEntity<?>> targetClass) {
         for (EntityInfo entityInfo : entityInfos) {
-            if (entityInfo.getTargetClass() == targetClass) {
+            if (FastClassUtils.isSameClass(entityInfo.getTargetClass(), targetClass)) {
                 return entityInfo;
             }
         }
         return null;
     }
 
+    /**
+     * 根据表格获取EntityInfo集合，因为一个表格可能被多个FastEntity类绑定
+     * @param tableName 表格名称
+     * @return EntityInfo集合
+     */
     public List<EntityInfo> getEntityInfo(String tableName) {
         List<EntityInfo> entityInfoList = new ArrayList<>();
         for (EntityInfo entityInfo : entityInfos) {
@@ -91,6 +95,25 @@ public final class FastEntities {
         return entityInfoList;
     }
 
+    /**
+     * 根据表格获取第一个EntityInfo，因为一个表格可能被多个FastEntity类绑定
+     * @param tableName 表格名称
+     * @return 第一个EntityInfo
+     */
+    public EntityInfo getFirstEntityInfo(String tableName) {
+        for (EntityInfo entityInfo : entityInfos) {
+            if (entityInfo.getTableName().equalsIgnoreCase(tableName)) {
+                return entityInfo;
+            }
+        }
+        return null;
+    }
+
+    public List<EntityInfo> getEntityInfos() {
+        return entityInfos;
+    }
+
+
     public void flush() {
         List<EntityInfo> waitRemove = new ArrayList<>();
         for (EntityInfo entityInfo : entityInfos) {
@@ -98,7 +121,7 @@ public final class FastEntities {
                 waitRemove.add(entityInfo);
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastEntities.class,
-                            FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR5,entityInfo.getTargetClass()));
+                            FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR5, entityInfo.getTargetClass()));
                 }
             }
         }
@@ -107,7 +130,6 @@ public final class FastEntities {
 
 
     public static class EntityInfo {
-        private String databaseName;
         private String tableName;
         private IFastMethodRead.MethodLine methodLine;
         private Class<? extends FastEntity<?>> targetClass;
@@ -136,15 +158,6 @@ public final class FastEntities {
 
         public EntityInfo setTargetClass(Class<? extends FastEntity<?>> targetClass) {
             this.targetClass = targetClass;
-            return this;
-        }
-
-        public String getDatabaseName() {
-            return databaseName;
-        }
-
-        public EntityInfo setDatabaseName(String databaseName) {
-            this.databaseName = databaseName;
             return this;
         }
     }

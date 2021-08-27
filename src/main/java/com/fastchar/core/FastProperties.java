@@ -1,9 +1,6 @@
 package com.fastchar.core;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
@@ -29,6 +26,17 @@ public class FastProperties  extends FastMapWrap{
         return this;
     }
 
+    FastProperties setContent(String content) throws IOException {
+        try {
+            Properties properties = new Properties();
+            properties.load(new StringReader(content));
+            setMap(properties);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return this;
+    }
+
     @Override
     public Map<?, ?> getMap() {
         try {
@@ -41,6 +49,17 @@ public class FastProperties  extends FastMapWrap{
             e.printStackTrace();
         }
         return map;
+    }
+
+    public Properties getProperties() {
+        try {
+            Properties properties = new Properties();
+            properties.load(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8));
+            return properties;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }
