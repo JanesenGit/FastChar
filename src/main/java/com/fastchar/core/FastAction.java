@@ -4,8 +4,8 @@ import com.fastchar.asm.FastParameter;
 import com.fastchar.exception.FastFileException;
 import com.fastchar.exception.FastReturnException;
 import com.fastchar.local.FastCharLocal;
-import com.fastchar.multipart.FastMultipartRequest;
 import com.fastchar.multipart.FastMultipartWrapper;
+import com.fastchar.multipart.FastApplicationPartWrapper;
 import com.fastchar.out.*;
 import com.fastchar.utils.*;
 import org.w3c.dom.Document;
@@ -20,6 +20,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.net.URL;
@@ -112,6 +113,9 @@ public abstract class FastAction {
      */
     public boolean isMultipart() {
         if (request != null) {
+            if (!request.getMethod().equalsIgnoreCase("post")) {
+                return false;
+            }
             String type = null;
             String type1 = request.getHeader("Content-Type");
             String type2 = request.getContentType();
@@ -122,7 +126,6 @@ public abstract class FastAction {
             } else if (type1 != null && type2 != null) {
                 type = type1.length() > type2.length() ? type1 : type2;
             }
-
             if (type != null && type.toLowerCase().startsWith("multipart/form-data")) {
                 return true;
             }
@@ -162,13 +165,21 @@ public abstract class FastAction {
     public HttpServletRequest getRequest() {
         if (isMultipart()) {
             try {
-                if (!(request instanceof FastMultipartWrapper)) {
-                    request = new FastMultipartWrapper(request,
-                            FastChar.getConstant().getAttachDirectory(),
-                            FastChar.getConstant().getAttachMaxPostSize(),
-                            FastChar.getConstant().getEncoding(),
-                            FastChar.getConstant().isAttachNameMD5());
+                if (request instanceof FastApplicationPartWrapper) {
+                    return request;
                 }
+                if (request instanceof FastMultipartWrapper) {
+                    return request;
+                }
+                if (FastChar.getFindClass().test("org.apache.catalina.core.ApplicationPart")) {
+                    request = new FastApplicationPartWrapper(request);
+                    return request;
+                }
+                request = new FastMultipartWrapper(request,
+                        FastChar.getConstant().getAttachDirectory(),
+                        FastChar.getConstant().getAttachMaxPostSize(),
+                        FastChar.getConstant().getEncoding(),
+                        FastChar.getConstant().isAttachNameMD5());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -300,6 +311,9 @@ public abstract class FastAction {
             while (fileParameterNames.hasMoreElements()) {
                 strings.add(fileParameterNames.nextElement());
             }
+        }else  if (request instanceof FastApplicationPartWrapper) {
+            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
+            strings.addAll(multipartWrapper.getFileParamNames());
         }
         return strings;
     }
@@ -1515,6 +1529,9 @@ public abstract class FastAction {
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
             multipartWrapper.putFile(fastFile.getParamName(), fastFile);
+        }else  if (request instanceof FastApplicationPartWrapper) {
+            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
+            multipartWrapper.putFile(fastFile.getParamName(), fastFile);
         }
         return this;
     }
@@ -1555,6 +1572,9 @@ public abstract class FastAction {
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
             return (T) multipartWrapper.getFile(paramName);
+        } else if (request instanceof FastApplicationPartWrapper) {
+            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
+            return (T) multipartWrapper.getFile(paramName);
         }
         return null;
     }
@@ -1583,6 +1603,9 @@ public abstract class FastAction {
         HttpServletRequest request = getRequest();
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
+            return (T[]) multipartWrapper.getFiles(paramName);
+        } else if (request instanceof FastApplicationPartWrapper) {
+            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
             return (T[]) multipartWrapper.getFiles(paramName);
         }
         return null;
@@ -1646,6 +1669,9 @@ public abstract class FastAction {
         HttpServletRequest request = getRequest();
         if (request instanceof FastMultipartWrapper) {
             FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
+            return (List<T>) multipartWrapper.getFiles();
+        }else  if (request instanceof FastApplicationPartWrapper) {
+            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
             return (List<T>) multipartWrapper.getFiles();
         }
         return new ArrayList<>();
@@ -2065,6 +2091,17 @@ public abstract class FastAction {
      */
     public void responseImage(RenderedImage image, String formatName) {
         response(FastChar.getOverrides().newInstance(FastOutImage.class).setData(image).setFormatName(formatName).setStatus(this.status));
+    }
+
+
+    /**
+     * 响应输入流
+     *
+     * @param stream      流信息
+     * @param contentType 响应头类型
+     */
+    public void responseStream(InputStream stream, String contentType) {
+        response(FastChar.getOverrides().newInstance(FastOutStream.class).setData(stream).setContentType(contentType).setStatus(this.status));
     }
 
 

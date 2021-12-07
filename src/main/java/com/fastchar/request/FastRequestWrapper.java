@@ -12,6 +12,7 @@ import java.io.IOException;
 public class FastRequestWrapper extends HttpServletRequestWrapper {
 
     private FastInputStreamWrapper inputStreamWrapper;
+
     public FastRequestWrapper(HttpServletRequest request) {
         super(request);
     }

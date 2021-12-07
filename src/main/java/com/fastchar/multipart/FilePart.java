@@ -168,9 +168,7 @@ public class FilePart extends Part {
       }
     }
     finally {
-      if (fileOut != null) {
-          fileOut.close();
-      }
+      if (fileOut != null) fileOut.close();
     }
     return written;
   }
@@ -201,7 +199,7 @@ public class FilePart extends Part {
    */
   long write(OutputStream out) throws IOException {
     // decode macbinary if this was sent
-    if ("application/x-macbinary".equals(contentType)) {
+    if (contentType.equals("application/x-macbinary")) {
       out = new MacBinaryDecoderOutputStream(out);
     }
     long size=0;
@@ -219,7 +217,6 @@ public class FilePart extends Part {
    * 
    * @return true.
    */
-  @Override
   public boolean isFile() {
     return true;
   }

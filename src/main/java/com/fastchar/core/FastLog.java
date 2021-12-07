@@ -20,8 +20,10 @@ public final class FastLog {
     }
 
     public void info(Class<?> targetClass, String message,Throwable throwable) {
-        System.out.println("\n" + FastDateUtils.getDateString());
-        System.out.println("[INFO]:" + lightStyle(message));
+        if (FastChar.getConstant().isLog()) {
+            System.out.println("\n" + FastDateUtils.getDateString());
+            System.out.println("[INFO]:" + lightStyle(message));
+        }
     }
 
     public void error(Class<?> targetClass, String message) {
@@ -32,8 +34,10 @@ public final class FastLog {
     }
 
     public void error(Class<?> targetClass, String message,Throwable throwable) {
-        System.err.println("\n" + FastDateUtils.getDateString());
-        System.err.println("[ERROR]:" + errorStyle(message));
+        if (FastChar.getConstant().isLog()) {
+            System.err.println("\n" + FastDateUtils.getDateString());
+            System.err.println("[ERROR]:" + errorStyle(message));
+        }
     }
 
     public void warn(String message) {
@@ -45,8 +49,10 @@ public final class FastLog {
     }
 
     public void warn(Class<?> targetClass, String message,Throwable throwable) {
-        System.out.println("\n" + FastDateUtils.getDateString());
-        System.out.println("[WARN]:" + warnStyle(message));
+        if (FastChar.getConstant().isLog()) {
+            System.out.println("\n" + FastDateUtils.getDateString());
+            System.out.println("[WARN]:" + warnStyle(message));
+        }
     }
 
 

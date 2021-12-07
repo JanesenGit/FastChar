@@ -12,7 +12,9 @@ import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.out.FastOut;
 import com.fastchar.out.FastOutForward;
+import com.fastchar.utils.FastRequestUtils;
 import com.fastchar.utils.FastStringUtils;
+import org.apache.catalina.util.ParameterMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -31,6 +33,7 @@ public final class FastRoute {
     boolean actionLog = true;
     boolean interceptorBefore = true;
     boolean interceptorAfter = true;
+    boolean hitCacheInfo = false;
 
     Set<String> crossAllowDomains = new HashSet<>();
     int priority;
@@ -47,6 +50,7 @@ public final class FastRoute {
     List<RouteInterceptor> doAfterInterceptor = new ArrayList<>();
 
     Set<String> httpMethods = new HashSet<>();
+    Set<String> contentTypes = new HashSet<>();
 
     transient FastAction fastAction;
     private transient int doBeforeIndex = -1;
@@ -100,6 +104,26 @@ public final class FastRoute {
         }
         return !hasMethods;
     }
+
+    boolean checkContentType(String contentType) {
+        if (FastStringUtils.isEmpty(contentType)) {
+            return true;
+        }
+        String truthContentType = contentType.split(";")[0].replace(" ", "");
+        boolean hasContentTypes = false;
+        for (String contentTypeValue : this.contentTypes) {
+            contentTypeValue = contentTypeValue.split(";")[0].replace(" ", "");
+            if (FastStringUtils.isEmpty(contentTypeValue)) {
+                continue;
+            }
+            hasContentTypes = true;
+            if (contentTypeValue.equalsIgnoreCase(truthContentType)) {
+                return true;
+            }
+        }
+        return !hasContentTypes;
+    }
+
 
     void release() {
         method = null;
@@ -184,14 +208,18 @@ public final class FastRoute {
 
             if (responseCache != null && responseCache.isCache()) {
                 responseCache.setCacheTag(actionClass.getName());
-                if (FastStringUtils.isEmpty(responseCache.getCacheKey())) {
-                    responseCache.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() + request.getRequestURI() + request.getQueryString()));
-                }
+                responseCache.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() +
+                        request.getRequestURI() + FastRequestUtils.getRequestParamString(request)));
                 FastResponseWrapper.setCacheInfo(responseCache);
                 FastResponseCacheInfo cacheInfo = FastChar.getCache().get(responseCache.getCacheTag(), responseCache.getCacheKey());
-                if (cacheInfo != null && !cacheInfo.isTimeout()) {
-                    cacheInfo.response(request, response);
-                    return;
+                if (cacheInfo != null) {
+                    if (cacheInfo.isTimeout()) {
+                        FastChar.getCache().delete(responseCache.getCacheTag(), responseCache.getCacheKey());
+                    } else {
+                        hitCacheInfo = true;
+                        cacheInfo.response(request, response);
+                        return;
+                    }
                 }
             } else {
                 FastResponseWrapper.setCacheInfo(null);
@@ -254,7 +282,7 @@ public final class FastRoute {
                 if (!beforeInvoked) {
                     responseBeforeInterceptorException();
                 }
-                if (fastAction.fastOut == null) {
+                if (fastAction.fastOut == null && !hitCacheInfo) {
                     responseNone();
                 }
             }
@@ -376,11 +404,6 @@ public final class FastRoute {
             afterInterceptorUseTotal = System.currentTimeMillis() - afterInterceptorTime;
             outBase.setOutTime(new Date());
             fastAction.getResponse().setHeader("Powered-By", "FastChar " + FastConstant.FAST_CHAR_VERSION);
-//            if (fastAction.getResponse() instanceof FastResponseWrapper) {
-//                FastResponseWrapper response = (FastResponseWrapper) fastAction.getResponse();
-//                response.setGzip(outBase.isGzip());
-//            }
-
             outBase.response(fastAction);
             //转发请求 取消日志打印
             if (!FastOutForward.class.isAssignableFrom(outBase.getClass())) {

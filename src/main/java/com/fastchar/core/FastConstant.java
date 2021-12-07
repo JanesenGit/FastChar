@@ -15,7 +15,7 @@ public class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FAST_CHAR_VERSION = "1.6.0";
+    public static final String FAST_CHAR_VERSION = "1.6.1";
 
     /**
      * 数据库xml配置文件的前缀
@@ -58,6 +58,10 @@ public class FastConstant {
     private boolean ansi = false;//是否支持控制ansi字体颜色设置
     private int maxResponseTime = 30;//最大响应时间 单位秒 如果超时这控制打印时会标红提醒
     private String dateFormat = "yyyy-MM-dd HH:mm:ss";//日期格式化统一，默认为 yyyy-MM-dd HH:mm:ss
+
+    private boolean jdbcParseToTimestamp = true;//是否将jdbc查询的日期默认转为 Timestamp
+
+    private boolean log = true;//允许打印日志
     private boolean logRoute = false;//打印路由地址
     private boolean logOverride = false;//打印覆盖器日志
     private boolean logHeaders = false;//打印请求的header信息
@@ -90,6 +94,8 @@ public class FastConstant {
     private String decodeUploadFileNameEncoding = encoding;//URLDecoder解码时的编码
 
     private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
+
+
 
     /**
      * 是否加密fast-database.xml相关的数据库配置文件
@@ -879,6 +885,43 @@ public class FastConstant {
         return this;
     }
 
+    /**
+     * 是否允许打印日志
+     * @return 布尔值
+     */
+    public boolean isLog() {
+        return log;
+    }
+
+    /**
+     * 设置是否打印日志
+     * @param log 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setLog(boolean log) {
+        this.log = log;
+        return this;
+    }
+
+
+    /**
+     * 是否将jdbc查询的日期数据默认转为 Timestamp，默认：true
+     * @return 布尔值
+     */
+    public boolean isJdbcParseToTimestamp() {
+        return jdbcParseToTimestamp;
+    }
+
+    /**
+     * 设置是否将jdbc查询的日期数据默认转为 Timestamp
+     * @param jdbcParseToTimestamp 布尔值
+     * @return 当前对象
+     */
+    public FastConstant setJdbcParseToTimestamp(boolean jdbcParseToTimestamp) {
+        this.jdbcParseToTimestamp = jdbcParseToTimestamp;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "FastConstant{" +
@@ -923,10 +966,4 @@ public class FastConstant {
                 '}';
     }
 
-    public static class FastConstantMethodInterceptor implements IFastMethodInterceptor {
-        @Override
-        public boolean intercept(Object o, Method method, Object[] objects) {
-            return false;
-        }
-    }
 }

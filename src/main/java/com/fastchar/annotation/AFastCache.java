@@ -13,12 +13,6 @@ import java.lang.annotation.Target;
 public @interface AFastCache {
 
     /**
-     * 缓存的Key，默认为：路由地址作为key
-     * @return 缓存key
-     */
-    String value() default "";
-
-    /**
      * 是否启用 默认 true
      * @return 布尔值
      */
@@ -37,10 +31,9 @@ public @interface AFastCache {
     boolean checkDebug() default false;
 
     /**
-     * 缓存过期时间，单位：秒
+     * 缓存过期时间，单位：秒，默认-1 永不过期
      * @return 过期时间
      */
     long timeout() default -1;//单位秒
-
 
 }

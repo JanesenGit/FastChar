@@ -3,7 +3,9 @@ package com.fastchar.utils;
 import com.fastchar.core.FastClassLoader;
 import com.fastchar.exception.FastClassException;
 
+import java.io.InputStream;
 import java.lang.reflect.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,7 @@ public class FastClassUtils {
     public static Class<?> getClass(String className) {
         return getClass(className, true);
     }
+
     public static Class<?> getClass(String className, boolean printException) {
         return getClass(FastClassUtils.class.getClassLoader(), className, printException);
     }
@@ -38,6 +41,7 @@ public class FastClassUtils {
     public static Class<?> findClass(String className) {
         return findClass(className, true);
     }
+
     public static Class<?> findClass(String className, boolean printException) {
         return findClass(FastClassUtils.class.getClassLoader(), className, printException);
     }
@@ -63,8 +67,6 @@ public class FastClassUtils {
         }
         return null;
     }
-
-
 
 
     public static boolean checkNewInstance(Class<?> targetClass) {
@@ -270,6 +272,7 @@ public class FastClassUtils {
 
     /**
      * 相同的类名，但是类加载器不同
+     *
      * @param classA
      * @param classB
      * @return
@@ -310,6 +313,22 @@ public class FastClassUtils {
             return true;
         }
         return isSameRefined(classA, classB);
+    }
+
+
+    public static String readClassResource(Class<?> targetClass, String sourceName) {
+        try {
+            InputStream resourceAsStream = targetClass.getResourceAsStream(sourceName);
+            if (resourceAsStream != null) {
+                List<String> list = FastFileUtils.readLines(resourceAsStream, StandardCharsets.UTF_8);
+                String content = FastStringUtils.join(list, "");
+                FastFileUtils.closeQuietly(resourceAsStream);
+                return content;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

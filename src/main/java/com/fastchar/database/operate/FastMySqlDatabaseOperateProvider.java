@@ -50,7 +50,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             databaseInfo.setType("mysql");
             databaseInfo.setUrl(dmd.getURL());
 
-            resultSet = dmd.getTables(null, null, null, new String[]{"table", "TABLE"});
+            resultSet = dmd.getTables(databaseInfo.getName(), null, null, new String[]{"table", "TABLE"});
             List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
             for (FastEntity<?> fastEntity : listResult) {
                 String table_name = fastEntity.getString("table_name");
@@ -175,8 +175,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                     "&serverTimezone=GMT" +
                     "&allowPublicKeyRetrieval=true" +
                     "&useSSL=false";
-            connection = DriverManager.getConnection(url, databaseInfo.getUser(),
-                    databaseInfo.getPassword());
+            connection = DriverManager.getConnection(url, databaseInfo.getUser(), databaseInfo.getPassword());
 
             statement = connection.createStatement();
             String sqlStr = String.format("create database if not exists %s default character set utf8mb4 collate utf8mb4_general_ci", databaseInfo.getName());
@@ -197,7 +196,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             if (tables == null) {
                 tables = new HashSet<>();
                 DatabaseMetaData dmd = connection.getMetaData();
-                resultSet = dmd.getTables(null, null, null, new String[]{"table", "TABLE"});
+                resultSet = dmd.getTables(databaseInfo.getName(), null, null, new String[]{"table", "TABLE"});
                 List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
                 for (FastEntity<?> fastEntity : listResult) {
                     String tableName = fastEntity.getString("table_name");

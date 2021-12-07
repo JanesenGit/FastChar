@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 @SuppressWarnings("Since15")
 public class FastBase64Utils {
-    private static boolean hasUtilBase64;
+    private static final boolean hasUtilBase64;
 
     static {
         Class<?> aClass = FastClassUtils.getClass("java.util.Base64", false);

@@ -737,9 +737,24 @@ public abstract class FastSql {
         return sqlInfo;
     }
 
+
     public String getType() {
         return type;
     }
 
+
+    /**
+     * 格式化字段的前缀 __ 翻译成sql  . (别名前缀，例如：a__name 翻译后为：a.name)
+     * @param field 字段
+     * @param defaultAlias 默认前缀 例如：t
+     * @return 格式化后的sql列名
+     */
+    public static String formatAlias(String field, String defaultAlias) {
+        field = field.replace("__", ".");
+        if (!field.contains(".")) {
+            field = defaultAlias + "." + field;
+        }
+        return field;
+    }
 
 }

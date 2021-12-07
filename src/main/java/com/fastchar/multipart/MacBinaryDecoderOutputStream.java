@@ -22,7 +22,6 @@ public class MacBinaryDecoderOutputStream extends FilterOutputStream {
     super(out);
   }
 
-  @Override
   public void write(int b) throws IOException {
     // Bytes 83 through 86 are a long representing the data fork length
     // Check <= 86 first to short circuit early in the common case
@@ -39,12 +38,10 @@ public class MacBinaryDecoderOutputStream extends FilterOutputStream {
     bytesFiltered++;
   }
 
-  @Override
   public void write(byte b[]) throws IOException {
     write(b, 0, b.length);
   }
 
-  @Override
   public void write(byte b[], int off, int len) throws IOException {
     // If the write is for content past the end of the data fork, ignore
     if (bytesFiltered >= (128 + dataForkLength)) {

@@ -88,4 +88,5 @@ final class FastUrlParser {
         }
         return params;
     }
+
 }

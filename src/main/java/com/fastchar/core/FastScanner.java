@@ -32,13 +32,14 @@ public final class FastScanner {
     static final String MANIFEST_ATTRIBUTE_FAST_CHAR_SCANNER = "FastChar-Scanner";
     static final String MANIFEST_ATTRIBUTE_FAST_CHAR_EXTRACT = "FastChar-Extract";
     static final String MANIFEST_ATTRIBUTE_FAST_CHAR_EXTRACT_FILE = "FastChar-Extract-File";
-    static final String MANIFEST_ATTRIBUTE_FAST_CHAR_EXCLUDE = "FastChat-Exclude";
+    static final String MANIFEST_ATTRIBUTE_FAST_CHAR_EXCLUDE = "FastChar-Exclude";
     static final String MANIFEST_ATTRIBUTE_FAST_CHAR_DESC = "FastChar-Desc";
     static final String MANIFEST_ATTRIBUTE_FAST_CHAR_PLUGIN_VERSION = "FastChar-Plugin-Version";
 
 
     private final transient Map<String, FastClassLoader> jarLoaders = new HashMap<>(6);
     private final transient Map<String, FastClassLoader> pathLoaders = new HashMap<>(6);
+    private final Set<Class<?>> disabledClass = new LinkedHashSet<>();//跳过的class
     private final List<ScannerJar> jars = new ArrayList<>();
     private final Set<Class<?>> scannedClass = new LinkedHashSet<>();//扫描到的class
     private final Set<String> scannedFile = new LinkedHashSet<>();//扫描到的file
@@ -59,8 +60,24 @@ public final class FastScanner {
         return printClassNotFound;
     }
 
+
+    /**
+     * 设置是否打印class加载错误的异常
+     * @param printClassNotFound 布尔值
+     * @return 当前对象
+     */
     public FastScanner setPrintClassNotFound(boolean printClassNotFound) {
         this.printClassNotFound = printClassNotFound;
+        return this;
+    }
+
+    /**
+     * 禁用指定class跳过扫描
+     * @param targetClass 目标class
+     * @return 当前对象
+     */
+    public FastScanner disabledClass(Class<?> targetClass) {
+        disabledClass.add(targetClass);
         return this;
     }
 
@@ -397,6 +414,9 @@ public final class FastScanner {
 
     private void notifyAccepter(Class<?> targetClass) throws Exception {
         if (targetClass == null) {
+            return;
+        }
+        if (disabledClass.contains(targetClass)) {
             return;
         }
         if (targetClass.isAnnotationPresent(AFastClassFind.class)) {

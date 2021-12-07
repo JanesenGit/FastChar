@@ -46,7 +46,7 @@ public final class FastEngine {
     private final FastScanner scanner = new FastScanner();
     private final FastPath path = new FastPath();
     private final FastModules modules = new FastModules();
-    private final FastConstant constant = FastEnhancer.getBySafe(FastConstant.class).addBeforeInterceptor(FastConstant.FastConstantMethodInterceptor.class).create();
+    private final FastConstant constant = new FastConstant();
     private final FastInterceptors interceptors = new FastInterceptors();
     private final FastObservable observable = new FastObservable();
     private final FastConverters converters = new FastConverters();

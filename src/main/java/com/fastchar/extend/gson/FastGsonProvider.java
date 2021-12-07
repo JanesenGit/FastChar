@@ -5,8 +5,10 @@ import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastJson;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
+import java.util.List;
 
 /**
  * Gson https://github.com/google/gson

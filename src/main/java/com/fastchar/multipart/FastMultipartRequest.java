@@ -6,6 +6,7 @@ import com.fastchar.exception.FastFileException;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastRequestUtils;
 
+import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -53,6 +54,11 @@ public class FastMultipartRequest {
             } else if (!dir.canWrite()) {
                 throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR6));
             } else {
+                try {
+                    Collection<javax.servlet.http.Part> parts = request.getParts();
+                } catch (ServletException e) {
+                    e.printStackTrace();
+                }
                 MultipartParser parser = new MultipartParser(request, maxPostSize, true, true, encoding);
                 Vector existingValues;
                 if (request.getQueryString() != null) {

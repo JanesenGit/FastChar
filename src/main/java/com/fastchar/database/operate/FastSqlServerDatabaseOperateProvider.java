@@ -56,7 +56,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             databaseInfo.setType("sql_server");
             databaseInfo.setUrl(dmd.getURL());
 
-            resultSet = dmd.getTables(null, null, null, new String[]{"table","TABLE"});
+            resultSet = dmd.getTables(databaseInfo.getName(), null, null, new String[]{"table","TABLE"});
             List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
             for (FastEntity<?> fastEntity : listResult) {
                 String table_name = fastEntity.getString("table_name");
@@ -174,7 +174,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                 }
                 databaseInfo.setProduct(databaseProductName);
                 databaseInfo.setVersion(dmd.getDatabaseProductVersion());
-                resultSet = dmd.getTables(null, schemaPattern, null, new String[]{"TABLE"});
+                resultSet = dmd.getTables(databaseInfo.getName(), schemaPattern, null, new String[]{"TABLE"});
                 while (resultSet.next()) {
                     String tableName = resultSet.getString("TABLE_NAME");
                     if (databaseInfo.isIgnoreCase()) {

@@ -30,6 +30,8 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Param_Error2 = "参数{0}值错误！";
     private final String Param_Error3 = "参数异常！";
 
+    private final String Out_Error1 = "data类型错误！类型必须继承 {0}";
+
     private final String Interceptor_Error1 = "请求前置的拦截器{0}没有执行response或invoke方法！";
     private final String Interceptor_Error2 = "请求后置的拦截器{0}没有执行response或invoke方法！";
     private final String Interceptor_Error3 = "移除被释放的拦截器类 {0} ";

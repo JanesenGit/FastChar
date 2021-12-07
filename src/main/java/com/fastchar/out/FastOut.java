@@ -137,7 +137,8 @@ public abstract class FastOut<T> {
         XML,
         NOTNULL,
         STATUS,
-        IMAGE
+        IMAGE,
+        STREAM
     }
 
     public static Class<? extends FastOut<?>> convertType(FastOut.Type type) {
@@ -182,6 +183,9 @@ public abstract class FastOut<T> {
         }
         if (type == Type.IMAGE) {
             return FastOutImage.class;
+        }
+        if (type == Type.STREAM) {
+            return FastOutStream.class;
         }
         return null;
     }

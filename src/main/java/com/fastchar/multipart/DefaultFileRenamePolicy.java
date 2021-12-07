@@ -24,7 +24,6 @@ public class DefaultFileRenamePolicy implements FileRenamePolicy {
   
   // This method does not need to be synchronized because createNewFile()
   // is atomic and used here to mark when a file name is chosen
-  @Override
   public File rename(File f) {
     if (createNewFile(f)) {
       return f;

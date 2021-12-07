@@ -20,12 +20,12 @@ public class FastMemoryCacheProvider implements IFastMemoryCache {
 
     public FastMemoryCacheProvider() {
         ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(5);
-        scheduledThreadPool.schedule(new Runnable() {
+        scheduledThreadPool.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 clearValidity();
             }
-        }, CACHE_IDLE, TimeUnit.MILLISECONDS);
+        }, CACHE_IDLE, CACHE_IDLE, TimeUnit.MILLISECONDS);
     }
 
     @Override

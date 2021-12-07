@@ -1,11 +1,13 @@
 package com.fastchar.core;
 
+import com.fastchar.object.FastObjectExecute;
 import com.fastchar.utils.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Blob;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -505,6 +507,8 @@ public class FastMapWrap {
         Object value = get(attr);
         if (value instanceof Timestamp) {
             return (Timestamp) value;
+        }else  if (value instanceof LocalDateTime) {
+            return Timestamp.valueOf((LocalDateTime) value);
         }
         String guessDateFormat = FastDateUtils.guessDateFormat(value.toString());
         if (FastStringUtils.isNotEmpty(guessDateFormat)) {

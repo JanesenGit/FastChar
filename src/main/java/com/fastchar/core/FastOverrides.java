@@ -395,7 +395,7 @@ public final class FastOverrides {
             }
             instances.add(finalValue);
         }
-        String errorInfo = "can not get instances for " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
+        String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
         if (instances.size() == 0 && check) {
             throw new FastOverrideException(errorInfo);
         }
@@ -430,7 +430,7 @@ public final class FastOverrides {
             throw new NullPointerException();
         }
         String superClass = targetClass.getName();
-        String errorInfo = "can not get instance for " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
+        String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
 
         if (targetClass.isAnnotationPresent(AFastOverrideError.class)) {
             AFastOverrideError overrideError = targetClass.getAnnotation(AFastOverrideError.class);
@@ -531,7 +531,7 @@ public final class FastOverrides {
         }
         List<T> instances = new ArrayList<>();
         String superClass = targetClass.getName();
-        String errorInfo = "can not get instances for " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
+        String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
 
         if (targetClass.isAnnotationPresent(AFastOverrideError.class)) {
             AFastOverrideError overrideError = targetClass.getAnnotation(AFastOverrideError.class);

@@ -1,5 +1,7 @@
 package com.fastchar.core;
 
+import com.fastchar.object.FastObjectExecute;
+import com.fastchar.object.FastObjectProperty;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
@@ -7,7 +9,7 @@ import com.fastchar.utils.FastStringUtils;
 import java.math.RoundingMode;
 
 /**
- * Json对象快速获取属性象值
+ * Json对象快速获取属性象值，兼容fastjson和gson
  *
  * @author 沈建（Janesen）
  * @date 2021/8/19 14:01
@@ -38,26 +40,137 @@ public class FastJsonWrap {
     }
 
     /**
+     * 设置属性表达式的值
+     *
+     * @param value 值
+     * @return 当前对象
+     */
+    public FastJsonWrap setValue(Object value) {
+        return setValue(null, value);
+    }
+
+    /**
+     * 设置属性表达式的值
+     *
+     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
+     * @param value      值
+     * @return 当前对象
+     */
+    public FastJsonWrap setValue(String attr, Object value) {
+        getProperty(attr).setValue(value);
+        return this;
+    }
+
+    /**
+     * 添加属性表达式的值
+     *
+     * @param value 值
+     * @return 当前对象
+     */
+    public FastJsonWrap addValue(Object value) {
+        return addValue(null, value);
+    }
+
+    /**
+     * 添加属性表达式的值
+     *
+     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
+     * @param value      值
+     * @return 当前对象
+     */
+    public FastJsonWrap addValue(String attr, Object value) {
+        getProperty(attr).addValue(value);
+        return this;
+    }
+
+    /**
+     * 添加属性表达式的值
+     *
+     * @param index 索引位置
+     * @param value 值
+     * @return 当前对象
+     */
+    public FastJsonWrap addValue(int index, Object value) {
+        return addValue(null, index, value);
+    }
+
+    /**
+     * 添加属性表达式的值
+     *
+     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
+     * @param index      添加到指定索引位置
+     * @param value      值
+     * @return 当前对象
+     */
+    public FastJsonWrap addValue(String attr, int index, Object value) {
+        getProperty(attr).addValue(index, value);
+        return this;
+    }
+
+    /**
+     * 添加属性表达式的值
+     *
+     * @param key   键
+     * @param value 值
+     * @return 当前对象
+     */
+    public FastJsonWrap addKeyValue(String key, Object value) {
+        return addKeyValue(null, key, value);
+    }
+
+    /**
+     * 添加属性表达式的值
+     *
+     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
+     * @param key        键
+     * @param value      值
+     * @return 当前对象
+     */
+    public FastJsonWrap addKeyValue(String attr, String key, Object value) {
+        getProperty(attr).addKeyValue(key, value);
+        return this;
+    }
+
+    /**
      * 获取json对象里的值
      *
-     * @param expression 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
+     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
      * @return 获取的值
      */
-    public Object get(String expression) {
+    public Object get(String attr) {
         if (objectExecute == null) {
             objectExecute = new FastObjectExecute(jsonObject);
         }
-        return objectExecute.execute("${" + expression + "}");
+        if (FastStringUtils.isNotEmpty(attr)) {
+            return objectExecute.execute("${" + attr + "}");
+        }
+        return jsonObject;
+    }
+
+    /**
+     * 获取json对象里的属性值
+     *
+     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
+     * @return 获取的值
+     */
+    private FastObjectProperty getProperty(String attr) {
+        if (objectExecute == null) {
+            objectExecute = new FastObjectExecute(jsonObject);
+        }
+        if (FastStringUtils.isNotEmpty(attr)) {
+            return objectExecute.executeProperty("${" + attr + "}");
+        }
+        return objectExecute.executeProperty(null);
     }
 
     /**
      * 获取FastJsonWrap对象
      *
-     * @param expression 表达式
+     * @param attr 表达式
      * @return FastJsonWrap
      */
-    public FastJsonWrap getJsonWrap(String expression) {
-        return newInstance(null).setJsonObject(get(expression));
+    public FastJsonWrap getJsonWrap(String attr) {
+        return newInstance(null).setJsonObject(get(attr));
     }
 
 
@@ -307,4 +420,16 @@ public class FastJsonWrap {
     }
 
 
+    /**
+     * 转为json字符串
+     *
+     * @return 字符串
+     */
+    public String toJson() {
+        return FastChar.getJson().toJson(jsonObject);
+    }
+
+    public Object getJsonObject() {
+        return this.jsonObject;
+    }
 }

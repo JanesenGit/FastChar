@@ -65,9 +65,11 @@ public final class FastDispatcher {
         if (targetClass.isAnnotationPresent(AFastRoute.class)) {
             AFastRoute fastRoute = targetClass.getAnnotation(AFastRoute.class);
             if (fastRoute.head()) {
-                classRoutes.clear();
-                for (String s : fastRoute.value()) {
-                    String route = FastStringUtils.stripEnd(s, "/") + "/" +
+                if (fastRoute.value().length > 0) {
+                    classRoutes.clear();
+                }
+                for (String configRoute : fastRoute.value()) {
+                    String route = FastStringUtils.stripEnd(configRoute, "/") + "/" +
                             FastStringUtils.stripStart(classRoute, "/");
                     if (classRoutes.contains(route)) {
                         continue;
@@ -113,9 +115,11 @@ public final class FastDispatcher {
         if (declaredMethod.isAnnotationPresent(AFastRoute.class)) {
             AFastRoute fastRoute = declaredMethod.getAnnotation(AFastRoute.class);
             if (fastRoute.head()) {
-                methodRoutes.clear();
-                for (String s : fastRoute.value()) {
-                    String route = FastStringUtils.stripEnd(s, "/") + "/" + declaredMethod.getName();
+                if (fastRoute.value().length > 0) {
+                    methodRoutes.clear();
+                }
+                for (String configRoute : fastRoute.value()) {
+                    String route = FastStringUtils.stripEnd(configRoute, "/") + "/" + declaredMethod.getName();
                     if (methodRoutes.contains(route)) {
                         continue;
                     }
@@ -216,25 +220,31 @@ public final class FastDispatcher {
                 fastRoute.methodParameter = parameter;
                 fastRoute.route = classMethodRoute;
                 fastRoute.crossAllowDomains = new HashSet<>(FastChar.getConstant().getCrossAllowDomains());
+
+                /*ActionClass注解处理   ----  开始 **/
                 if (actionClass.isAnnotationPresent(AFastPriority.class)) {
                     AFastPriority annotation = actionClass.getAnnotation(AFastPriority.class);
                     fastRoute.priority = annotation.value();
                 }
 
                 if (actionClass.isAnnotationPresent(AFastRoute.class)) {
-                    AFastRoute annotation = actionClass.getAnnotation(AFastRoute.class);
-                    fastRoute.crossAllowDomains.addAll(Arrays.asList(annotation.crossDomains()));
-                    if (annotation.cross()) {
+                    AFastRoute classRouteAnnotation = actionClass.getAnnotation(AFastRoute.class);
+                    fastRoute.crossAllowDomains.addAll(Arrays.asList(classRouteAnnotation.crossDomains()));
+                    if (classRouteAnnotation.cross()) {
                         fastRoute.crossAllowDomains.add("*");
                     }
-                    fastRoute.interceptorAfter = annotation.interceptorAfter();
-                    fastRoute.interceptorBefore = annotation.interceptorBefore();
+                    fastRoute.interceptorAfter = classRouteAnnotation.interceptorAfter();
+                    fastRoute.interceptorBefore = classRouteAnnotation.interceptorBefore();
+                    fastRoute.contentTypes.addAll(Arrays.asList(classRouteAnnotation.contentTypes()));
+                    fastRoute.httpMethods.addAll(Arrays.asList(classRouteAnnotation.httpMethods()));
                 }
 
                 if (actionClass.isAnnotationPresent(AFastHttpMethod.class)) {
                     AFastHttpMethod annotation = actionClass.getAnnotation(AFastHttpMethod.class);
                     fastRoute.httpMethods.addAll(Arrays.asList(annotation.value()));
                 }
+                /*ActionClass注解处理   ----  结束 **/
+
 
                 if (FastMethodUtils.isOverride(declaredMethod)) {
                     fastRoute.priority = Math.max(AFastPriority.P_NORMAL, fastRoute.priority);
@@ -256,20 +266,21 @@ public final class FastDispatcher {
                 }
 
                 if (declaredMethod.isAnnotationPresent(AFastRoute.class)) {
-                    AFastRoute annotation = declaredMethod.getAnnotation(AFastRoute.class);
-                    fastRoute.crossAllowDomains.addAll(Arrays.asList(annotation.crossDomains()));
-                    if (annotation.cross()) {
+                    AFastRoute methodRouteAnnotation = declaredMethod.getAnnotation(AFastRoute.class);
+                    fastRoute.crossAllowDomains.addAll(Arrays.asList(methodRouteAnnotation.crossDomains()));
+                    if (methodRouteAnnotation.cross()) {
                         fastRoute.crossAllowDomains.add("*");
                     }
-                    fastRoute.interceptorAfter = annotation.interceptorAfter();
-                    fastRoute.interceptorBefore = annotation.interceptorBefore();
+                    fastRoute.interceptorAfter = methodRouteAnnotation.interceptorAfter();
+                    fastRoute.interceptorBefore = methodRouteAnnotation.interceptorBefore();
+                    fastRoute.contentTypes.addAll(Arrays.asList(methodRouteAnnotation.contentTypes()));
+                    fastRoute.httpMethods.addAll(Arrays.asList(methodRouteAnnotation.httpMethods()));
                 }
 
                 if (declaredMethod.isAnnotationPresent(AFastCache.class)) {
                     AFastCache annotation = declaredMethod.getAnnotation(AFastCache.class);
                     FastResponseCacheConfig cacheConfig = new FastResponseCacheConfig();
                     cacheConfig.setCache(annotation.enable());
-                    cacheConfig.setCacheKey(annotation.value());
                     cacheConfig.setTimeout(annotation.timeout());
                     if (annotation.checkClass()) {
                         if (!FastChar.getOverrides().check(IFastCache.class)) {
@@ -575,6 +586,14 @@ public final class FastDispatcher {
                     }
                     try {
                         if (!fastRoute.checkMethod(request.getMethod())) {
+                            if (FastChar.getConstant().isDebug()) {
+                                FastChar.getLog().warn(FastDispatcher.class,
+                                        FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR3, fastUrl.getMethodRoute(), request.getMethod()));
+                            }
+                            response404(inTime);
+                            return;
+                        }
+                        if (!fastRoute.checkContentType(request.getContentType())) {
                             if (FastChar.getConstant().isDebug()) {
                                 FastChar.getLog().warn(FastDispatcher.class,
                                         FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR3, fastUrl.getMethodRoute(), request.getMethod()));

@@ -1,9 +1,13 @@
 package com.fastchar.database;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,11 +15,22 @@ import java.util.Map;
 
 public class FastResultSet {
 
-    private ResultSet resultSet;
+    private final ResultSet resultSet;
     private boolean ignoreCase;
 
     public FastResultSet(ResultSet resultSet) {
         this.resultSet = resultSet;
+    }
+
+
+    private Object getValue(String key) throws SQLException {
+        Object object = resultSet.getObject(key);
+        if (FastChar.getConstant().isJdbcParseToTimestamp()) {
+            if (object instanceof LocalDateTime) {
+                return Timestamp.valueOf((LocalDateTime) object);
+            }
+        }
+        return object;
     }
 
     public FastEntity<?> getFirstResult() {
@@ -31,7 +46,7 @@ public class FastResultSet {
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = resultSet.getObject(key);
+                            Object value = getValue(key);
                             fastRecord.put(key, value);
                         } catch (Exception ignored) {
                         }
@@ -58,12 +73,8 @@ public class FastResultSet {
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = resultSet.getObject(key);
-                            if (isIgnoreCase()) {
-                                fastRecord.put(key.toLowerCase(), value);
-                            } else {
-                                fastRecord.put(key, value);
-                            }
+                            Object value = getValue(key);
+                            fastRecord.put(key, value);
                         } catch (Exception ignored) {
                         }
                     }
@@ -92,7 +103,7 @@ public class FastResultSet {
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = resultSet.getObject(key);
+                            Object value = getValue(key);
                             if (keyCount.containsKey(key)) {
                                 keyCount.put(key, keyCount.get(key) + 1);
                                 key = key + "(" + keyCount.get(key) + ")";
@@ -124,7 +135,7 @@ public class FastResultSet {
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = resultSet.getObject(key);
+                            Object value = getValue(key);
                             map.put(key, value);
                         } catch (Exception ignored) {
                         }

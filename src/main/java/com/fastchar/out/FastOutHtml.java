@@ -26,8 +26,8 @@ public class FastOutHtml extends FastOut<FastOutHtml> {
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Cache-Control", "no-cache");
         response.setDateHeader("Expires", 0);
-        response.setStatus(getStatus());
 
+        response.setStatus(getStatus());
         response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
 

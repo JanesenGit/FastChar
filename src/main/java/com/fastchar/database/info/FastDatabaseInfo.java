@@ -2,6 +2,7 @@ package com.fastchar.database.info;
 
 import com.fastchar.core.*;
 
+import com.fastchar.database.sql.FastSql;
 import com.fastchar.exception.FastDatabaseException;
 import com.fastchar.interfaces.IFastDataSource;
 import com.fastchar.interfaces.IFastDatabaseOperate;
@@ -111,6 +112,9 @@ public class FastDatabaseInfo extends FastBaseInfo {
         if (FastStringUtils.isEmpty(driver)) {
             if (isMySql()) {
                 driver = "com.mysql.jdbc.Driver";
+                if (FastChar.getFindClass().test("com.mysql.cj.jdbc.Driver")) {
+                    driver = "com.mysql.cj.jdbc.Driver";
+                }
             }
             if (isSqlServer()) {
                 driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
@@ -222,7 +226,7 @@ public class FastDatabaseInfo extends FastBaseInfo {
         if (FastStringUtils.isEmpty(getName())) {
             databaseCode = FastChar.getSecurity().MD5_Encrypt("FastChar-DataSource");
         }
-        return FastChar.getOverrides().singleInstance(databaseCode,IFastDataSource.class).getDataSource(this);
+        return FastChar.getOverrides().singleInstance(databaseCode, IFastDataSource.class).getDataSource(this);
     }
 
     public IFastDatabaseOperate getOperate() {
@@ -274,7 +278,6 @@ public class FastDatabaseInfo extends FastBaseInfo {
     public LinkedHashMap<String, List<FastSqlInfo>> getDefaultData() {
         return defaultData;
     }
-
 
 
     public String toUrl() {
@@ -388,6 +391,11 @@ public class FastDatabaseInfo extends FastBaseInfo {
             this.mapTable.set(table.getName(), table);
         }
         this.fromProperty();
+    }
+
+
+    public FastSql getFastSql() {
+        return FastSql.getInstance(type);
     }
 
 

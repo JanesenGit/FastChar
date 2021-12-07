@@ -178,3 +178,17 @@ V1.6.0
 5、新增FastJsonWrap类，支持表达式快速读取json对象属性值！
 6、优化解压Jar包速度！
 7、新增对GZIP的支持！
+
+V1.6.1
+1、优化FastJsonWrap类，强化json对象处理，支持get和set !
+2、增加FastLog打印控制，可在FastConstant中配置！
+3、优化FastFile，生成标识key时携带文件后缀名！
+4、新增路由content-type拦截！
+5、解决缓存响应的问题！
+6、新增FastOutStream直接响应输入流！
+7、修改部分问题！
+8、新增Servlet3.0文件上传方式，自动检测如果tomcat不支持则使用FastChar默认的文件上传方式！
+9、兼容mysql驱动新类：com.mysql.cj.jdbc.Driver
+10、优化数据库表格同步！
+11、优化缓存Key的问题！
+12、优化FastHandler，升级继承自FastMapWrap

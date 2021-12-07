@@ -1,7 +1,12 @@
 package com.fastchar.core;
 
-public final class FastHandler extends FastBaseInfo {
-    private static final long serialVersionUID = 5137431042772520606L;
+import java.util.LinkedHashMap;
+
+public final class FastHandler extends FastMapWrap {
+
+    public FastHandler() {
+        this.setMap(new LinkedHashMap<>());
+    }
 
     public int getCode() {
         return getInt("code", 0);

@@ -177,6 +177,11 @@ public class FastArrayUtils {
         return array != null && array.length != 0;
     }
 
+    public static boolean isArray(Object value) {
+        return value != null && ((value instanceof Array) || value.getClass().isArray());
+    }
+
+
 
     public static <T> T[] clone(T[] array) {
         return array == null ? null : (T[]) (Object[]) array.clone();

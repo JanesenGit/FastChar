@@ -125,6 +125,9 @@ public class FastResponseCacheInfo implements Serializable {
 
 
     public boolean isTimeout() {
+        if (timeout < 0) {
+            return false;
+        }
         long l = (System.currentTimeMillis() - timestamp) / 1000;
         return l > timeout;
     }

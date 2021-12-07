@@ -5,6 +5,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 
@@ -134,4 +135,15 @@ public class FastRequestUtils {
         url.append(urlPath);
         return url;
     }
+
+
+    public static String getRequestParamString(HttpServletRequest request) {
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String key : parameterMap.keySet()) {
+            stringBuilder.append(key).append(":").append(FastStringUtils.join(parameterMap.get(key), ","));
+        }
+        return stringBuilder.toString();
+    }
+
 }

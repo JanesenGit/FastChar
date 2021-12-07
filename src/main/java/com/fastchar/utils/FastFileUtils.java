@@ -168,9 +168,18 @@ public class FastFileUtils {
         if (FastStringUtils.isEmpty(fileName)) {
             return false;
         }
-        String regex = ".+(" + FastStringUtils.join(extensions, "|") + ")$";
-        return Pattern.matches(regex, fileName
-                .toLowerCase());
+        String regex = ".+(" + FastStringUtils.join(extensions, "|").toLowerCase() + ")";
+        boolean matches = Pattern.matches(regex, fileName.toLowerCase());
+        if (!matches) {
+            List<String> fastCharTypes = new ArrayList<>();
+            for (String extension : extensions) {
+                fastCharTypes.add(extension.replace(".", "") + "-");
+            }
+            //符合fastchar的附件文件名规则：txt-12312312、pdf-123123asdf
+            String fastCharRegex = "(" + FastStringUtils.join(fastCharTypes, "|").toLowerCase() + ").+";
+            return Pattern.matches(fastCharRegex, fileName.toLowerCase());
+        }
+        return true;
     }
 
     public static boolean isTargetFileByMimeType(String mimeType, String... mimeTypes) {
@@ -831,12 +840,10 @@ public class FastFileUtils {
         String fileName = url.substring(url.lastIndexOf("/") + 1);
         String urlType = HttpURLConnection.guessContentTypeFromName(fileName);
         try {
-            URL fileURL = new URL(url);
-            URLConnection conn = fileURL.openConnection();
-            if (conn == null) {
+            InputStream inputStream = FastHttpURLConnectionUtils.getInputStream(url);
+            if (inputStream == null) {
                 return urlType;
             }
-            InputStream inputStream = conn.getInputStream();
             String guessType = HttpURLConnection.guessContentTypeFromStream(new BufferedInputStream(inputStream));
             if (FastStringUtils.isEmpty(guessType)) {
                 return urlType;
@@ -881,5 +888,10 @@ public class FastFileUtils {
         }
     }
 
+    public static void main(String[] args) {
+        String regStr = ".+(.pdf|.xlx)";
+        System.out.println(Pattern.matches(regStr, ".pdfd"));
+
+    }
 
 }

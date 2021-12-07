@@ -72,7 +72,8 @@ public class FastData<T extends FastEntity<?>> {
                     .setDatabase(target.getDatabase())
                     .setIgnoreCase(target.isIgnoreCase())
                     .setListener(sqlInfo.isListener())
-                    .setLog(sqlInfo.isLog()).selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
+                    .setLog(sqlInfo.isLog())
+                    .selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
             if (fastEntity != null) {
                 T newInstance = (T) FastClassUtils.newInstance(target.getClass());
                 if (newInstance == null) {

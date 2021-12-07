@@ -80,6 +80,12 @@ public final class FastCharLocal {
 
     /**
      * 描述模板：
+     * data类型错误！必须为 {0}
+     */
+    public static final String OUT_ERROR1 = "Out_Error1";
+
+    /**
+     * 描述模板：
      * 参数{0}不可为空！
      */
     public static final String PARAM_ERROR1 = "Param_Error1";
