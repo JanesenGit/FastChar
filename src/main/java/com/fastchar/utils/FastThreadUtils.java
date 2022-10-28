@@ -3,9 +3,7 @@ package com.fastchar.utils;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastMemoryCache;
 
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 线程工具类
@@ -13,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @date 2021/7/14 11:34
  */
 public class FastThreadUtils {
-    private static final ConcurrentHashMap<String, ThreadLocal<?>> threadLocalMap = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, ThreadLocal<?>> threadLocalMap = new ConcurrentHashMap<>(16);
 
     /**
      * 获取指定key的线程

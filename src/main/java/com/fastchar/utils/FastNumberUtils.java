@@ -5,7 +5,6 @@ package com.fastchar.utils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.net.SocketTimeoutException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -166,7 +165,8 @@ public class FastNumberUtils {
      */
     public static String getAllNumbers(String content) {
         List<String> numbers = new ArrayList<String>();
-        for (String n : content.replaceAll("[^0-9]", ",").split(",")) {
+        String replaceAll = content.replaceAll("[^0-9]", ",");
+        for (String n : FastStringUtils.splitByWholeSeparator(replaceAll,",")) {
             if (n.length() > 0) {
                 numbers.add(n);
             }

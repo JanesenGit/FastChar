@@ -18,25 +18,29 @@ import java.util.Set;
 public class FastEhCache2Provider implements IFastCache {
     private static final Object LOCKER = new Object();
 
-    private CacheManager cacheManager;
+    private volatile CacheManager cacheManager;
 
     private CacheManager getCacheManager() {
         if (cacheManager == null) {
-            FastEhCache2Config ehCacheConfig = FastChar.getConfigs().getEhCache2Config();
-            if (ehCacheConfig != null) {
-                if (ehCacheConfig.getConfiguration() != null) {
-                    cacheManager = CacheManager.create(ehCacheConfig.getConfiguration());
-                } else if (FastStringUtils.isNotEmpty(ehCacheConfig.getConfigurationFileName())) {
-                    cacheManager = CacheManager.create(ehCacheConfig.getConfigurationFileName());
-                } else if (ehCacheConfig.getConfigurationURL() != null) {
-                    cacheManager = CacheManager.create(ehCacheConfig.getConfigurationURL());
-                } else if (ehCacheConfig.getConfigurationInputStream() != null) {
-                    cacheManager = CacheManager.create(ehCacheConfig.getConfigurationInputStream());
-                } else {
-                    cacheManager = CacheManager.create();
+            synchronized (FastEhCache2Provider.class) {
+                if (cacheManager == null) {
+                    FastEhCache2Config ehCacheConfig = FastChar.getConfigs().getEhCache2Config();
+                    if (ehCacheConfig != null) {
+                        if (ehCacheConfig.getConfiguration() != null) {
+                            cacheManager = CacheManager.create(ehCacheConfig.getConfiguration());
+                        } else if (FastStringUtils.isNotEmpty(ehCacheConfig.getConfigurationFileName())) {
+                            cacheManager = CacheManager.create(ehCacheConfig.getConfigurationFileName());
+                        } else if (ehCacheConfig.getConfigurationURL() != null) {
+                            cacheManager = CacheManager.create(ehCacheConfig.getConfigurationURL());
+                        } else if (ehCacheConfig.getConfigurationInputStream() != null) {
+                            cacheManager = CacheManager.create(ehCacheConfig.getConfigurationInputStream());
+                        } else {
+                            cacheManager = CacheManager.create();
+                        }
+                    } else {
+                        cacheManager = CacheManager.create();
+                    }
                 }
-            } else {
-                cacheManager = CacheManager.create();
             }
         }
         return cacheManager;

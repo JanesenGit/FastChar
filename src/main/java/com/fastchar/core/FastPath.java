@@ -3,12 +3,8 @@ package com.fastchar.core;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.management.ManagementFactory;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.util.jar.JarFile;
 
 public final class FastPath {
     private String pid;
@@ -41,7 +37,7 @@ public final class FastPath {
 
     public String getWebRootPath() {
         if (webRootPath == null) {
-            webRootPath = getClassRootPath().split("WEB-INF")[0];
+            webRootPath = FastStringUtils.splitByWholeSeparator(getClassRootPath(), "WEB-INF")[0];
         }
         return webRootPath;
     }
@@ -59,7 +55,7 @@ public final class FastPath {
 
     public String getWebInfoPath() {
         if (webInfoPath == null) {
-            webInfoPath = new File(getClassRootPath().split("WEB-INF")[0], "WEB-INF").getAbsolutePath();
+            webInfoPath = new File(FastStringUtils.splitByWholeSeparator(getClassRootPath(), "WEB-INF")[0], "WEB-INF").getAbsolutePath();
         }
         return webInfoPath;
     }
@@ -76,7 +72,7 @@ public final class FastPath {
 
     public String getPid() {
         if (pid == null) {
-            pid = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
+            pid = FastStringUtils.splitByWholeSeparator(ManagementFactory.getRuntimeMXBean().getName(), "@")[0];
         }
         return pid;
     }
@@ -87,10 +83,20 @@ public final class FastPath {
     }
 
 
-    public boolean existsJarRoot(File jar) {
+    public boolean existJarRoot(File jar) {
         if (jar == null) {
             return false;
         }
         return jar.getAbsolutePath().startsWith(getLibRootPath());
     }
+
+    public String getAttachmentPath() {
+        return FastChar.getConstant().getAttachDirectory();
+    }
+
+    public FastPath setAttachmentPath(String attachDirectory) {
+        FastChar.getConstant().setAttachDirectory(attachDirectory);
+        return this;
+    }
+
 }

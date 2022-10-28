@@ -16,7 +16,15 @@ public interface IFastDatabaseListener {
      * @param databaseInfo 数据库信息
      * @return 布尔值，true：允许，false：不允许
      */
-    boolean onCreateDatabase(FastDatabaseInfo databaseInfo);
+    Boolean onBeforeCreateDatabase(FastDatabaseInfo databaseInfo);
+
+
+    /**
+     * 创建数据库回调
+     * @param databaseInfo 数据库信息
+     * @return 布尔值，true：允许，false：不允许
+     */
+    void onAfterCreateDatabase(FastDatabaseInfo databaseInfo);
 
     /**
      * 创建表格回调
@@ -24,7 +32,17 @@ public interface IFastDatabaseListener {
      * @param tableInfo 表格信息
      * @return 布尔值，true：允许，false：不允许
      */
-    boolean onCreateTable(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo);
+    Boolean onBeforeCreateTable(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo);
+
+
+    /**
+     * 创建表格回调
+     * @param databaseInfo 数据库信息
+     * @param tableInfo 表格信息
+     * @return 布尔值，true：允许，false：不允许
+     */
+    void onAfterCreateTable(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo);
+
 
     /**
      * 添加表格列
@@ -33,7 +51,17 @@ public interface IFastDatabaseListener {
      * @param columnInfo 列信息
      * @return 布尔值，true：允许，false：不允许
      */
-    boolean onAddTableColumn(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo);
+    Boolean onBeforeAddTableColumn(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo);
+
+    /**
+     * 添加表格列
+     * @param databaseInfo 数据库信息
+     * @param tableInfo 表格信息
+     * @param columnInfo 列信息
+     * @return 布尔值，true：允许，false：不允许
+     */
+    void onAfterAddTableColumn(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo);
+
 
     /**
      * 修改表格列
@@ -42,5 +70,16 @@ public interface IFastDatabaseListener {
      * @param columnInfo 列信息
      * @return 布尔值，true：允许，false：不允许
      */
-    boolean onAlterTableColumn(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo);
+    Boolean onBeforeAlterTableColumn(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo);
+
+    /**
+     * 修改表格列
+     * @param databaseInfo 数据库信息
+     * @param tableInfo 表格信息
+     * @param columnInfo 列信息
+     * @return 布尔值，true：允许，false：不允许
+     */
+    void onAfterAlterTableColumn(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo);
+
+
 }

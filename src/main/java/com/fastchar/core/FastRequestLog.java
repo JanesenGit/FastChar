@@ -2,6 +2,7 @@ package com.fastchar.core;
 
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastMethodRead;
+import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.out.FastOut;
 import com.fastchar.out.FastOutForward;
 import com.fastchar.out.FastOutRedirect;
@@ -14,8 +15,11 @@ import java.util.*;
 
 public final class FastRequestLog {
     private static final SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
-    private static final String BLOCK_CHAR = "*";
-    private static final String SPLIT_CHAR = "-";
+    private static final String BLOCK_CHAR = "#";
+    private static final String SPLIT_CHAR = "=";
+
+    private static final String APPEND_CHAR = "+";
+
     private static final String IN_CHAR = "->";
     private static final String OUT_CHAR = "<-";
     private static final String ROOT_INTERCEPTOR_CHAR = ">!";
@@ -51,6 +55,10 @@ public final class FastRequestLog {
 
 
                 RequestStackTrace requestStackTrace = new RequestStackTrace(action).invoke();
+                requestStackTrace.sortAfterInterceptorStacks();
+                requestStackTrace.sortBeforeInterceptorStacks();
+                requestStackTrace.sortRootInterceptorStacks();
+
                 List<StackTraceElement> rootInterceptorStacks = requestStackTrace.getRootInterceptorStacks();
                 List<StackTraceElement> beforeInterceptorStacks = requestStackTrace.getBeforeInterceptorStacks();
                 List<StackTraceElement> afterInterceptorStacks = requestStackTrace.getAfterInterceptorStacks();
@@ -59,16 +67,13 @@ public final class FastRequestLog {
 
                 LinkedHashMap<String, String> printRequestMap = new LinkedHashMap<>();
                 printRequestMap.put("Thread-Info", Thread.currentThread().getName() + " - " + Thread.currentThread().getId());
-                int rootIndex = 0;
-                for (int i = rootInterceptorStacks.size() - 1; i >= 0; i--) {
-                    printRequestMap.put(ROOT_INTERCEPTOR_CHAR + "@RootInterceptor-" + rootIndex, rootInterceptorStacks.get(i).toString());
-                    rootIndex++;
+
+                for (int i = 0; i < rootInterceptorStacks.size(); i++) {
+                    printRequestMap.put(ROOT_INTERCEPTOR_CHAR + "@RootInterceptor-" + i, rootInterceptorStacks.get(i).toString());
                 }
 
-                int beforeIndex = 0;
-                for (int i = beforeInterceptorStacks.size() - 1; i >= 0; i--) {
-                    printRequestMap.put(BEFORE_INTERCEPTOR_CHAR + "@BeforeInterceptor-" + beforeIndex, beforeInterceptorStacks.get(i).toString());
-                    beforeIndex++;
+                for (int i = 0; i < beforeInterceptorStacks.size(); i++) {
+                    printRequestMap.put(BEFORE_INTERCEPTOR_CHAR + "@BeforeInterceptor-" + i, beforeInterceptorStacks.get(i).toString());
                 }
 
                 if (FastChar.getConstant().isLogInterceptorUseTotal()) {
@@ -78,10 +83,8 @@ public final class FastRequestLog {
 
                 if (action.fastRoute.responseInvoked && action.fastRoute.actionLog) {
                     if (actionStacks.size() > 1) {
-                        int actionIndex = 0;
-                        for (int i = actionStacks.size() - 1; i >= 0; i--) {
-                            printRequestMap.put("Action-" + actionIndex, actionStacks.get(i).toString());
-                            actionIndex++;
+                        for (int i = 0; i < actionStacks.size(); i++) {
+                            printRequestMap.put("Action-" + i, actionStacks.get(i).toString());
                         }
                     } else if (actionStacks.size() > 0) {
                         printRequestMap.put("Action", actionStacks.get(0).toString());
@@ -124,10 +127,8 @@ public final class FastRequestLog {
                 FastOut<?> fastOut = action.getFastOut();
                 LinkedHashMap<String, String> printResponseMap = new LinkedHashMap<>();
 
-                int afterIndex = 0;
-                for (int i = afterInterceptorStacks.size() - 1; i >= 0; i--) {
-                    printResponseMap.put(AFTER_INTERCEPTOR_CHAR + "@AfterInterceptor-" + afterIndex, afterInterceptorStacks.get(i).toString());
-                    afterIndex++;
+                for (int i = 0; i < afterInterceptorStacks.size(); i++) {
+                    printResponseMap.put(AFTER_INTERCEPTOR_CHAR + "@AfterInterceptor-" + i, afterInterceptorStacks.get(i).toString());
                 }
 
                 if (FastChar.getConstant().isLogInterceptorUseTotal()) {
@@ -144,9 +145,9 @@ public final class FastRequestLog {
                 }
 
                 if (isErrorStatus(fastOut.getStatus()) || isWarnStatus(fastOut.getStatus())) {
-                    printResponseMap.put("Out-Content", String.valueOf(fastOut.getData()));
+                    printResponseMap.put("Out-Content", FastStringUtils.defaultValue(fastOut.getData(), ""));
                 } else if (action.isLogResponse()) {
-                    printResponseMap.put("Out-Content", String.valueOf(fastOut.getData()));
+                    printResponseMap.put("Out-Content", FastStringUtils.defaultValue(fastOut.getData(), ""));
                 }
 
                 printResponseMap.put("ContentType", fastOut.toContentType(action));
@@ -169,61 +170,110 @@ public final class FastRequestLog {
                 printResponseMap.put("OutTime", SIMPLE_DATE_FORMAT.format(outTime));
                 printResponseMap.put("UseTotal", userTotal + " seconds");
                 int maxKeyLength = 10;
-                for (String key : printRequestMap.keySet()) {
-                    if (FastStringUtils.isEmpty(printRequestMap.get(key))) {
+                int maxLineLength = 90;
+                for (Map.Entry<String, String> stringStringEntry : printRequestMap.entrySet()) {
+                    if (FastStringUtils.isEmpty(stringStringEntry.getValue())) {
                         continue;
+                    }
+                    String key = stringStringEntry.getKey();
+                    if (stringStringEntry.getKey().contains("@")) {
+                        key = FastStringUtils.splitByWholeSeparator(key,"@")[1];
                     }
                     maxKeyLength = Math.max(maxKeyLength, key.length());
                 }
-                for (String key : printResponseMap.keySet()) {
-                    if (FastStringUtils.isEmpty(printResponseMap.get(key))) {
+                for (Map.Entry<String, String> stringStringEntry : printResponseMap.entrySet()) {
+                    if (FastStringUtils.isEmpty(stringStringEntry.getValue())) {
                         continue;
+                    }
+                    String key = stringStringEntry.getKey();
+                    if (key.contains("@")) {
+                        key = FastStringUtils.splitByWholeSeparator(key,"@")[1];
                     }
                     maxKeyLength = Math.max(maxKeyLength, key.length());
                 }
-
 
                 StringBuilder print = new StringBuilder();
-                print.append(buildSplit(BLOCK_CHAR, "FastCharLog-BGN"));
+                print.append("____A");
 
-                for (String key : printRequestMap.keySet()) {
-                    String text = printRequestMap.get(key);
+                for (Map.Entry<String, String> stringStringEntry : printRequestMap.entrySet()) {
+                    String text = stringStringEntry.getValue();
                     if (FastStringUtils.isEmpty(text)) {
                         continue;
                     }
-                    String tipChar = buildChar(IN_CHAR, key);
-                    print.append(tipChar).append(" ").append(formatString(key, maxKeyLength)).append(text).append("\n");
+                    String tipChar = buildChar(IN_CHAR, stringStringEntry.getKey());
+                    String line = tipChar + " " + formatString(stringStringEntry.getKey(), maxKeyLength) + text + "\n";
+                    print.append(line);
+                    maxLineLength = Math.max(line.length(), maxLineLength);
+
                 }
-                print.append(buildSplit(SPLIT_CHAR, "FastCharLog-RSP"));
-                for (String key : printResponseMap.keySet()) {
-                    String text = printResponseMap.get(key);
+
+                print.append("____B");
+                for (Map.Entry<String, String> stringStringEntry : printResponseMap.entrySet()) {
+                    String text = stringStringEntry.getValue();
                     if (FastStringUtils.isEmpty(text)) {
                         continue;
                     }
-                    String tipChar = buildChar(OUT_CHAR, key);
-                    print.append(tipChar).append(" ").append(formatString(key, maxKeyLength)).append(text).append("\n");
+                    String tipChar = buildChar(OUT_CHAR, stringStringEntry.getKey());
+                    String line = tipChar + " " + formatString(stringStringEntry.getKey(), maxKeyLength) + text + "\n";
+                    print.append(line);
+                    maxLineLength = Math.max(line.length(), maxLineLength);
                 }
-                print.append(buildSplit(BLOCK_CHAR, "FastCharLog-END"));
+
+                if (action.getAttribute().containsAttr("sqlLogList")) {
+                    print.append("____D");
+                    ArrayList<Map<String, String>> sqlLogList = action.getAttribute().getObject("sqlLogList");
+                    for (int i = 0; i < sqlLogList.size(); i++) {
+                        Map<String, String> map = sqlLogList.get(i);
+                        for (Map.Entry<String, String> stringStringEntry : map.entrySet()) {
+                            String text = stringStringEntry.getValue();
+                            if (FastStringUtils.isEmpty(text)) {
+                                continue;
+                            }
+                            String line = "~~ " + formatString(stringStringEntry.getKey(), maxKeyLength) + text + "\n";
+                            print.append(line);
+                            maxLineLength = Math.max(line.length(), maxLineLength);
+                        }
+                        if (i != sqlLogList.size() - 1) {
+                            print.append("____E");
+                        }
+                    }
+                }
+
+                maxLineLength = 158;
+
+                print.append("____C");
+                print.append("\n\n\n");
+
+                String printContent = print.toString();
+
+                printContent = printContent
+                        .replace("____A", buildSplit(maxLineLength, BLOCK_CHAR, " FastCharLog-Request-Begin "))
+                        .replace("____B", buildSplit(maxLineLength, SPLIT_CHAR, " FastCharLog-Response-Out "))
+                        .replace("____D", buildSplit(maxLineLength, SPLIT_CHAR, " FastCharLog-Run-Sql "))
+                        .replace("____E", buildSplit(maxLineLength, APPEND_CHAR, ""))
+                        .replace("____C", buildSplit(maxLineLength, BLOCK_CHAR, " FastCharLog-Request-End "));
 
                 if (userTotal > FastChar.getConstant().getMaxResponseTime()) {
-                    System.out.println(FastChar.getLog().warnStyle(print.toString()));
+                    System.out.println(FastChar.getLog().warnStyle(printContent));
                 } else {
                     if (isErrorStatus(fastOut.getStatus())) {
-                        System.out.println(FastChar.getLog().errorStyle(print.toString()));
+                        System.out.println(FastChar.getLog().errorStyle(printContent));
                     } else if (isWarnStatus(fastOut.getStatus())) {
-                        System.out.println(FastChar.getLog().warnStyle(print.toString()));
+                        System.out.println(FastChar.getLog().warnStyle(printContent));
                     } else if (FastOutRedirect.class.isAssignableFrom(fastOut.getClass())
                             || FastOutForward.class.isAssignableFrom(fastOut.getClass())) {
-                        System.out.println(FastChar.getLog().softStyle(print.toString()));
+                        System.out.println(FastChar.getLog().softStyle(printContent));
                     } else {
-                        System.out.println(FastChar.getLog().lightStyle(print.toString()));
+                        System.out.println(FastChar.getLog().lightStyle(printContent));
                     }
                 }
+
             }
         } catch (Throwable e) {
             e.printStackTrace();
         }
     }
+
 
     private static boolean isErrorStatus(int status) {
         return status == 404 ||
@@ -238,25 +288,33 @@ public final class FastRequestLog {
     private static String buildChar(String normalChar, String key) {
         String tipChar = normalChar;
         if (key.contains("@")) {
-            tipChar = key.split("@")[0];
+            tipChar = FastStringUtils.splitByWholeSeparator(key,"@")[0];
         }
         return tipChar;
     }
 
 
-    private static StringBuilder buildSplit(String charSplit, String centerText) {
-        StringBuilder lineSplit = new StringBuilder();
-        StringBuilder split = new StringBuilder();
-        for (int i = 0; i < 45; i++) {
-            split.append(charSplit);
+    private static StringBuilder buildSplit(int maxLength, String charSplit, String centerText) {
+        if (FastStringUtils.isNotEmpty(centerText)) {
+            centerText = "【" + centerText + "】";
         }
-        return lineSplit.append(split).append(centerText).append(split).append("\n");
+        StringBuilder split = new StringBuilder();
+        int insertIndex = (maxLength - centerText.length()) / 2;
+
+        while (split.length() < maxLength) {
+            split.append(charSplit);
+            if (split.length() >= insertIndex && split.length() < insertIndex + centerText.length()) {
+                split.append(centerText);
+            }
+        }
+        split.append("\n");
+        return split;
     }
 
 
     private static String formatString(String target, int targetLength) {
         if (target.contains("@")) {
-            target = target.split("@")[1];
+            target = FastStringUtils.splitByWholeSeparator(target,"@")[1];
         }
         StringBuilder targetBuilder = new StringBuilder(target);
         while (targetBuilder.length() < targetLength + 1) {
@@ -268,25 +326,44 @@ public final class FastRequestLog {
 
 
     private static String mapToString(Map<String, Object> map) {
-        List<String> strings = new ArrayList<>();
-        for (String s : map.keySet()) {
-            Object value = map.get(s);
+        List<String> strings = new ArrayList<>(16);
+        for (Map.Entry<String, Object> stringObjectEntry : map.entrySet()) {
+            Object value = stringObjectEntry.getValue();
             if (value instanceof String[]) {
-                strings.add(s + "=" + Arrays.toString((String[]) value));
+                strings.add(stringObjectEntry.getKey() + "=" + Arrays.toString((String[]) value));
             } else {
-                strings.add(s + "=" + value);
+                strings.add(stringObjectEntry.getKey() + "=" + value);
             }
         }
         return "{" + FastStringUtils.join(strings, ",") + "}";
     }
 
     private static class RequestStackTrace {
-        private FastAction action;
+        private final FastAction action;
         private List<StackTraceElement> rootInterceptorStacks;
         private List<StackTraceElement> beforeInterceptorStacks;
         private List<StackTraceElement> afterInterceptorStacks;
         private List<StackTraceElement> actionStacks;
         private List<StackTraceElement> outStacks;
+
+        private final Comparator<FastInterceptorInfo<?>> comparator = new Comparator<FastInterceptorInfo<?>>() {
+            @Override
+            public int compare(FastInterceptorInfo o1, FastInterceptorInfo o2) {
+                if (o1.priority > o2.priority) {
+                    return -1;
+                }
+                if (o1.priority < o2.priority) {
+                    return 1;
+                }
+                if (o1.index > o2.index) {
+                    return 1;
+                }
+                if (o1.index < o2.index) {
+                    return -1;
+                }
+                return 0;
+            }
+        };
 
         public RequestStackTrace(FastAction action) {
             this.action = action;
@@ -296,12 +373,58 @@ public final class FastRequestLog {
             return beforeInterceptorStacks;
         }
 
+        public void sortBeforeInterceptorStacks() {
+            Map<String, FastInterceptorInfo<IFastInterceptor>> levelMap = new HashMap<>(action.getFastRoute().doBeforeInterceptor.size());
+
+            for (FastInterceptorInfo<IFastInterceptor> routeInterceptor : action.getFastRoute().doBeforeInterceptor) {
+                levelMap.put(routeInterceptor.interceptor.getName(), routeInterceptor);
+            }
+
+            Collections.sort(beforeInterceptorStacks, new Comparator<StackTraceElement>() {
+                @Override
+                public int compare(StackTraceElement o1, StackTraceElement o2) {
+                    return comparator.compare(levelMap.get(o1.getClassName()), levelMap.get(o2.getClassName()));
+                }
+            });
+
+        }
+
         public List<StackTraceElement> getAfterInterceptorStacks() {
             return afterInterceptorStacks;
         }
 
+        public void sortAfterInterceptorStacks() {
+            Map<String, FastInterceptorInfo<IFastInterceptor>> levelMap = new HashMap<>(action.getFastRoute().doAfterInterceptor.size());
+
+            for (FastInterceptorInfo<IFastInterceptor> routeInterceptor : action.getFastRoute().doAfterInterceptor) {
+                levelMap.put(routeInterceptor.interceptor.getName(), routeInterceptor);
+            }
+
+            Collections.sort(afterInterceptorStacks, new Comparator<StackTraceElement>() {
+                @Override
+                public int compare(StackTraceElement o1, StackTraceElement o2) {
+                    return comparator.compare(levelMap.get(o1.getClassName()), levelMap.get(o2.getClassName()));
+                }
+            });
+        }
+
         public List<StackTraceElement> getRootInterceptorStacks() {
             return rootInterceptorStacks;
+        }
+
+        public void sortRootInterceptorStacks() {
+            Map<String, FastInterceptorInfo<IFastRootInterceptor>> levelMap = new HashMap<>(action.getFastRoute().rootInterceptor.size());
+
+            for (FastInterceptorInfo<IFastRootInterceptor> routeInterceptor : action.getFastRoute().rootInterceptor) {
+                levelMap.put(routeInterceptor.interceptor.getName(), routeInterceptor);
+            }
+
+            Collections.sort(rootInterceptorStacks, new Comparator<StackTraceElement>() {
+                @Override
+                public int compare(StackTraceElement o1, StackTraceElement o2) {
+                    return comparator.compare(levelMap.get(o1.getClassName()), levelMap.get(o2.getClassName()));
+                }
+            });
         }
 
         public List<StackTraceElement> getActionStacks() {
@@ -313,16 +436,17 @@ public final class FastRequestLog {
         }
 
         public RequestStackTrace invoke() {
-            rootInterceptorStacks = new ArrayList<>();
-            beforeInterceptorStacks = new ArrayList<>();
-            afterInterceptorStacks = new ArrayList<>();
-            actionStacks = new ArrayList<>();
-            outStacks = new ArrayList<>();
+            rootInterceptorStacks = new ArrayList<>(16);
+            beforeInterceptorStacks = new ArrayList<>(16);
+            afterInterceptorStacks = new ArrayList<>(16);
+            actionStacks = new ArrayList<>(16);
+            outStacks = new ArrayList<>(16);
             boolean hasActionOut = false;
             if (action.getFastRoute().getMethod() != null) {
                 action.getFastRoute().stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
+
                 for (StackTraceElement stackTraceElement : action.getFastRoute().stackTraceElements) {
-                    Class targetClass = FastClassUtils.getClass(stackTraceElement.getClassName(), false);
+                    Class<?> targetClass = FastClassUtils.getClass(stackTraceElement.getClassName(), false);
                     if (targetClass == null) {
                         continue;
                     }
@@ -375,4 +499,6 @@ public final class FastRequestLog {
             return this;
         }
     }
+
+
 }

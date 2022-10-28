@@ -14,11 +14,13 @@ import java.util.regex.Pattern;
 
 /**
  * 获取对象的属性值
+ *
  * @author 沈建（Janesen）
  * @date 2021/8/31 15:05
  */
 public class FastObjectGetHandler {
 
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
     private final Object target;
     private final Object property;
 
@@ -34,8 +36,12 @@ public class FastObjectGetHandler {
         if (target == null) {
             return null;
         }
+        String propertyStr = property.toString();
+        if (FastStringUtils.isEmpty(propertyStr)) {
+            return null;
+        }
         //纯数字，认为提取数组的数据
-        if (Pattern.matches("\\d+", property.toString())) {
+        if (NUMBER_PATTERN.matcher(propertyStr).matches()) {
             int index = FastNumberUtils.formatToInt(property);
             if (target instanceof Iterable) {
                 Iterable<?> iterable = (Iterable<?>) target;
@@ -46,40 +52,42 @@ public class FastObjectGetHandler {
                     }
                     iteratorIndex++;
                 }
+            } else if (FastArrayUtils.isArray(target)) {
+                return Array.get(target, index);
             }
-        } else {
-            if (FastArrayUtils.isArray(target)) {
-                if (property.toString().equalsIgnoreCase("length")
-                        || property.toString().equalsIgnoreCase("size")
-                        || property.toString().equalsIgnoreCase("count")) {
-                    return Array.getLength(target);
-                }
+        }
+        boolean isCheckSize = propertyStr.equalsIgnoreCase("length")
+                || propertyStr.equalsIgnoreCase("size")
+                || propertyStr.equalsIgnoreCase("count");
+        if (FastArrayUtils.isArray(target)) {
+            if (isCheckSize) {
+                return Array.getLength(target);
             }
-            FastHandler handler = invokeAttrGet(property);
+        }
+
+        FastHandler handler = invokeAttrGet(property);
+        if (handler.getCode() == 0) {
+            return handler.get("value");
+        }
+
+        handler = invokeAttrGetMethod(property);
+        if (handler.getCode() == 0) {
+            return handler.get("value");
+        }
+
+        handler = invokeAttrMethod(property);
+        if (handler.getCode() == 0) {
+            return handler.get("value");
+        }
+
+        if (isCheckSize) {
+            handler = invokeAttrMethod("size");
             if (handler.getCode() == 0) {
                 return handler.get("value");
-            }
-
-            handler = invokeAttrGetMethod(property);
-            if (handler.getCode() == 0) {
-                return handler.get("value");
-            }
-
-            handler = invokeAttrMethod(property);
-            if (handler.getCode() == 0) {
-                return handler.get("value");
-            }
-
-            if (property.toString().equalsIgnoreCase("length")) {
-                handler = invokeAttrMethod("size");
-                if (handler.getCode() == 0) {
-                    return handler.get("value");
-                }
             }
         }
         return null;
     }
-
 
 
     private FastHandler invokeAttrGet(Object key) {
@@ -97,6 +105,7 @@ public class FastObjectGetHandler {
                 if (getMethod.getParameterTypes().length == 1) {
                     Class<?> parameterType = getMethod.getParameterTypes()[0];
                     if (parameterType.isAssignableFrom(String.class)) {
+                        getMethod.setAccessible(true);
                         handler.setCode(0);
                         handler.set("value", getMethod.invoke(target, key.toString()));
                         return handler;
@@ -109,19 +118,20 @@ public class FastObjectGetHandler {
         return handler;
     }
 
-    private FastHandler invokeAttrGetMethod(Object key) {
+    private FastHandler invokeAttrGetMethod(Object attrName) {
         FastHandler handler = new FastHandler();
         handler.setCode(-1);
         if (target == null) {
             return handler;
         }
         try {
-            List<Method> getMethods = FastClassUtils.getMethod(target.getClass(), "get" + FastStringUtils.firstCharToUpper(key.toString()));
+            List<Method> getMethods = FastClassUtils.getMethod(target.getClass(), "get" + FastStringUtils.firstCharToUpper(attrName.toString()));
             for (Method getMethod : getMethods) {
                 if (Modifier.isStatic(getMethod.getModifiers())) {
                     continue;
                 }
                 if (getMethod.getParameterTypes().length == 0) {
+                    getMethod.setAccessible(true);
                     handler.setCode(0);
                     handler.set("value", getMethod.invoke(target));
                     return handler;
@@ -133,19 +143,20 @@ public class FastObjectGetHandler {
         return handler;
     }
 
-    private FastHandler invokeAttrMethod(Object key) {
+    private FastHandler invokeAttrMethod(Object methodName) {
         FastHandler handler = new FastHandler();
         handler.setCode(-1);
         if (target == null) {
             return handler;
         }
         try {
-            List<Method> getMethods = FastClassUtils.getMethod(target.getClass(), key.toString());
+            List<Method> getMethods = FastClassUtils.getMethod(target.getClass(), methodName.toString());
             for (Method getMethod : getMethods) {
                 if (Modifier.isStatic(getMethod.getModifiers())) {
                     continue;
                 }
                 if (getMethod.getParameterTypes().length == 0) {
+                    getMethod.setAccessible(true);
                     handler.setCode(0);
                     handler.set("value", getMethod.invoke(target));
                     return handler;

@@ -1,177 +1,237 @@
 package com.fastchar.database.info;
 
-import com.fastchar.core.FastBaseInfo;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastMapWrap;
 import com.fastchar.exception.FastDatabaseException;
-
 import com.fastchar.local.FastCharLocal;
-import com.fastchar.utils.FastBooleanUtils;
-import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unchecked")
-public class FastTableInfo<T> extends FastBaseInfo {
+public class FastTableInfo<T> extends LinkedHashMap<String, Object> {
 
     public static FastTableInfo<?> newInstance() {
         return FastChar.getOverrides().newInstance(FastTableInfo.class);
     }
 
+    protected transient FastMapWrap mapWrap;
+
     protected FastTableInfo() {
-        tagName = "table";
+        super(16);
+        put("tagName", "table");
+        mapWrap = FastMapWrap.newInstance(this);
     }
 
-   protected String databaseName;
-   protected String name;
-   protected String comment = "";
-   protected String data;
-   protected boolean ignoreCase = true;
-   protected String lock ;//锁定表格，不能*匹配表格合并
-   protected List<FastColumnInfo<?>> columns = new ArrayList<>();
-   protected FastMapWrap mapColumn;
-   protected FastMapWrap mapPrimary;
+
+    public FastMapWrap getMapWrap() {
+        return mapWrap;
+    }
+
+    public boolean isFromXml() {
+        return mapWrap.getBoolean("fromXml", false);
+    }
+
+    public void setFromXml(boolean fromXml) {
+        put("fromXml", fromXml);
+    }
+
+    public int getLineNumber() {
+        return mapWrap.getInt("lineNumber");
+    }
+
+    public void setLineNumber(int lineNumber) {
+        put("lineNumber", lineNumber);
+    }
+
+    public String getFileName() {
+        return mapWrap.getString("fileName");
+    }
+
+    public void setFileName(String fileName) {
+        put("fileName", fileName);
+    }
+
+    public String getTagName() {
+        return mapWrap.getString("tagName");
+    }
+
+
+    public boolean isEnable() {
+        return mapWrap.getBoolean("enable", true);
+    }
 
 
     public String getName() {
-        return name;
+        return mapWrap.getString("name");
     }
 
     public T setName(String name) {
-        this.name = name;
+        put("name", name);
         return (T) this;
     }
 
     public String getComment() {
-        return comment;
+        return mapWrap.getString("comment");
     }
 
     public T setComment(String comment) {
-        this.comment = comment;
+        put("comment", comment);
         return (T) this;
     }
 
-    public <E extends FastColumnInfo<?>> List<E> getColumns() {
+    public <E extends FastColumnInfo<?>> Collection<E> getColumns() {
+        return (Collection<E>) getMapColumns().values();
+    }
+
+    public <E extends FastColumnInfo<?>> Collection<E> getPrimaries() {
+        return (Collection<E>) getMapPrimaries().values();
+    }
+
+    private Map<String, FastColumnInfo<?>> getMapColumns() {
+        //必须使用map存储，避免大数量处理较慢
+        Map<String, FastColumnInfo<?>> columns = mapWrap.getObject("columns");
         if (columns == null) {
-            columns = new ArrayList<>();
+            columns = new LinkedHashMap<>(16);
+            put("columns", columns);
         }
-        return (List<E>) columns;
+        return columns;
     }
 
-    public T setColumns(List<FastColumnInfo<?>> columns) {
-        this.columns = columns;
-        return (T) this;
+
+    private Map<String, FastColumnInfo<?>> getMapPrimaries() {
+        Map<String, FastColumnInfo<?>> primaries = mapWrap.getObject("primaries");
+        if (primaries == null) {
+            primaries = new LinkedHashMap<>(16);
+            put("primaries", primaries);
+        }
+        return primaries;
     }
+
+
+    public FastColumnInfo<?> addColumn(FastColumnInfo<?> columnInfo) {
+        if (columnInfo == null) {
+            return null;
+        }
+        String key = columnInfo.getName().toLowerCase();
+        FastColumnInfo<?> fastColumnInfo = getMapColumns().get(key);
+        if (fastColumnInfo != null) {
+            fastColumnInfo.merge(columnInfo);
+        } else {
+            getMapColumns().put(key, columnInfo);
+            fastColumnInfo = columnInfo;
+        }
+
+        if (fastColumnInfo.isPrimary()) {
+            FastColumnInfo<?> fastPrimaryColumnInfo = getMapPrimaries().get(key);
+            if (fastPrimaryColumnInfo != null) {
+                fastPrimaryColumnInfo.merge(fastColumnInfo);
+            } else {
+                getMapPrimaries().put(key, fastColumnInfo);
+            }
+        }
+        return fastColumnInfo;
+    }
+
 
     public <E extends FastColumnInfo<?>> E getColumnInfo(String name) {
         if (FastStringUtils.isEmpty(name)) {
             return null;
         }
-        if (mapColumn != null) {
-            return mapColumn.getObject(name);
+        FastColumnInfo<?> fastColumnInfo = getMapColumns().get(name.toLowerCase());
+        if (fastColumnInfo == null) {
+            return null;
         }
-        for (FastColumnInfo<?> column : this.columns) {
-            if (isIgnoreCase()) {
-                if (column.getName().equalsIgnoreCase(name)) {
-                    return (E) column;
-                }
-            }
-            if (column.getName().equals(name)) {
-                return (E) column;
-            }
+        if (!fastColumnInfo.isEnable()) {
+            return null;
         }
-        return null;
+        return (E) fastColumnInfo;
     }
 
-    public String getDatabaseName() {
-        return databaseName;
+    public <E extends FastColumnInfo<?>> E getPrimaryColumnInfo(String name) {
+        if (FastStringUtils.isEmpty(name)) {
+            return null;
+        }
+        FastColumnInfo<?> fastColumnInfo = getMapPrimaries().get(name.toLowerCase());
+        if (fastColumnInfo == null) {
+            return null;
+        }
+        if (!fastColumnInfo.isEnable()) {
+            return null;
+        }
+        return (E) fastColumnInfo;
     }
 
-    public FastTableInfo<T> setDatabaseName(String databaseName) {
-        this.databaseName = databaseName;
-        return this;
+    public String getDatabase() {
+        return mapWrap.getString("database");
+    }
+
+    public T setDatabase(String database) {
+        put("database", database);
+        return (T) this;
     }
 
     public String getData() {
-        return data;
+        return mapWrap.getString("data");
     }
 
-    public FastTableInfo<T> setData(String data) {
-        this.data = data;
-        return this;
+    public T setData(String data) {
+        put("data", data);
+        return (T) this;
     }
 
-    public boolean isIgnoreCase() {
-        return ignoreCase;
-    }
-
-    public FastTableInfo<T> setIgnoreCase(boolean ignoreCase) {
-        this.ignoreCase = ignoreCase;
-        return this;
+    public T setIgnoreCase(boolean ignoreCase) {
+        put("ignoreCase", ignoreCase);
+        return (T) this;
     }
 
     public boolean isLock() {
-        return FastBooleanUtils.formatToBoolean(lock);
+        return mapWrap.getBoolean("lock");
     }
 
-    public FastTableInfo<T> setLock(boolean lock) {
-        this.lock = String.valueOf(lock);
-        return this;
-    }
-
-    public <E extends FastColumnInfo<?>> List<E> getPrimaries() {
-        if (mapPrimary != null) {
-            return new ArrayList<E>((Collection<? extends E>) mapPrimary.getMap().values());
-        }
-
-        List<FastColumnInfo<?>> primaries = new ArrayList<>();
-        for (FastColumnInfo<?> column : this.columns) {
-            if (column.isPrimary()) {
-                primaries.add(column);
-            }
-        }
-        return (List<E>) primaries;
+    public T setLock(boolean lock) {
+        put("lock", lock);
+        return (T) this;
     }
 
 
-    public boolean checkColumn(String name) {
-        if (mapColumn != null) {
-            return mapColumn.containsAttr(name);
+    public boolean isColumn(String name) {
+        if (FastStringUtils.isEmpty(name)) {
+            return false;
         }
-        for (FastColumnInfo<?> column : this.columns) {
-            if (isIgnoreCase()) {
-                if (column.getName().equalsIgnoreCase(name)) {
-                    return true;
-                }
-            }
-            if (column.getName().equals(name)) {
-                return true;
-            }
-        }
-        return false;
+        return getColumnInfo(name) != null;
     }
 
+
+    public boolean isExist() {
+        return mapWrap.getBoolean("exist");
+    }
+
+    public T setExist(boolean exist) {
+        put("exist", exist);
+        return (T) this;
+    }
 
     public void validate() throws FastDatabaseException {
-        if (FastStringUtils.isEmpty(name)) {
+        if (FastStringUtils.isEmpty(getName())) {
             throw new FastDatabaseException(FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_ERROR1)
                     + "\n\tat " + getStackTrace("name"));
         }
+        put("validated", true);
     }
 
 
     public FastTableInfo<?> merge(FastTableInfo<?> info) {
         return merge(info, false);
     }
-    public FastTableInfo<?> merge(FastTableInfo<?> info,boolean onlyColumns) {
+
+    public FastTableInfo<?> merge(FastTableInfo<?> info, boolean onlyColumns) {
         if (!onlyColumns) {
-            for (String key : info.keySet()) {
-                if ("columns".equals(String.valueOf(key))) {
+            for (Map.Entry<String, Object> stringObjectEntry : info.entrySet()) {
+                if ("columns".equals(stringObjectEntry.getKey())) {
                     continue;
                 }
-                this.set(key, info.get(key));
+                this.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
             }
             if (FastStringUtils.isNotEmpty(info.getFileName())) {
                 setFileName(info.getFileName());
@@ -180,13 +240,8 @@ public class FastTableInfo<T> extends FastBaseInfo {
                 setLineNumber(info.getLineNumber());
             }
         }
-        for (FastColumnInfo<?> column : info.getColumns()) {
-            FastColumnInfo<?> existColumn = this.getColumnInfo(column.getName());
-            if (existColumn != null) {
-                existColumn.merge(column);
-            } else {
-                this.getColumns().add(column);
-            }
+        for (Map.Entry<String, FastColumnInfo<?>> columnInfoEntry : info.getMapColumns().entrySet()) {
+            this.addColumn(columnInfoEntry.getValue());
         }
         return this;
     }
@@ -194,44 +249,34 @@ public class FastTableInfo<T> extends FastBaseInfo {
 
     public FastTableInfo<?> copy() {
         FastTableInfo<?> fastTableInfo = newInstance();
-        for (String key : keySet()) {
-            if ("columns".equals(String.valueOf(key))) {
+        for (Map.Entry<String, Object> stringObjectEntry : this.entrySet()) {
+            if ("columns".equals(stringObjectEntry.getKey())) {
                 continue;
             }
-            fastTableInfo.set(key, get(key));
+            fastTableInfo.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
         }
         fastTableInfo.setFileName(this.getFileName());
         fastTableInfo.setLineNumber(this.getLineNumber());
-        fastTableInfo.setTagName(this.getTagName());
-        for (FastColumnInfo<?> column : getColumns()) {
-            fastTableInfo.getColumns().add(column.copy());
+        for (Map.Entry<String, FastColumnInfo<?>> columnInfoEntry : getMapColumns().entrySet()) {
+            fastTableInfo.addColumn(columnInfoEntry.getValue().copy());
         }
-        fastTableInfo.fromProperty();
         return fastTableInfo;
     }
 
-
-    public void releaseColumnMap() {
-        if (mapColumn != null) {
-            mapColumn.clear();
-            mapColumn = null;
+    public StackTraceElement getStackTrace(String attrName) {
+        if (FastStringUtils.isEmpty(getFileName())) {
+            return null;
         }
+        return new StackTraceElement(
+                getFileName() + "." + getTagName(),
+                attrName,
+                getFileName(),
+                getLineNumber());
     }
 
 
-    public void columnToMap() {
-        mapColumn = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
-        mapColumn.setIgnoreCase(isIgnoreCase());
-        mapPrimary = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
-        mapPrimary.setIgnoreCase(isIgnoreCase());
-        for (FastColumnInfo<?> column : this.columns) {
-            column.setDatabaseName(this.getDatabaseName());
-            column.fromProperty();
-            mapColumn.set(column.getName(), column);
-            if (column.isPrimary()) {
-                mapPrimary.set(column.getName(), column);
-            }
-        }
+    public String toSimpleInfo() {
+        return getClass().getSimpleName() + " { name = '" + getName() + "' , database = " + FastChar.getDatabases().get(getDatabase()).toSimpleInfo() + " } ";
     }
 
 }

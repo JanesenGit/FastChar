@@ -1,7 +1,6 @@
 package com.fastchar.core;
 
 import com.fastchar.annotation.AFastObserver;
-import com.fastchar.annotation.AFastPriority;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 
@@ -94,7 +93,7 @@ public final class FastObservable {
             });
             arrLocal = obs.toArray();
         }
-        List<Object> results = new ArrayList<>();
+        List<Object> results = new ArrayList<>(16);
         for (Object o : arrLocal) {
             List<Method> declaredMethod = FastClassUtils.getDeclaredMethod(o.getClass(), methodName);
             for (Method method : declaredMethod) {
@@ -115,7 +114,7 @@ public final class FastObservable {
 
 
     public synchronized void flush() {
-        List<Object> waitRemove = new ArrayList<>();
+        List<Object> waitRemove = new ArrayList<>(16);
         for (Object ob : obs) {
             if (ob == null) {
                 continue;

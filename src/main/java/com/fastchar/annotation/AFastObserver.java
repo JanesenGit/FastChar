@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 观察者注解，标注后，FastChar扫码器会自动注册标注此注解的类，为观察者
+ * 观察者注解，标注后，FastChar扫描会自动注册标注此注解的类，为观察者
  * 在使用FastOverrides创建实例时，为了保证对象能正常释放，当且仅当调用【单例singleInstance】时才会自动注册观察者
  */
 @Retention(RetentionPolicy.RUNTIME)

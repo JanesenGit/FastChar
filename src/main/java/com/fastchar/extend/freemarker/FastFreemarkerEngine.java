@@ -30,8 +30,8 @@ public class FastFreemarkerEngine extends Configuration  implements IFastTemplat
         } else {
             configuration.setTemplateUpdateDelayMilliseconds(3600 * 1000);
         }
-        configuration.setDefaultEncoding(FastChar.getConstant().getEncoding());
-        configuration.setOutputEncoding(FastChar.getConstant().getEncoding());
+        configuration.setDefaultEncoding(FastChar.getConstant().getCharset());
+        configuration.setOutputEncoding(FastChar.getConstant().getCharset());
         configuration.setLocale(Locale.getDefault());
         configuration.setLocalizedLookup(false);
 

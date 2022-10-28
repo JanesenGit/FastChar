@@ -3,21 +3,19 @@ package com.fastchar.core;
 import com.fastchar.annotation.AFastCheck;
 import com.fastchar.asm.FastParameter;
 import com.fastchar.exception.FastActionException;
-import com.fastchar.local.FastCharLocal;
-import com.fastchar.response.FastResponseCacheConfig;
-import com.fastchar.response.FastResponseCacheInfo;
-import com.fastchar.response.FastResponseWrapper;
 import com.fastchar.exception.FastReturnException;
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastRootInterceptor;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.out.FastOut;
 import com.fastchar.out.FastOutForward;
+import com.fastchar.servlet.http.*;
+import com.fastchar.servlet.http.cache.FastResponseCacheConfig;
+import com.fastchar.servlet.http.cache.FastResponseCacheInfo;
+import com.fastchar.servlet.http.wrapper.FastHttpServletResponseWrapper;
 import com.fastchar.utils.FastRequestUtils;
 import com.fastchar.utils.FastStringUtils;
-import org.apache.catalina.util.ParameterMap;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -42,12 +40,12 @@ public final class FastRoute {
     long beforeInterceptorUseTotal;
     long afterInterceptorUseTotal;
     Class<? extends FastOut<?>> returnOut;
-    List<FastParameter> methodParameter = new ArrayList<>();
+    List<FastParameter> methodParameter = new ArrayList<>(5);
     Class<? extends FastAction> actionClass;
-    FastResponseCacheConfig responseCache;
-    List<Class<? extends IFastRootInterceptor>> rootInterceptor = new ArrayList<>();
-    List<RouteInterceptor> doBeforeInterceptor = new ArrayList<>();
-    List<RouteInterceptor> doAfterInterceptor = new ArrayList<>();
+    FastResponseCacheConfig responseCacheConfig;
+    List<FastInterceptorInfo<IFastRootInterceptor>> rootInterceptor = new ArrayList<>(5);
+    List<FastInterceptorInfo<IFastInterceptor>> doBeforeInterceptor = new ArrayList<>(5);
+    List<FastInterceptorInfo<IFastInterceptor>> doAfterInterceptor = new ArrayList<>(5);
 
     Set<String> httpMethods = new HashSet<>();
     Set<String> contentTypes = new HashSet<>();
@@ -59,9 +57,9 @@ public final class FastRoute {
     private transient long beforeInterceptorTime;
     private transient long afterInterceptorTime;
     transient Date inTime;
-    transient List<StackTraceElement> stackTraceElements = new ArrayList<>();
-    transient HttpServletRequest request;
-    transient HttpServletResponse response;
+    transient List<StackTraceElement> stackTraceElements = new ArrayList<>(16);
+    transient FastHttpServletRequest request;
+    transient FastHttpServletResponse response;
     transient FastUrl fastUrl;
     transient FastAction forwarder;
 
@@ -78,15 +76,22 @@ public final class FastRoute {
         fastRoute.route = this.route;
         fastRoute.interceptorBefore = this.interceptorBefore;
         fastRoute.interceptorAfter = this.interceptorAfter;
-        fastRoute.crossAllowDomains = this.crossAllowDomains;
+        fastRoute.firstMethodLineNumber = this.firstMethodLineNumber;
+        fastRoute.lastMethodLineNumber = this.lastMethodLineNumber;
         fastRoute.returnOut = this.returnOut;
+
+        //以下属性需要构建新的对象
+        fastRoute.crossAllowDomains = new HashSet<>(this.crossAllowDomains);
         fastRoute.rootInterceptor = new ArrayList<>(this.rootInterceptor);
         fastRoute.doBeforeInterceptor = new ArrayList<>(this.doBeforeInterceptor);
         fastRoute.doAfterInterceptor = new ArrayList<>(this.doAfterInterceptor);
-        fastRoute.firstMethodLineNumber = this.firstMethodLineNumber;
-        fastRoute.lastMethodLineNumber = this.lastMethodLineNumber;
-        fastRoute.responseCache = this.responseCache;
-        fastRoute.httpMethods = this.httpMethods;
+        if (this.responseCacheConfig != null) {
+            fastRoute.responseCacheConfig = this.responseCacheConfig.copy();
+        }
+        fastRoute.httpMethods = new HashSet<>(this.httpMethods);
+        fastRoute.contentTypes = new HashSet<>(this.contentTypes);
+
+        //!!!注意:  新增属性复制的时候，如果属性类型为引用类型一定要检查对象是否重复引用问题！！！
         return fastRoute;
     }
 
@@ -109,10 +114,10 @@ public final class FastRoute {
         if (FastStringUtils.isEmpty(contentType)) {
             return true;
         }
-        String truthContentType = contentType.split(";")[0].replace(" ", "");
+        String truthContentType = FastStringUtils.splitByWholeSeparator(contentType,";")[0].replace(" ", "");
         boolean hasContentTypes = false;
         for (String contentTypeValue : this.contentTypes) {
-            contentTypeValue = contentTypeValue.split(";")[0].replace(" ", "");
+            contentTypeValue = FastStringUtils.splitByWholeSeparator(contentTypeValue,";")[0].replace(" ", "");
             if (FastStringUtils.isEmpty(contentTypeValue)) {
                 continue;
             }
@@ -128,7 +133,7 @@ public final class FastRoute {
     void release() {
         method = null;
         returnOut = null;
-        responseCache = null;
+        responseCacheConfig = null;
         methodParameter = null;
         actionClass = null;
         forwarder = null;
@@ -158,9 +163,9 @@ public final class FastRoute {
     }
 
     void sortInterceptors() {
-        Comparator<RouteInterceptor> comparator = new Comparator<RouteInterceptor>() {
+        Comparator<FastInterceptorInfo> comparator = new Comparator<FastInterceptorInfo>() {
             @Override
-            public int compare(RouteInterceptor o1, RouteInterceptor o2) {
+            public int compare(FastInterceptorInfo o1, FastInterceptorInfo o2) {
                 if (o1.priority > o2.priority) {
                     return -1;
                 }
@@ -206,23 +211,26 @@ public final class FastRoute {
                 FastChar.setThreadLocalAction(fastAction);
             }
 
-            if (responseCache != null && responseCache.isCache()) {
-                responseCache.setCacheTag(actionClass.getName());
-                responseCache.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() +
+            if (responseCacheConfig != null && responseCacheConfig.isCache() && response instanceof FastHttpServletResponseWrapper) {
+                FastHttpServletResponseWrapper responseWrapper = (FastHttpServletResponseWrapper) response;
+                responseCacheConfig.setCacheTag(actionClass.getName());
+                responseCacheConfig.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() +
                         request.getRequestURI() + FastRequestUtils.getRequestParamString(request)));
-                FastResponseWrapper.setCacheInfo(responseCache);
-                FastResponseCacheInfo cacheInfo = FastChar.getCache().get(responseCache.getCacheTag(), responseCache.getCacheKey());
+                responseWrapper.setCacheConfig(responseCacheConfig);
+
+                FastResponseCacheInfo cacheInfo = FastChar.getCache().get(responseCacheConfig.getCacheTag(), responseCacheConfig.getCacheKey());
                 if (cacheInfo != null) {
                     if (cacheInfo.isTimeout()) {
-                        FastChar.getCache().delete(responseCache.getCacheTag(), responseCache.getCacheKey());
+                        FastChar.getCache().delete(responseCacheConfig.getCacheTag(), responseCacheConfig.getCacheKey());
                     } else {
                         hitCacheInfo = true;
+                        beforeInvoked = true;
+                        afterInvoked = true;
+                        responseInvoked = true;
                         cacheInfo.response(request, response);
                         return;
                     }
                 }
-            } else {
-                FastResponseWrapper.setCacheInfo(null);
             }
 
 
@@ -238,8 +246,8 @@ public final class FastRoute {
             if (interceptorBefore) {
                 if (doBeforeIndex < doBeforeInterceptor.size()) {
                     beforeInvoked = false;
-                    RouteInterceptor routeInterceptor = doBeforeInterceptor.get(doBeforeIndex);
-                    IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptorClass);
+                    FastInterceptorInfo<IFastInterceptor> routeInterceptor = doBeforeInterceptor.get(doBeforeIndex);
+                    IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptor);
                     fastInterceptor.onInterceptor(fastAction);
                     return;
                 }
@@ -254,6 +262,7 @@ public final class FastRoute {
             if (responseInvoked) {
                 return;
             }
+            method.setAccessible(true);
             Object invoke = method.invoke(fastAction, methodParams.toArray());
             if (invoke != null && fastAction.fastOut == null) {
                 if (invoke instanceof FastOut) {
@@ -294,11 +303,11 @@ public final class FastRoute {
         actionLog = false;
         StackTraceElement stackTraceElement = null;
         for (int i = 0; i < doBeforeIndex + 1; i++) {
-            RouteInterceptor routeInterceptor = doBeforeInterceptor.get(i);
+            FastInterceptorInfo<IFastInterceptor> routeInterceptor = doBeforeInterceptor.get(i);
             stackTraceElement = new StackTraceElement(
-                    routeInterceptor.interceptorClass.getName(),
+                    routeInterceptor.interceptor.getName(),
                     "onInterceptor",
-                    routeInterceptor.interceptorClass.getSimpleName() + ".java",
+                    routeInterceptor.interceptor.getSimpleName() + ".java",
                     routeInterceptor.firstMethodLineNumber
             );
             stackTraceElements.add(stackTraceElement);
@@ -314,11 +323,11 @@ public final class FastRoute {
         afterInvoked = true;
         StackTraceElement stackTraceElement = null;
         for (int i = 0; i < doAfterIndex + 1; i++) {
-            RouteInterceptor routeInterceptor = doAfterInterceptor.get(i);
+            FastInterceptorInfo<IFastInterceptor> routeInterceptor = doAfterInterceptor.get(i);
             stackTraceElement = new StackTraceElement(
-                    routeInterceptor.interceptorClass.getName(),
+                    routeInterceptor.interceptor.getName(),
                     "onInterceptor",
-                    routeInterceptor.interceptorClass.getSimpleName() + ".java",
+                    routeInterceptor.interceptor.getSimpleName() + ".java",
                     routeInterceptor.firstMethodLineNumber
             );
             stackTraceElements.add(stackTraceElement);
@@ -353,7 +362,7 @@ public final class FastRoute {
     }
 
     private List<Object> getMethodParams(FastAction action) throws Exception {
-        List<Object> params = new ArrayList<>();
+        List<Object> params = new ArrayList<>(5);
         for (FastParameter parameter : methodParameter) {
             for (Annotation annotation : parameter.getAnnotations()) {
                 if (annotation.annotationType() == AFastCheck.class) {
@@ -394,8 +403,8 @@ public final class FastRoute {
             if (interceptorAfter) {
                 if (doAfterIndex < doAfterInterceptor.size()) {
                     afterInvoked = false;
-                    RouteInterceptor routeInterceptor = doAfterInterceptor.get(doAfterIndex);
-                    IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptorClass);
+                    FastInterceptorInfo<IFastInterceptor> routeInterceptor = doAfterInterceptor.get(doAfterIndex);
+                    IFastInterceptor fastInterceptor = FastChar.getOverrides().singleInstance(routeInterceptor.interceptor);
                     fastInterceptor.onInterceptor(fastAction);
                     return;
                 }
@@ -451,15 +460,15 @@ public final class FastRoute {
     }
 
 
-    void addBeforeInterceptor(RouteInterceptor routeInterceptor) {
-        if (isBeforeInterceptor(routeInterceptor.interceptorClass.getName())) {
+    void addBeforeInterceptor(FastInterceptorInfo<IFastInterceptor> routeInterceptor) {
+        if (isBeforeInterceptor(routeInterceptor.interceptor.getName())) {
             return;
         }
         doBeforeInterceptor.add(routeInterceptor);
     }
 
-    void addAfterInterceptor(RouteInterceptor routeInterceptor) {
-        if (isAfterInterceptor(routeInterceptor.interceptorClass.getName())) {
+    void addAfterInterceptor(FastInterceptorInfo<IFastInterceptor> routeInterceptor) {
+        if (isAfterInterceptor(routeInterceptor.interceptor.getName())) {
             return;
         }
         doAfterInterceptor.add(routeInterceptor);
@@ -467,8 +476,8 @@ public final class FastRoute {
 
 
     boolean isRootInterceptor(String className) {
-        for (Class<? extends IFastRootInterceptor> aClass : rootInterceptor) {
-            if (aClass.getName().equals(className)) {
+        for (FastInterceptorInfo<IFastRootInterceptor> iFastRootInterceptorFastInterceptorInfo : rootInterceptor) {
+            if (iFastRootInterceptorFastInterceptorInfo.interceptor.getName().equals(className)) {
                 return true;
             }
         }
@@ -476,8 +485,8 @@ public final class FastRoute {
     }
 
     boolean isBeforeInterceptor(String className) {
-        for (RouteInterceptor routeInterceptor : doBeforeInterceptor) {
-            if (routeInterceptor.interceptorClass.getName().equals(className)) {
+        for (FastInterceptorInfo<IFastInterceptor> routeInterceptor : doBeforeInterceptor) {
+            if (routeInterceptor.interceptor.getName().equals(className)) {
                 return true;
             }
         }
@@ -485,22 +494,14 @@ public final class FastRoute {
     }
 
     boolean isAfterInterceptor(String className) {
-        for (RouteInterceptor routeInterceptor : doAfterInterceptor) {
-            if (routeInterceptor.interceptorClass.getName().equals(className)) {
+        for (FastInterceptorInfo<IFastInterceptor> routeInterceptor : doAfterInterceptor) {
+            if (routeInterceptor.interceptor.getName().equals(className)) {
                 return true;
             }
         }
         return false;
     }
 
-
-    static class RouteInterceptor {
-        int priority;
-        int index;
-        int firstMethodLineNumber;
-        int lastMethodLineNumber;
-        Class<? extends IFastInterceptor> interceptorClass;
-    }
 
 }
 

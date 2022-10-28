@@ -4,6 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.enums.FastDatabaseType;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastStringUtils;
@@ -14,13 +15,13 @@ public class FastMySql extends FastSql {
 
     public static boolean isOverride(String type) {
         if (FastStringUtils.isNotEmpty(type)) {
-            return "mysql".equalsIgnoreCase(type);
+            return FastDatabaseType.MYSQL.name().equalsIgnoreCase(type);
         }
         return false;
     }
 
     public FastMySql() {
-        this.type = "mysql";
+        this.type = FastDatabaseType.MYSQL.name().toLowerCase();
     }
 
     @Override
@@ -28,14 +29,19 @@ public class FastMySql extends FastSql {
         if (entity == null) {
             return null;
         }
-        List<String> columns = new ArrayList<>();
-        List<String> placeholders = new ArrayList<>();
-        List<Object> values = new ArrayList<>();
         entity.markSetDefaultValue("insert");
         entity.setDefaultValue();
         entity.unmarkSetDefaultValue();
 
-        TreeSet<String> treeKeys = new TreeSet<>(entity.allKeys());
+        Set<String> allKeys = entity.allKeys();
+        List<String> columns = new ArrayList<>(allKeys.size());
+        List<String> placeholders = new ArrayList<>(allKeys.size());
+        List<Object> values = new ArrayList<>(allKeys.size());
+
+        TreeSet<String> treeKeys = new TreeSet<>(allKeys);
+
+        Map<String, Object> keyValue = new LinkedHashMap<>();
+
         for (String key : treeKeys) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
@@ -46,23 +52,20 @@ public class FastMySql extends FastSql {
                 columns.add(key);
                 values.add(columnValue);
                 placeholders.add("?");
-            }
-        }
-        if (values.size() == 0) {
-            return null;
-        }
-        List<String> checkColumns = new ArrayList<>();
-        for (String key : checks) {
-            FastColumnInfo<?> column = entity.getColumn(key);
-            if (column != null) {
-                Object columnValue = getColumnValue(entity, column);
-                values.add(columnValue);
-                checkColumns.add(key);
+                keyValue.put(key, columnValue);
             }
         }
 
+        if (values.size() == 0) {
+            return null;
+        }
+
+        for (String key : checks) {
+            values.add(keyValue.get(key));
+        }
+
         FastSqlInfo sqlInfo = newSqlInfo();
-        if (checkColumns.size() == 0) {
+        if (checks.length == 0) {
             String sqlStr = "insert into " + entity.getTableName()
                     + " (" + FastStringUtils.join(columns, ",") + ") values" +
                     " (" + FastStringUtils.join(placeholders, ",") + ") ";
@@ -71,10 +74,14 @@ public class FastMySql extends FastSql {
             StringBuilder sqlStr = new StringBuilder("insert into " + entity.getTableName()
                     + " (" + FastStringUtils.join(columns, ",") + ") select " +
                     FastStringUtils.join(placeholders, ",") + " from dual where not exists " +
-                    " (select " + FastStringUtils.join(checkColumns, ",") + " from " + entity.getTableName() + " where 1=1 ");
+                    " (select " + FastStringUtils.join(checks, ",") + " from " + entity.getTableName() + " where 1=1 ");
 
-            for (String check : checkColumns) {
-                sqlStr.append(" and ").append(check).append(" = ? ");
+            for (String check : checks) {
+                boolean exclude = check.charAt(0) == '!';
+                if (exclude) {
+                    check = check.substring(1);
+                }
+                sqlStr.append(" and ").append(check).append(exclude ? " != " : " = ").append(" ? ");
             }
             sqlStr.append(")");
             sqlInfo.setSql(sqlStr.toString());
@@ -93,5 +100,6 @@ public class FastMySql extends FastSql {
         }
         return selectSql;
     }
+
 }
 

@@ -23,8 +23,8 @@ public class FastResultSet {
     }
 
 
-    private Object getValue(String key) throws SQLException {
-        Object object = resultSet.getObject(key);
+    private Object getValue(int columnIndex) throws SQLException {
+        Object object = resultSet.getObject(columnIndex);
         if (FastChar.getConstant().isJdbcParseToTimestamp()) {
             if (object instanceof LocalDateTime) {
                 return Timestamp.valueOf((LocalDateTime) object);
@@ -38,17 +38,20 @@ public class FastResultSet {
             try {
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 final String tableName = resultSetMetaData.getTableName(1);
+                final String database = resultSetMetaData.getCatalogName(1);
                 if (resultSet.next()) {
                     FastRecord fastRecord = new FastRecord();
                     fastRecord.setTableName(tableName);
+                    fastRecord.setDatabase(database);
                     fastRecord.setIgnoreCase(this.ignoreCase);
                     int columnCount = resultSetMetaData.getColumnCount();
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = getValue(key);
+                            Object value = getValue(i);
                             fastRecord.put(key, value);
-                        } catch (Exception ignored) {
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                     return fastRecord;
@@ -66,16 +69,19 @@ public class FastResultSet {
             try {
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 final String tableName = resultSetMetaData.getTableName(1);
+                final String database = resultSetMetaData.getCatalogName(1);
                 if (resultSet.last()) {
                     FastRecord fastRecord = new FastRecord();
                     fastRecord.setTableName(tableName);
+                    fastRecord.setDatabase(database);
                     int columnCount = resultSetMetaData.getColumnCount();
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = getValue(key);
+                            Object value = getValue(i);
                             fastRecord.put(key, value);
-                        } catch (Exception ignored) {
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                     return fastRecord;
@@ -94,16 +100,18 @@ public class FastResultSet {
                 List<FastEntity<?>> list = new ArrayList<>();
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 final String tableName = resultSetMetaData.getTableName(1);
+                final String database = resultSetMetaData.getCatalogName(1);
                 int columnCount = resultSetMetaData.getColumnCount();
                 while (resultSet.next()) {
                     FastRecord fastRecord = new FastRecord();
                     fastRecord.setTableName(tableName);
                     fastRecord.setIgnoreCase(this.ignoreCase);
+                    fastRecord.setDatabase(database);
                     Map<String, Integer> keyCount = new HashMap<>(16);
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = getValue(key);
+                            Object value = getValue(i);
                             if (keyCount.containsKey(key)) {
                                 keyCount.put(key, keyCount.get(key) + 1);
                                 key = key + "(" + keyCount.get(key) + ")";
@@ -111,7 +119,8 @@ public class FastResultSet {
                                 keyCount.put(key, 0);
                             }
                             fastRecord.put(key, value);
-                        } catch (Exception ignored) {
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                     list.add(fastRecord);
@@ -130,14 +139,19 @@ public class FastResultSet {
             try {
                 Map<String, Object> map = new HashMap<>(16);
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                final String tableName = resultSetMetaData.getTableName(1);
+                final String database = resultSetMetaData.getCatalogName(1);
+                map.put("tableName", tableName);
+                map.put("database", database);
                 if (resultSet.last()) {
                     int columnCount = resultSetMetaData.getColumnCount();
                     for (int i = 1; i <= columnCount; i++) {
                         try {
                             String key = resultSetMetaData.getColumnLabel(i);
-                            Object value = getValue(key);
+                            Object value = getValue(i);
                             map.put(key, value);
-                        } catch (Exception ignored) {
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                 }

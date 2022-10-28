@@ -1,6 +1,6 @@
 package com.fastchar.interfaces;
 
-import com.fastchar.database.FastDb;
+import com.fastchar.database.FastDB;
 
 /**
  * 当使用FastDb执行Sql语句时的全局监听
@@ -9,6 +9,6 @@ import com.fastchar.database.FastDb;
  */
 public interface IFastSqlListener {
 
-    void onRunSql(FastDb fastDb, Object sql, Object params, int resultCount);
+    void onRunSql(FastDB fastDb, Object sql, Object params, int resultCount);
 
 }

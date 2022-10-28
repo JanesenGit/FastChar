@@ -2,11 +2,10 @@ package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 import com.fastchar.utils.FastFileUtils;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.PrintWriter;
 
 /**
  * 响应输出xml
@@ -17,22 +16,19 @@ public class FastOutXml extends FastOut<FastOutXml> {
     }
     @Override
     public void response(FastAction action) throws Exception {
-        HttpServletResponse response = action.getResponse();
+        FastHttpServletResponse response = action.getResponse();
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Cache-Control", "no-cache");
         response.setDateHeader("Expires", 0);
         response.setStatus(getStatus());
-        response.setContentType(toContentType(action));
+        response.setContentType(toContentType(action, false));
         response.setCharacterEncoding(getCharset());
 
-        try (PrintWriter writer = response.getWriter()){
-            if (data instanceof File) {
-                File xmlFile = (File) data;
-                writer.write(FastFileUtils.readFileToString(xmlFile, FastChar.getConstant().getEncoding()));
-            }else{
-                writer.write(String.valueOf(data));
-            }
-            writer.flush();
+        if (data instanceof File) {
+            File xmlFile = (File) data;
+            write(response,FastFileUtils.readFileToString(xmlFile, FastChar.getConstant().getCharset()));
+        }else{
+            write(response,String.valueOf(data));
         }
     }
 }

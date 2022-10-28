@@ -1,6 +1,7 @@
 package com.fastchar.object;
 
 /**
+ * 对象操作类
  * @author 沈建（Janesen）
  * @date 2021/8/31 11:22
  */

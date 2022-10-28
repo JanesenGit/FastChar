@@ -1,13 +1,13 @@
 package com.fastchar.utils;
 
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.HttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.ResourceBundle;
-import java.util.StringTokenizer;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * @author 沈建（Janesen）
@@ -15,8 +15,18 @@ import java.util.StringTokenizer;
  */
 public class FastRequestUtils {
 
-    private static final String LSTRING_FILE = "javax.servlet.http.LocalStrings";
-    private static final ResourceBundle L_STRINGS = ResourceBundle.getBundle("javax.servlet.http.LocalStrings");
+    private static final Map<String, String> HTTP_CHAR_MAP = new HashMap<>(16);
+    static {
+        HTTP_CHAR_MAP.put("/", "_@A_");
+        HTTP_CHAR_MAP.put(":", "_@B_");
+        HTTP_CHAR_MAP.put(".", "_@C_");
+        HTTP_CHAR_MAP.put("?", "_@D_");
+        HTTP_CHAR_MAP.put("&", "_@E_");
+        HTTP_CHAR_MAP.put("=", "_@F_");
+        HTTP_CHAR_MAP.put("+", "_@G_");
+
+    }
+
 
     public FastRequestUtils() {
     }
@@ -55,7 +65,7 @@ public class FastRequestUtils {
         }
     }
 
-    public static Hashtable<String, String[]> parsePostData(int len, ServletInputStream in) {
+    public static Hashtable<String, String[]> parsePostData(int len, InputStream in) {
         if (len <= 0) {
             return new Hashtable<>();
         } else if (in == null) {
@@ -69,8 +79,7 @@ public class FastRequestUtils {
                 do {
                     int inputLen = in.read(postedBytes, offset, len - offset);
                     if (inputLen <= 0) {
-                        String msg = L_STRINGS.getString("err.io.short_read");
-                        throw new IllegalArgumentException(msg);
+                        throw new IllegalArgumentException("Short read");
                     }
 
                     offset += inputLen;
@@ -119,7 +128,7 @@ public class FastRequestUtils {
         return sb.toString();
     }
 
-    public static StringBuffer getRequestURL(HttpServletRequest req) {
+    public static StringBuffer getRequestURL(FastHttpServletRequest req) {
         StringBuffer url = new StringBuffer();
         String scheme = req.getScheme();
         int port = req.getServerPort();
@@ -137,13 +146,56 @@ public class FastRequestUtils {
     }
 
 
-    public static String getRequestParamString(HttpServletRequest request) {
+    public static String getRequestParamString(FastHttpServletRequest request) {
         Map<String, String[]> parameterMap = request.getParameterMap();
-        StringBuilder stringBuilder = new StringBuilder();
-        for (String key : parameterMap.keySet()) {
-            stringBuilder.append(key).append(":").append(FastStringUtils.join(parameterMap.get(key), ","));
+        List<String> params = new ArrayList<>(16);
+        for (Map.Entry<String, String[]> stringEntry : parameterMap.entrySet()) {
+            params.add(stringEntry.getKey() + "=" + FastStringUtils.join(stringEntry.getValue(), ","));
         }
-        return stringBuilder.toString();
+        return FastStringUtils.join(params, "&");
     }
+
+
+    public static String encodeUrl(String url) {
+        for (Map.Entry<String, String> stringStringEntry : HTTP_CHAR_MAP.entrySet()) {
+            url = url.replace(stringStringEntry.getKey(), stringStringEntry.getValue());
+        }
+        return url;
+    }
+
+    public static String decodeUrl(String url) {
+        for (Map.Entry<String, String> stringStringEntry : HTTP_CHAR_MAP.entrySet()) {
+            url = url.replace(stringStringEntry.getValue(), stringStringEntry.getKey());
+        }
+        return url;
+    }
+
+
+    public static String encodeFileName(FastHttpServletRequest request, String fileName) {
+        String userAgent = request.getHeader("User-Agent");
+        try {
+            String encodedFileName = URLEncoder.encode(fileName, "UTF8");
+            if (userAgent == null) {
+                return "filename=\"" + encodedFileName + "\"";
+            }
+            userAgent = userAgent.toLowerCase();
+            if (userAgent.contains("msie")) {
+                return "filename=\"" + encodedFileName + "\"";
+            }
+            if (userAgent.contains("opera")) {
+                return "filename*=UTF-8''" + encodedFileName;
+            }
+            if (userAgent.contains("safari") || userAgent.contains("applewebkit") || userAgent.contains("chrome")) {
+                return "filename=\"" + new String(fileName.getBytes(StandardCharsets.UTF_8), "ISO8859-1") + "\"";
+            }
+            if (userAgent.contains("mozilla")) {
+                return "filename*=UTF-8''" + encodedFileName;
+            }
+            return "filename=\"" + encodedFileName + "\"";
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
 }

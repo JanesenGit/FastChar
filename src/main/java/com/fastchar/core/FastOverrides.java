@@ -10,6 +10,8 @@ import com.fastchar.converters.*;
 import com.fastchar.database.operate.FastMySqlDatabaseOperateProvider;
 import com.fastchar.database.operate.FastOracleDatabaseOperateProvider;
 import com.fastchar.database.operate.FastSqlServerDatabaseOperateProvider;
+import com.fastchar.database.provider.FastColumnSecurity;
+import com.fastchar.database.provider.FastSimpleDataSourceProvider;
 import com.fastchar.database.sql.FastMySql;
 import com.fastchar.database.sql.FastOracle;
 import com.fastchar.database.sql.FastSqlServer;
@@ -25,13 +27,11 @@ import com.fastchar.extend.gson.FastGsonProvider;
 import com.fastchar.extend.jdbc.FastJdbcDataSourceProvider;
 import com.fastchar.extend.redis.FastRedisClusterProvider;
 import com.fastchar.extend.redis.FastRedisNormalProvider;
-import com.fastchar.interfaces.IFastLocal;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.local.FastCharLocal_CN;
-import com.fastchar.provider.FastColumnSecurity;
-import com.fastchar.provider.FastFileRename;
 import com.fastchar.provider.FastMemoryCacheProvider;
-import com.fastchar.provider.FastSecurity;
+import com.fastchar.provider.FastSecurityProvider;
+import com.fastchar.servlet.FastFileRenameProvider;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastMD5Utils;
@@ -45,15 +45,20 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * FastChar核心类，代理器
+ * FastChar核心类，所有类代理器，线程安全
  *
  * @author 沈建（Janesen）
  */
 @SuppressWarnings({"unchecked", "UnusedReturnValue"})
 public final class FastOverrides {
-    private final List<ClassInfo> classes = new ArrayList<>();
-    private final ConcurrentHashMap<String, Object> instanceMap = new ConcurrentHashMap<>();
+    private final List<ClassInfo> classes = new ArrayList<>(50);
 
+    private final Map<Object, List<ClassInfo>> mapClasses = new HashMap<>(16);
+
+    private final ConcurrentHashMap<String, Object> instanceMap = new ConcurrentHashMap<>(16);
+
+    //排除的父类，支持匹配符
+    private final String[] excludePackages = new String[]{"java.lang.Object"};
 
     FastOverrides() {
         add(FastMethodRead.class);
@@ -62,10 +67,11 @@ public final class FastOverrides {
         add(FastSqlServer.class);
         add(FastOracle.class);
 
-        add(FastSecurity.class);
+        add(FastSecurityProvider.class);
         add(FastColumnSecurity.class);
-        add(FastFileRename.class);
+        add(FastFileRenameProvider.class);
 
+        add(FastSimpleDataSourceProvider.class);
         add(FastJdbcDataSourceProvider.class);
         add(FastC3p0DataSourceProvider.class);
         add(FastDruidDataSourceProvider.class);
@@ -150,14 +156,36 @@ public final class FastOverrides {
                     }
                 }
             }
+
             ClassInfo classInfo = new ClassInfo();
             classInfo.targetClass = targetClass;
             classInfo.priority = priority;
             classes.add(classInfo);
+
+            List<Class<?>> allSuperClasses = FastClassUtils.getAllSuperClasses(targetClass);
+            for (Class<?> allSuperClass : allSuperClasses) {
+                if (isExcludePackages(allSuperClass)) {
+                    continue;
+                }
+                if (!mapClasses.containsKey(allSuperClass.hashCode())) {
+                    mapClasses.put(allSuperClass.hashCode(), new ArrayList<>());
+                }
+                List<ClassInfo> classInfos = mapClasses.get(allSuperClass.hashCode());
+                classInfos.add(0, classInfo);
+            }
         } finally {
             sortClasses();
         }
         return this;
+    }
+
+    private boolean isExcludePackages(Class<?> targetClass) {
+        for (String excludePackage : excludePackages) {
+            if (FastStringUtils.matches(excludePackage, targetClass.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -198,9 +226,9 @@ public final class FastOverrides {
         }
 
         Set<String> waitRemove = new HashSet<>();
-        while (instanceMap.keys().hasMoreElements()) {
-            String key = instanceMap.keys().nextElement();
-            if (instanceMap.get(key).getClass() == targetClass) {
+        for (Map.Entry<String, Object> stringObjectEntry : instanceMap.entrySet()) {
+            String key = stringObjectEntry.getKey();
+            if (stringObjectEntry.getValue().getClass() == targetClass) {
                 waitRemove.add(key);
             }
         }
@@ -211,6 +239,15 @@ public final class FastOverrides {
         ClassInfo classInfo = getClassInfo(targetClass);
         if (classInfo != null) {
             classes.remove(classInfo);
+        }
+        for (Map.Entry<Object, List<ClassInfo>> stringListEntry : mapClasses.entrySet()) {
+            List<ClassInfo> waitRemoves = new ArrayList<>();
+            for (ClassInfo info : stringListEntry.getValue()) {
+                if (info.targetClass == targetClass) {
+                    waitRemoves.add(info);
+                }
+            }
+            stringListEntry.getValue().removeAll(waitRemoves);
         }
         return this;
     }
@@ -235,7 +272,7 @@ public final class FastOverrides {
      */
     public <T> boolean hasSingleInstance(String onlyCode, Class<T> targetClass, Object... constructorParams) {
         if (FastStringUtils.isEmpty(onlyCode)) {
-            onlyCode = FastMD5Utils.MD5(targetClass.getName() + Arrays.toString(constructorParams));
+            onlyCode = FastMD5Utils.MD5To16(targetClass.getName() + Arrays.toString(constructorParams));
         }
         return instanceMap.containsKey(onlyCode);
     }
@@ -293,17 +330,17 @@ public final class FastOverrides {
     public <T> T singleInstance(boolean check, String onlyCode, Class<T> targetClass, Object... constructorParams) {
         targetClass = findClass(targetClass, constructorParams);
         if (FastStringUtils.isEmpty(onlyCode)) {
-            onlyCode = FastMD5Utils.MD5(targetClass.getName() + Arrays.toString(constructorParams));
+            onlyCode = FastMD5Utils.MD5To16(targetClass.getName() + Arrays.toString(constructorParams));
         }
-        if (instanceMap.containsKey(onlyCode)) {
-            Object instance = instanceMap.get(onlyCode);
+        Object instance = instanceMap.get(onlyCode);
+        if (instance != null) {
             if (instance.getClass() != targetClass) {
                 instanceMap.remove(onlyCode);
             } else {
                 return (T) instance;
             }
         }
-        T t = newInstance(check, targetClass, constructorParams);
+        T t = newInstance(false, check, targetClass, constructorParams);
         if (t == null) {
             return null;
         }
@@ -365,7 +402,7 @@ public final class FastOverrides {
      * @return 当前对象
      */
     public <T> List<T> singleInstances(boolean check, String onlyCode, Class<T> targetClass, Object... constructorParams) {
-        List<T> instances = new ArrayList<>();
+        List<T> instances = new ArrayList<>(5);
         List<Class<T>> classes = findClasses(targetClass, constructorParams);
         for (Class<T> aClass : classes) {
             String instanceOnlyCode;
@@ -374,9 +411,8 @@ public final class FastOverrides {
             } else {
                 instanceOnlyCode = FastMD5Utils.MD5(aClass.getName() + onlyCode);
             }
-
-            if (instanceMap.containsKey(instanceOnlyCode)) {
-                Object instance = instanceMap.get(instanceOnlyCode);
+            Object instance = instanceMap.get(instanceOnlyCode);
+            if (instance != null) {
                 if (instance.getClass() != aClass) {
                     instanceMap.remove(instanceOnlyCode);
                 } else {
@@ -384,7 +420,7 @@ public final class FastOverrides {
                     continue;
                 }
             }
-            T t = newInstance(false, aClass, constructorParams);
+            T t = newInstance(false, false, aClass, constructorParams);
             if (t == null) {
                 continue;
             }
@@ -396,6 +432,59 @@ public final class FastOverrides {
             instances.add(finalValue);
         }
         String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
+        if (instances.size() == 0 && check) {
+            throw new FastOverrideException(errorInfo);
+        }
+        return instances;
+    }
+
+
+    /**
+     * 获取目标类的多个实现类新的对象
+     *
+     * @param targetClass       目标类
+     * @param constructorParams 构造函数参数
+     * @param <T>               目标类的对象
+     * @return 当前对象
+     */
+    public <T> List<T> newInstances(Class<T> targetClass, Object... constructorParams) {
+        return newInstances(true, targetClass, constructorParams);
+    }
+
+    /**
+     * 获取目标类的多个实现类新的对象
+     *
+     * @param check             是否检测目标类对象，true则获取对象失败后抛出异常，默认true
+     * @param targetClass       目标类
+     * @param constructorParams 构造函数参数
+     * @param <T>               目标类的对象
+     * @return 当前对象
+     */
+    public <T> List<T> newInstances(boolean check, Class<T> targetClass, Object... constructorParams) {
+        if (targetClass == null) {
+            throw new NullPointerException();
+        }
+        List<T> instances = new ArrayList<>(5);
+        String errorInfo = checkClassAnnotation(targetClass, constructorParams);
+
+        if (Modifier.isFinal(targetClass.getModifiers())) {
+            T instance = FastClassUtils.newInstance(targetClass, constructorParams);
+            if (instance == null) {
+                if (check) {
+                    throw new FastOverrideException(errorInfo);
+                }
+                return instances;
+            }
+            return Collections.singletonList(instance);
+        }
+        List<Class<T>> classes = findClasses(targetClass, constructorParams);
+        for (Class<T> aClass : classes) {
+            T instance = newInstance(false, false, aClass, constructorParams);
+            if (instance == null) {
+                continue;
+            }
+            instances.add(instance);
+        }
         if (instances.size() == 0 && check) {
             throw new FastOverrideException(errorInfo);
         }
@@ -426,42 +515,19 @@ public final class FastOverrides {
      * @return 当前对象
      */
     public <T> T newInstance(boolean check, Class<T> targetClass, Object... constructorParams) {
+        return newInstance(true, check, targetClass, constructorParams);
+    }
+
+    private <T> T newInstance(boolean needFind, boolean check, Class<T> targetClass, Object... constructorParams) {
         if (targetClass == null) {
             throw new NullPointerException();
         }
         String superClass = targetClass.getName();
-        String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
+        String errorInfo = checkClassAnnotation(targetClass, constructorParams);
 
-        if (targetClass.isAnnotationPresent(AFastOverrideError.class)) {
-            AFastOverrideError overrideError = targetClass.getAnnotation(AFastOverrideError.class);
-            errorInfo = overrideError.value();
+        if (needFind) {
+            targetClass = findClass(targetClass, constructorParams);
         }
-        if (targetClass.isAnnotationPresent(AFastClassFind.class)) {
-            AFastClassFind fastFind = targetClass.getAnnotation(AFastClassFind.class);
-            String[] url = fastFind.url();
-            for (int i = 0; i < fastFind.value().length; i++) {
-                String className = fastFind.value()[i];
-                if (FastClassUtils.getClass(className, false) == null) {
-                    if (i < url.length) {
-                        throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, url[i]));
-                    } else {
-                        throw new FastFindClassException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR3, className));
-                    }
-                }
-            }
-        }
-
-        if (Modifier.isFinal(targetClass.getModifiers())) {
-            T instance = FastClassUtils.newInstance(targetClass, constructorParams);
-            if (instance == null) {
-                if (check) {
-                    throw new FastOverrideException(errorInfo);
-                }
-                return null;
-            }
-            return instance;
-        }
-        targetClass = findClass(targetClass, constructorParams);
         if (Modifier.isInterface(targetClass.getModifiers())) {
             if (check) {
                 throw new FastOverrideException(errorInfo);
@@ -494,45 +560,17 @@ public final class FastOverrides {
             return null;
         }
 
-        if (!IFastLocal.class.isAssignableFrom(targetClass)) {
-            if (!targetClass.getName().equals(superClass)) {
-                if (FastChar.getConstant().isLogOverride()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR2, superClass, targetClass.getName()));
-                }
+        if (!targetClass.getName().equals(superClass)) {
+            if (FastChar.getConstant().isLogOverride()) {
+                FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR2, superClass, targetClass.getName()));
             }
         }
         return instance;
     }
 
-    /**
-     * 获取目标类的多个实现类新的对象
-     *
-     * @param targetClass       目标类
-     * @param constructorParams 构造函数参数
-     * @param <T>               目标类的对象
-     * @return 当前对象
-     */
-    public <T> List<T> newInstances(Class<T> targetClass, Object... constructorParams) {
-        return newInstances(true, targetClass, constructorParams);
-    }
 
-    /**
-     * 获取目标类的多个实现类新的对象
-     *
-     * @param check             是否检测目标类对象，true则获取对象失败后抛出异常，默认true
-     * @param targetClass       目标类
-     * @param constructorParams 构造函数参数
-     * @param <T>               目标类的对象
-     * @return 当前对象
-     */
-    public <T> List<T> newInstances(boolean check, Class<T> targetClass, Object... constructorParams) {
-        if (targetClass == null) {
-            throw new NullPointerException();
-        }
-        List<T> instances = new ArrayList<>();
-        String superClass = targetClass.getName();
+    private String checkClassAnnotation(Class<?> targetClass, Object... constructorParams) {
         String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
-
         if (targetClass.isAnnotationPresent(AFastOverrideError.class)) {
             AFastOverrideError overrideError = targetClass.getAnnotation(AFastOverrideError.class);
             errorInfo = overrideError.value();
@@ -540,7 +578,8 @@ public final class FastOverrides {
         if (targetClass.isAnnotationPresent(AFastClassFind.class)) {
             AFastClassFind fastFind = targetClass.getAnnotation(AFastClassFind.class);
             String[] url = fastFind.url();
-            for (int i = 0; i < fastFind.value().length; i++) {
+            int length = fastFind.value().length;
+            for (int i = 0; i < length; i++) {
                 String className = fastFind.value()[i];
                 if (FastClassUtils.getClass(className, false) == null) {
                     if (i < url.length) {
@@ -551,49 +590,7 @@ public final class FastOverrides {
                 }
             }
         }
-
-        if (Modifier.isFinal(targetClass.getModifiers())) {
-            T instance = FastClassUtils.newInstance(targetClass, constructorParams);
-            if (instance == null) {
-                if (check) {
-                    throw new FastOverrideException(errorInfo);
-                }
-                return instances;
-            }
-            return Collections.singletonList(instance);
-        }
-        List<Class<T>> classes = findClasses(targetClass, constructorParams);
-        for (Class<T> aClass : classes) {
-            if (Modifier.isInterface(aClass.getModifiers())) {
-                continue;
-            }
-            if (Modifier.isAbstract(aClass.getModifiers())) {
-                continue;
-            }
-            if (Modifier.isPrivate(aClass.getModifiers())) {
-                continue;
-            }
-            if (Modifier.isProtected(aClass.getModifiers())) {
-                continue;
-            }
-            T instance = FastClassUtils.newInstance(aClass, constructorParams);
-            if (instance == null) {
-                continue;
-            }
-
-            if (!IFastLocal.class.isAssignableFrom(aClass)) {
-                if (!aClass.getName().equals(superClass)) {
-                    if (FastChar.getConstant().isLogOverride()) {
-                        FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR2, superClass, aClass.getName()));
-                    }
-                }
-            }
-            instances.add(instance);
-        }
-        if (instances.size() == 0 && check) {
-            throw new FastOverrideException(errorInfo);
-        }
-        return instances;
+        return errorInfo;
     }
 
 
@@ -624,17 +621,25 @@ public final class FastOverrides {
 
 
     private <T> Class<T> findClass(Class<T> targetClass, Object... constructorParams) {
-        for (int r = classes.size() - 1; r >= 0; r--) {
-            Class<?> aClass = classes.get(r).targetClass;
+        if (Modifier.isFinal(targetClass.getModifiers())) {
+            return targetClass;
+        }
+        List<ClassInfo> classInfos = mapClasses.get(targetClass.hashCode());
+        if (classInfos == null) {
+            return targetClass;
+        }
+        for (ClassInfo classInfo : classInfos) {
+            Class<?> aClass = classInfo.targetClass;
             if (targetClass.isAssignableFrom(aClass) && targetClass != aClass) {
-                List<Method> overrideMethods = FastClassUtils.getMethod(aClass, "isOverride");
+                List<Method> overrideMethods = classInfo.getOverrideMethods();
                 boolean isOverrideClass = true;
                 for (Method overrideMethod : overrideMethods) {
                     if (!Modifier.isStatic(overrideMethod.getModifiers())) {
                         continue;
                     }
-                    List<Object> params = new ArrayList<>();
-                    for (int i = 0; i < overrideMethod.getParameterTypes().length; i++) {
+                    List<Object> params = new ArrayList<>(5);
+                    int paaramLength = overrideMethod.getParameterTypes().length;
+                    for (int i = 0; i < paaramLength; i++) {
                         if (i < constructorParams.length) {
                             params.add(constructorParams[i]);
                         } else {
@@ -642,6 +647,7 @@ public final class FastOverrides {
                         }
                     }
                     try {
+                        overrideMethod.setAccessible(true);
                         Object isOverride = overrideMethod.invoke(aClass, params.toArray());
                         if (!FastBooleanUtils.formatToBoolean(isOverride, true)) {
                             isOverrideClass = false;
@@ -654,22 +660,33 @@ public final class FastOverrides {
                 if (!isOverrideClass) {
                     continue;
                 }
-                return (Class<T>) findClass(aClass, constructorParams);
+                return (Class<T>) aClass;
             }
         }
         return targetClass;
     }
 
     private <T> List<Class<T>> findClasses(Class<T> targetClass, Object... constructorParams) {
-        List<Class<T>> list = new ArrayList<>();
-        for (int r = classes.size() - 1; r >= 0; r--) {
-            Class<?> aClass = classes.get(r).targetClass;
+        List<Class<T>> list = new ArrayList<>(5);
+        if (Modifier.isFinal(targetClass.getModifiers())) {
+            list.add(targetClass);
+            return list;
+        }
+
+        List<ClassInfo> classInfos = mapClasses.get(targetClass.hashCode());
+        if (classInfos == null) {
+            return list;
+        }
+
+        for (ClassInfo classInfo : classInfos) {
+            Class<?> aClass = classInfo.targetClass;
             if (targetClass.isAssignableFrom(aClass) && targetClass != aClass) {
-                List<Method> overrideMethods = FastClassUtils.getDeclaredMethod(aClass, "isOverride");
+                List<Method> overrideMethods = classInfo.getOverrideMethods();
                 if (overrideMethods.size() > 0) {
                     Method method = overrideMethods.get(0);
-                    List<Object> params = new ArrayList<>();
-                    for (int i = 0; i < method.getParameterTypes().length; i++) {
+                    List<Object> params = new ArrayList<>(5);
+                    int length = method.getParameterTypes().length;
+                    for (int i = 0; i < length; i++) {
                         if (i < constructorParams.length) {
                             params.add(constructorParams[i]);
                         } else {
@@ -685,7 +702,7 @@ public final class FastOverrides {
                         throw new FastOverrideException(e);
                     }
                 }
-                list.add((Class<T>) findClass(aClass, constructorParams));
+                list.add((Class<T>) aClass);
             }
         }
         if (list.size() == 0) {
@@ -695,19 +712,21 @@ public final class FastOverrides {
     }
 
     private void sortClasses() {
-        Collections.sort(classes, new Comparator<ClassInfo>() {
-            @Override
-            public int compare(ClassInfo o1, ClassInfo o2) {
-                //FastOverrides 原则：后进先出
-                //此处由于FastOverrides 反向遍历classes 所以优先级反向排序，不可更改！
-                return Integer.compare(o1.priority, o2.priority);
-            }
-        });
+        for (Map.Entry<Object, List<ClassInfo>> stringListEntry : mapClasses.entrySet()) {
+            Collections.sort(stringListEntry.getValue(), new Comparator<ClassInfo>() {
+                @Override
+                public int compare(ClassInfo o1, ClassInfo o2) {
+                    //FastOverrides 原则：后进先出
+                    //此处由于FastOverrides 遍历classes 所以优先级由高到底排序，不可更改！
+                    return Integer.compare(o2.priority, o1.priority);
+                }
+            });
+        }
     }
 
 
     public void flush() {
-        List<ClassInfo> waitRemove = new ArrayList<>();
+        List<ClassInfo> waitRemove = new ArrayList<>(16);
         for (ClassInfo aClass : classes) {
             if (FastClassUtils.isRelease(aClass.targetClass)) {
                 waitRemove.add(aClass);
@@ -720,10 +739,10 @@ public final class FastOverrides {
         }
         classes.removeAll(waitRemove);
 
-        List<String> waitRemoveInstance = new ArrayList<>();
-        for (String s : instanceMap.keySet()) {
-            if (FastClassUtils.isRelease(instanceMap.get(s))) {
-                waitRemoveInstance.add(s);
+        List<String> waitRemoveInstance = new ArrayList<>(16);
+        for (Map.Entry<String, Object> stringObjectEntry : instanceMap.entrySet()) {
+            if (FastClassUtils.isRelease(stringObjectEntry.getValue())) {
+                waitRemoveInstance.add(stringObjectEntry.getKey());
             }
         }
         for (String s : waitRemoveInstance) {
@@ -735,6 +754,15 @@ public final class FastOverrides {
     private static class ClassInfo {
         private int priority;
         private Class<?> targetClass;
+
+        private List<Method> overrideMethods;
+
+        public List<Method> getOverrideMethods() {
+            if (overrideMethods == null) {
+                overrideMethods = FastClassUtils.getMethod(targetClass, "isOverride");
+            }
+            return overrideMethods;
+        }
     }
 
 }

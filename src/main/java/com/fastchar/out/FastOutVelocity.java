@@ -4,11 +4,11 @@ import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.local.FastCharLocal;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.Enumeration;
@@ -35,9 +35,9 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
             this.contentType = "text/xml";
         }
 
-        HttpServletResponse response = action.getResponse();
-        HttpServletRequest request = action.getRequest();
-        response.setContentType(toContentType(action));
+        FastHttpServletResponse response = action.getResponse();
+        FastHttpServletRequest request = action.getRequest();
+        response.setContentType(toContentType(action, false));
         response.setCharacterEncoding(getCharset());
 
         File templateFile = new File(FastChar.getPath().getWebRootPath(), String.valueOf(data));
@@ -46,12 +46,12 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
             return;
         }
 
-        Template template = FastChar.getTemplates().getVelocity().getTemplate(String.valueOf(data));
+        Template template = FastChar.getTemplates().getVelocity().getTemplate(String.valueOf(data), FastChar.getConstant().getCharset());
 
         VelocityContext context = new VelocityContext();
         Map<String, Object> finalContext = FastChar.getTemplates().getFinalContext();
-        for (String key : finalContext.keySet()) {
-            context.put(key, finalContext.get(key));
+        for (Map.Entry<String, Object> stringObjectEntry : finalContext.entrySet()) {
+            context.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
         }
 
         for (Enumeration<String> attrs = request.getAttributeNames(); attrs.hasMoreElements(); ) {
@@ -62,7 +62,7 @@ public class FastOutVelocity extends FastOut<FastOutVelocity> {
             String attrName = attrs.nextElement();
             context.put(attrName, request.getSession().getAttribute(attrName));
         }
-        try (PrintWriter writer = response.getWriter()) {
+        try (PrintWriter writer = getWriter(response)) {
             template.merge(context, writer);
             writer.flush();
         }

@@ -1,11 +1,12 @@
 package com.fastchar.database;
 
-import com.fastchar.accepter.FastDatabaseXmlScannerAccepter;
 import com.fastchar.core.FastChar;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
+import com.fastchar.exception.FastFileException;
+import com.fastchar.interfaces.IFastDatabaseXmlListener;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastStringUtils;
@@ -27,25 +28,28 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.Map;
 
 /**
  * fast-database.xml处理工具
  */
+@SuppressWarnings("IOStreamConstructor")
 public final class FastDatabaseXml {
     public static final String FAST_TAG_DATA_BASE = "database";
     public static final String FAST_TAG_TABLE = "table";
     public static final String FAST_TAG_COLUMN = "column";
     public static final String FAST_DATA = "data";
 
+    public static final String ATTRIBUTE_VALUE_SECURITY_PREFIX = "SECURITY@";
 
     private final SAXParserFactory factory = SAXParserFactory.newInstance();
     private SAXParser parser;
 
     /**
      * 解析fast-database.xml文件
+     *
      * @param file fast-database.xml文件
      * @throws Exception 异常信息
      */
@@ -56,23 +60,46 @@ public final class FastDatabaseXml {
         if (parser == null) {
             parser = factory.newSAXParser();
         }
+        List<IFastDatabaseXmlListener> iFastDatabaseXmlListeners = FastChar.getOverrides().singleInstances(false, IFastDatabaseXmlListener.class);
+        for (IFastDatabaseXmlListener iFastDatabaseXmlListener : iFastDatabaseXmlListeners) {
+            Boolean onBeforeParseDatabaseXml = iFastDatabaseXmlListener.onBeforeParseDatabaseXml(file);
+            if (onBeforeParseDatabaseXml == null) {
+                continue;
+            }
+            if (!onBeforeParseDatabaseXml) {
+                return;
+            }
+        }
+
         DatabaseInfoHandler databaseInfoHandler = new DatabaseInfoHandler(file);
         parser.parse(file, databaseInfoHandler);
+        if (databaseInfoHandler.databaseInfo == null) {
+            return;
+        }
+
+        for (IFastDatabaseXmlListener iFastDatabaseXmlListener : iFastDatabaseXmlListeners) {
+            iFastDatabaseXmlListener.onAfterParseDatabaseXml(databaseInfoHandler);
+        }
 
         String name = databaseInfoHandler.databaseInfo.getName();
-        databaseInfoHandler.databaseInfo.delete("name");
+        String code = databaseInfoHandler.databaseInfo.getCode();
+
+        if (FastStringUtils.isEmpty(code)) {
+            return;
+        }
+
+        databaseInfoHandler.databaseInfo.remove("name");
+        databaseInfoHandler.databaseInfo.remove("code");
         boolean hasDatabaseMatch = false;
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
-            if (databaseInfo.isSyncDatabaseXml()) {
-                if (FastStringUtils.matches(name, databaseInfo.getName())) {
-                    databaseInfo.merge(databaseInfoHandler.databaseInfo.copy());
-                    databaseInfo.fromProperty();
-                    hasDatabaseMatch = true;
-                }
+            if (FastStringUtils.matches(code, databaseInfo.getCode())) {
+                databaseInfo.merge(databaseInfoHandler.databaseInfo.copy());
+                hasDatabaseMatch = true;
             }
         }
         if (!hasDatabaseMatch) {
             databaseInfoHandler.databaseInfo.setName(name);
+            databaseInfoHandler.databaseInfo.setCode(code);
             FastChar.getDatabases().add(databaseInfoHandler.databaseInfo);
         }
 
@@ -101,7 +128,9 @@ public final class FastDatabaseXml {
 
     public void writeDatabaseXml(File file, FastDatabaseInfo databaseInfo) throws Exception {
         if (!file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
+            if (file.getParentFile().mkdirs()) {
+                throw new FastFileException(file.getParent() + " create fail !");
+            }
         }
         SAXTransformerFactory factory = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
         TransformerHandler handler = factory.newTransformerHandler();
@@ -117,8 +146,8 @@ public final class FastDatabaseXml {
 
         handler.startDocument();
         AttributesImpl impl = new AttributesImpl();
-        for (Object attr : databaseInfo.keySet()) {
-            Object attrValue = databaseInfo.get(attr);
+        for (Map.Entry<String, Object> stringObjectEntry : databaseInfo.entrySet()) {
+            Object attrValue = stringObjectEntry.getValue();
             if (attrValue instanceof String) {
                 String content = attrValue.toString();
                 if (FastStringUtils.isEmpty(content)) {
@@ -126,17 +155,18 @@ public final class FastDatabaseXml {
                 }
                 if (FastChar.getConstant().isEncryptDatabaseXml()) {
                     String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                    impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
-                }else{
-                    impl.addAttribute("", "", String.valueOf(attr), "", content);
+                    impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", "SECURITY@" + encrypt);
+                } else {
+                    impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", content);
                 }
             }
         }
+
         handler.startElement("", "", databaseInfo.getTagName(), impl);
         for (FastTableInfo<?> table : databaseInfo.getTables()) {
             impl.clear();
-            for (Object attr : table.keySet()) {
-                Object attrValue = table.get(attr);
+            for (Map.Entry<String, Object> stringObjectEntry : table.entrySet()) {
+                Object attrValue = stringObjectEntry.getValue();
                 if (attrValue instanceof String) {
                     String content = attrValue.toString();
                     if (FastStringUtils.isEmpty(content)) {
@@ -144,17 +174,18 @@ public final class FastDatabaseXml {
                     }
                     if (FastChar.getConstant().isEncryptDatabaseXml()) {
                         String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                        impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
-                    }else{
-                        impl.addAttribute("", "", String.valueOf(attr), "", content);
+                        impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", encrypt);
+                    } else {
+                        impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", content);
                     }
                 }
             }
             handler.startElement("", "", table.getTagName(), impl);
-            for (FastColumnInfo<?> column : table.getColumns()) {
+            Collection<FastColumnInfo<?>> columns = table.getColumns();
+            for (FastColumnInfo<?> column : columns) {
                 impl.clear();
-                for (Object attr : column.keySet()) {
-                    Object attrValue = column.get(attr);
+                for (Map.Entry<String, Object> stringObjectEntry : column.entrySet()) {
+                    Object attrValue = stringObjectEntry.getValue();
                     if (attrValue instanceof String) {
                         String content = attrValue.toString();
                         if (FastStringUtils.isEmpty(content)) {
@@ -162,9 +193,9 @@ public final class FastDatabaseXml {
                         }
                         if (FastChar.getConstant().isEncryptDatabaseXml()) {
                             String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                            impl.addAttribute("", "", String.valueOf(attr), "", encrypt);
-                        }else{
-                            impl.addAttribute("", "", String.valueOf(attr), "", content);
+                            impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", ATTRIBUTE_VALUE_SECURITY_PREFIX + encrypt);
+                        } else {
+                            impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", content);
                         }
                     }
                 }
@@ -176,10 +207,6 @@ public final class FastDatabaseXml {
         handler.endElement("", "", databaseInfo.getTagName());
         handler.endDocument();
     }
-
-
-
-
 
 
     public static class DatabaseInfoHandler extends DefaultHandler {
@@ -205,60 +232,54 @@ public final class FastDatabaseXml {
             if (FAST_TAG_DATA_BASE.equalsIgnoreCase(qName)) {
                 if (databaseInfo == null) {
                     databaseInfo = new FastDatabaseInfo();
-                    databaseInfo.setTables(new ArrayList<FastTableInfo<?>>());
                 }
                 databaseInfo.setFromXml(true);
-                databaseInfo.setTagName(qName);
                 databaseInfo.setLineNumber(locator.getLineNumber());
                 databaseInfo.setFileName(xmlFile.getName());
                 databaseInfo.setLastModified(xmlFile.lastModified());
                 for (int i = 0; i < attributes.getLength(); i++) {
                     String attr = attributes.getQName(i);
                     String attrValue = getAttrValue(attributes, attr);
-                    databaseInfo.set(attr.toLowerCase(), attrValue);
+                    databaseInfo.put(attr.toLowerCase(), attrValue);
                 }
             } else if (FAST_TAG_TABLE.equalsIgnoreCase(qName)) {
                 tableInfo = FastTableInfo.newInstance();
-                if(tableInfo==null) {
+                if (tableInfo == null) {
                     return;
                 }
                 tableInfo.setFromXml(true);
-                tableInfo.setTagName(qName);
-                tableInfo.setColumns(new ArrayList<FastColumnInfo<?>>());
                 tableInfo.setLineNumber(locator.getLineNumber());
                 tableInfo.setFileName(xmlFile.getName());
 
                 for (int i = 0; i < attributes.getLength(); i++) {
                     String attr = attributes.getQName(i);
                     String attrValue = getAttrValue(attributes, attr);
-                    tableInfo.set(attr.toLowerCase(), attrValue);
+                    tableInfo.put(attr.toLowerCase(), attrValue);
                 }
 
                 if (FastStringUtils.isNotEmpty(tableInfo.getData())) {
                     File dataFile = new File(xmlFile.getParent(), tableInfo.getData());
                     if (dataFile.exists()) {
                         tableInfo.setData(dataFile.getAbsolutePath());
-                    }else{
+                    } else {
                         if (FastChar.getConstant().isDebug()) {
-                            FastChar.getLog().warn(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, dataFile.getAbsolutePath()));
+                            FastChar.getLog().warn(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, dataFile.getAbsolutePath()));
                         }
                     }
                 }
-
             } else if (FAST_TAG_COLUMN.equalsIgnoreCase(qName)) {
                 columnInfo = FastColumnInfo.newInstance();
-                if(columnInfo==null) {
+                if (columnInfo == null) {
                     return;
                 }
                 columnInfo.setFromXml(true);
-                columnInfo.setTagName(qName);
                 columnInfo.setLineNumber(locator.getLineNumber());
                 columnInfo.setFileName(xmlFile.getName());
 
                 for (int i = 0; i < attributes.getLength(); i++) {
                     String attr = attributes.getQName(i);
                     String attrValue = getAttrValue(attributes, attr);
-                    columnInfo.set(attr.toLowerCase(), attrValue);
+                    columnInfo.put(attr.toLowerCase(), attrValue);
                 }
             }
         }
@@ -268,38 +289,28 @@ public final class FastDatabaseXml {
         public void endElement(String uri, String localName, String qName) throws SAXException {
             super.endElement(uri, localName, qName);
             if (FAST_TAG_DATA_BASE.equalsIgnoreCase(qName)) {
-                databaseInfo.fromProperty();
+                //do nothing
             } else if (FAST_TAG_TABLE.equalsIgnoreCase(qName)) {
-                tableInfo.fromProperty();
-                tableInfo.setDatabaseName(databaseInfo.getName());
-                FastTableInfo<?> existTable = databaseInfo.getTableInfo(tableInfo.getName());
-                if (existTable != null) {
-                    existTable.merge(tableInfo);
-                    existTable.fromProperty();
-                } else {
-                    databaseInfo.getTables().add(tableInfo);
-                }
+                tableInfo.setDatabase(databaseInfo.getCode());
+                databaseInfo.addTable(tableInfo);
             } else if (FAST_TAG_COLUMN.equalsIgnoreCase(qName)) {
-                columnInfo.fromProperty();
                 columnInfo.setTableName(tableInfo.getName());
-                columnInfo.setDatabaseName(tableInfo.getDatabaseName());
-                FastColumnInfo<?> existColumn = tableInfo.getColumnInfo(columnInfo.getName());
-                if (existColumn != null) {
-                    existColumn.merge(columnInfo);
-                    existColumn.fromProperty();
-                } else {
-                    tableInfo.getColumns().add(columnInfo);
-                }
+                columnInfo.setDatabase(tableInfo.getDatabase());
+                tableInfo.addColumn(columnInfo);
             }
         }
 
         String getAttrValue(Attributes attributes, String attr) {
             String value = attributes.getValue(attr);
+            if (!value.startsWith(ATTRIBUTE_VALUE_SECURITY_PREFIX)) {
+                return value;
+            }
+            value = value.replace(ATTRIBUTE_VALUE_SECURITY_PREFIX, "");
             if (FastChar.getSecurity() == null) {
                 return value;
             }
             //尝试解密
-            String decrypt = FastChar.getSecurity().AES_Decrypt(FastChar.getConstant().getEncryptPassword(),value);
+            String decrypt = FastChar.getSecurity().AES_Decrypt(FastChar.getConstant().getEncryptPassword(), value);
             if (FastStringUtils.isNotEmpty(decrypt)) {
                 value = decrypt;
             }
@@ -309,24 +320,29 @@ public final class FastDatabaseXml {
 
 
     public static class DataInfoHandler extends DefaultHandler {
+        String database = "*";
+
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
             super.startElement(uri, localName, qName, attributes);
-            if (!FAST_DATA.equalsIgnoreCase(qName)) {
-                String databaseName = null;
+            if (qName.equalsIgnoreCase(FAST_DATA)) {
+                for (int i = 0; i < attributes.getLength(); i++) {
+                    String attrName = attributes.getQName(i);
+                    String value = attributes.getValue(attrName);
+                    if (FAST_TAG_DATA_BASE.equalsIgnoreCase(attrName)) {
+                        database = value;
+                    }
+                }
+            } else {
                 FastSqlInfo sqlInfo = FastSqlInfo.newInstance();
                 List<String> columns = new ArrayList<String>();
                 List<String> placeholders = new ArrayList<String>();
                 for (int i = 0; i < attributes.getLength(); i++) {
                     String attrName = attributes.getQName(i);
                     String value = attributes.getValue(attrName);
-                    if ("databaseName".equalsIgnoreCase(attrName)) {
-                        databaseName = value;
-                        continue;
-                    }
                     if (FAST_TAG_DATA_BASE.equalsIgnoreCase(attrName)) {
-                        databaseName = value;
+                        database = value;
                         continue;
                     }
 
@@ -336,21 +352,20 @@ public final class FastDatabaseXml {
                             placeholders.add("?");
                             sqlInfo.getParams().add(FastDateUtils.getDateString());
                         }
-                    }else{
+                    } else {
                         placeholders.add("?");
                         sqlInfo.getParams().add(value);
                     }
                 }
                 sqlInfo.setSql("insert into " + qName + "(" + FastStringUtils.join(columns, ",") + ") values (" + FastStringUtils.join(placeholders, ',') + ");");
                 for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
-                    if (FastStringUtils.matches(databaseName, databaseInfo.getName())) {
+                    if (FastStringUtils.matches(database, databaseInfo.getCode())) {
                         if (!databaseInfo.getDefaultData().containsKey(qName)) {
-                            databaseInfo.getDefaultData().put(qName, new ArrayList<FastSqlInfo>());
+                            databaseInfo.getDefaultData().put(qName, new ArrayList<>(10));
                         }
-                        databaseInfo.getDefaultData().get(qName).add(sqlInfo);
+                        databaseInfo.getDefaultData().get(qName).add(sqlInfo.copy().setType(databaseInfo.getType()));
                     }
                 }
-
             }
         }
 

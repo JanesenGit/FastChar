@@ -3,14 +3,12 @@ package com.fastchar.core;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class FastUrl {
     private String methodRoute;
-    private List<String> urlParams = new ArrayList<>();
-    private List<FastRequestParam> params = new ArrayList<>();
+    private List<String> urlParams = new ArrayList<>(16);
+    private List<FastRequestParam> params = new ArrayList<>(16);
     private int level;
     public String getMethodRoute() {
         return methodRoute;

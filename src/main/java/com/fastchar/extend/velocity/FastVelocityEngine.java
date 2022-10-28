@@ -20,9 +20,9 @@ public class FastVelocityEngine extends VelocityEngine implements IFastTemplate 
 
     public FastVelocityEngine() {
         setProperty(Velocity.FILE_RESOURCE_LOADER_PATH, FastChar.getPath().getWebRootPath());
-        setProperty(Velocity.ENCODING_DEFAULT, FastChar.getConstant().getEncoding());
-        setProperty(Velocity.INPUT_ENCODING, FastChar.getConstant().getEncoding());
-        setProperty(Velocity.ENCODING_DEFAULT, FastChar.getConstant().getEncoding());
+        setProperty(Velocity.ENCODING_DEFAULT, FastChar.getConstant().getCharset());
+        setProperty(Velocity.INPUT_ENCODING, FastChar.getConstant().getCharset());
+        setProperty(Velocity.ENCODING_DEFAULT, FastChar.getConstant().getCharset());
         setProperty(Velocity.VM_LIBRARY_AUTORELOAD, false);
 
         setProperty(Velocity.RESOURCE_MANAGER_DEFAULTCACHE_SIZE, 0);
@@ -43,8 +43,8 @@ public class FastVelocityEngine extends VelocityEngine implements IFastTemplate 
             }
             VelocityContext context = new VelocityContext();
             params.putAll(FastChar.getTemplates().getFinalContext());
-            for (String key : params.keySet()) {
-                context.put(key, params.get(key));
+            for (Map.Entry<String, Object> stringObjectEntry : params.entrySet()) {
+                context.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
             }
 
             StringWriter writer = new StringWriter();

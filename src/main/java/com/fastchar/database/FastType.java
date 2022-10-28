@@ -1,5 +1,6 @@
 package com.fastchar.database;
 
+import com.fastchar.enums.FastDatabaseType;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 public class FastType {
-    private static List<String> TYPE_RELATION = new ArrayList<>();
+    private static final List<String> TYPE_RELATION = new ArrayList<>(16);
     static {
         //mysql_sqlsever_oracle_
         TYPE_RELATION.add("LONGTEXT_NTEXT_LONG_");
@@ -20,7 +21,7 @@ public class FastType {
     }
 
 
-    private static Map<String, String> MYSQL_TYPES = new HashMap<>();
+    private static final Map<String, String> MYSQL_TYPES = new HashMap<>(16);
     static {
         MYSQL_TYPES.put("VARCHAR", "java.lang.String");
         MYSQL_TYPES.put("CHAR", "java.lang.String");
@@ -51,7 +52,7 @@ public class FastType {
     }
 
 
-    private static Map<String, String> SQL_SEVER_TYPES = new HashMap<>();
+    private static final Map<String, String> SQL_SEVER_TYPES = new HashMap<>(16);
     static {
         SQL_SEVER_TYPES.put("BIGINT", "java.lang.Long");
         SQL_SEVER_TYPES.put("TIMESTAMP", "[B");
@@ -84,7 +85,7 @@ public class FastType {
     }
 
 
-    private static Map<String, String> ORACLE_TYPES = new HashMap<>();
+    private static final Map<String, String> ORACLE_TYPES = new HashMap<>(16);
     static {
         ORACLE_TYPES.put("CHAR", "java.lang.String");
         ORACLE_TYPES.put("VARCHAR2", "java.lang.String");
@@ -149,7 +150,7 @@ public class FastType {
         if (aClass == null) {
             return false;
         }
-        return Integer.class.isAssignableFrom(aClass);
+        return Float.class.isAssignableFrom(aClass);
     }
 
     public static boolean isDoubleType(String type) {
@@ -174,6 +175,7 @@ public class FastType {
                 || "ntext".equalsIgnoreCase(type)
                 || "long".equalsIgnoreCase(type);
     }
+
 
     public static boolean isByteArrayType(String type) {
         Class<?> aClass = getTypeClass(type);
@@ -211,17 +213,17 @@ public class FastType {
 
     public static String convertType(String dbType, String type) {
         int index = -1;
-        if ("mysql".equalsIgnoreCase(dbType)) {
+        if (FastDatabaseType.MYSQL.name().equalsIgnoreCase(dbType)) {
             if (isMySqlType(type)) {
                 return type;
             }
             index = 0;
-        } else if ("sql_server".equalsIgnoreCase(dbType)) {
+        } else if (FastDatabaseType.SQL_SERVER.name().equalsIgnoreCase(dbType)) {
             if (isSqlServerType(type)) {
                 return type;
             }
             index = 1;
-        }else if ("oracle".equalsIgnoreCase(dbType)) {
+        }else if (FastDatabaseType.ORACLE.name().equalsIgnoreCase(dbType)) {
             if (isOracleType(type)) {
                 return type;
             }
@@ -231,13 +233,14 @@ public class FastType {
         if (index != -1) {
             for (String convertType : TYPE_RELATION) {
                 if (convertType.contains(type.toUpperCase() + "_")) {
-                    String[] strings = convertType.split("_");
+                    String[] strings = FastStringUtils.splitByWholeSeparator(convertType,"_");
                     return strings[index].toLowerCase();
                 }
             }
         }
         return type;
     }
+
 
 }
 

@@ -1,20 +1,15 @@
 package com.fastchar.core;
 
 import com.fastchar.exception.FastFileException;
-
 import com.fastchar.local.FastCharLocal;
-import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -27,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FastFile<T> {
 
     public static FastFile<?> newInstance(String paramName, String attachDirectory, String fileName, String originalFileName, String contentType) {
+
         return FastChar.getOverrides().newInstance(FastFile.class)
                 .setParamName(paramName)
                 .setAttachDirectory(attachDirectory)
@@ -37,22 +33,28 @@ public class FastFile<T> {
 
     public static FastFile<?> newInstance(String attachDirectory, String fileName) {
         return FastChar.getOverrides().newInstance(FastFile.class)
-                .setAttachDirectory(attachDirectory).setFileName(fileName).setParamName(fileName);
+                .setAttachDirectory(attachDirectory)
+                .setUploadFileName(fileName)
+                .setFileName(fileName)
+                .setParamName(fileName);
     }
 
     public static FastFile<?> newInstance(String fileName) {
         return FastChar.getOverrides().newInstance(FastFile.class)
                 .setAttachDirectory(FastChar.getConstant().getAttachDirectory())
                 .setParamName(fileName)
+                .setUploadFileName(fileName)
                 .setFileName(fileName);
     }
 
     public static FastFile<?> newInstance(File file) {
+        File targetFile = file.getAbsoluteFile();
         return FastChar.getOverrides()
                 .newInstance(FastFile.class)
-                .setAttachDirectory(file.getParent())
-                .setParamName(file.getName())
-                .setFileName(file.getName());
+                .setAttachDirectory(targetFile.getParent())
+                .setParamName(targetFile.getName())
+                .setUploadFileName(targetFile.getName())
+                .setFileName(targetFile.getName());
     }
 
     public static FastFile<?> newInstance(URL url) {
@@ -75,12 +77,8 @@ public class FastFile<T> {
 
     public static String buildFileKey(String path) {
         File file = new File(path);
-        String prefix = "";
         //生成以后缀名为
-        String[] split = file.getName().split("\\.");
-        if (split.length > 1) {
-            prefix = split[split.length - 1] + "-";
-        }
+        String prefix = FastFileUtils.getExtension(file.getName()) + "-";
         return prefix + FastMD5Utils.MD5To16(FastStringUtils.buildOnlyCode(path));
     }
 
@@ -95,7 +93,7 @@ public class FastFile<T> {
     private String attachDirectory;
     private String uploadFileName;
     private String contentType;
-    private final ConcurrentHashMap<String, Object> attrs = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Object> attrs = new ConcurrentHashMap<>(16);
     private final FastMapWrap mapWrap = FastMapWrap.newInstance(attrs);
 
     /**
@@ -105,14 +103,7 @@ public class FastFile<T> {
      */
     public String getKey() {
         if (FastStringUtils.isEmpty(key)) {
-            String prefix = "";
-            if (FastStringUtils.isNotEmpty(uploadFileName)) {
-                //生成以后缀名为
-                String[] split = uploadFileName.split("\\.");
-                if (split.length > 1) {
-                    prefix = split[split.length - 1] + "-";
-                }
-            }
+            String prefix = FastFileUtils.getExtension(uploadFileName) + "-";
             this.key = prefix + FastMD5Utils.MD5To16(FastStringUtils.buildOnlyCode(paramName));
         }
         return key;
@@ -250,7 +241,10 @@ public class FastFile<T> {
      */
     public String getExtensionName() {
         if (fileName != null && fileName.length() > 0 && fileName.lastIndexOf(".") > -1) {
-            return fileName.substring(fileName.lastIndexOf("."));
+            String extension = FastFileUtils.getExtension(fileName);
+            if (FastStringUtils.isNotEmpty(extension)) {
+                return "." + extension;
+            }
         }
         return "";
     }
@@ -414,7 +408,8 @@ public class FastFile<T> {
         if (getFile() == null) {
             return null;
         }
-        String replace = getFile().getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
+        String replace = getFile().getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "")
+                .replace(File.separator, "/");
         return FastStringUtils.strip(replace, "/");
     }
 

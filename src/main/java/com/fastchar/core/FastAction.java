@@ -4,17 +4,13 @@ import com.fastchar.asm.FastParameter;
 import com.fastchar.exception.FastFileException;
 import com.fastchar.exception.FastReturnException;
 import com.fastchar.local.FastCharLocal;
-import com.fastchar.multipart.FastMultipartWrapper;
-import com.fastchar.multipart.FastApplicationPartWrapper;
 import com.fastchar.out.*;
+import com.fastchar.servlet.*;
+import com.fastchar.servlet.http.*;
+import com.fastchar.servlet.http.wrapper.FastHttpServletRequestWrapper;
 import com.fastchar.utils.*;
 import org.w3c.dom.Document;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.image.RenderedImage;
@@ -25,6 +21,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,10 +36,13 @@ public abstract class FastAction {
     public static final String PARAM_ACCPET = "__accept";
     public static final String DATA_PREFIX = "^prefix";
 
-    HttpServletRequest request;
-    HttpServletResponse response;
-    ServletContext servletContext;
-    List<FastRequestParam> params = new ArrayList<>();
+    private static final Pattern PARAM_PATTERN = Pattern.compile("(.*)\\[(['\"])(.*)\\2\\]");
+
+    FastHttpServletRequest request;
+    FastHttpServletResponse response;
+    FastServletContext servletContext;
+    List<FastRequestParam> params = new ArrayList<>(16);
+    FastMapWrap attribute = FastMapWrap.newInstance(new ConcurrentHashMap<>(16));
     volatile FastAction forwarder;
     volatile FastUrl fastUrl;
     volatile FastRoute fastRoute;
@@ -112,25 +112,7 @@ public abstract class FastAction {
      * @return 布尔值
      */
     public boolean isMultipart() {
-        if (request != null) {
-            if (!request.getMethod().equalsIgnoreCase("post")) {
-                return false;
-            }
-            String type = null;
-            String type1 = request.getHeader("Content-Type");
-            String type2 = request.getContentType();
-            if (type1 == null && type2 != null) {
-                type = type2;
-            } else if (type2 == null && type1 != null) {
-                type = type1;
-            } else if (type1 != null && type2 != null) {
-                type = type1.length() > type2.length() ? type1 : type2;
-            }
-            if (type != null && type.toLowerCase().startsWith("multipart/form-data")) {
-                return true;
-            }
-        }
-        return false;
+        return getRequest().isMultipart();
     }
 
 
@@ -160,30 +142,9 @@ public abstract class FastAction {
     /**
      * 获得请求对象
      *
-     * @return HttpServletRequest
+     * @return FastHttpServletRequest
      */
-    public HttpServletRequest getRequest() {
-        if (isMultipart()) {
-            try {
-                if (request instanceof FastApplicationPartWrapper) {
-                    return request;
-                }
-                if (request instanceof FastMultipartWrapper) {
-                    return request;
-                }
-                if (FastChar.getFindClass().test("org.apache.catalina.core.ApplicationPart")) {
-                    request = new FastApplicationPartWrapper(request);
-                    return request;
-                }
-                request = new FastMultipartWrapper(request,
-                        FastChar.getConstant().getAttachDirectory(),
-                        FastChar.getConstant().getAttachMaxPostSize(),
-                        FastChar.getConstant().getEncoding(),
-                        FastChar.getConstant().isAttachNameMD5());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+    public FastHttpServletRequest getRequest() {
         return request;
     }
 
@@ -192,7 +153,7 @@ public abstract class FastAction {
      *
      * @return ServletContext
      */
-    public final ServletContext getServletContext() {
+    public final FastServletContext getServletContext() {
         return servletContext;
     }
 
@@ -266,7 +227,7 @@ public abstract class FastAction {
      * @return 当前对象
      */
     public FastAction setParam(String paramName, String paramValue) {
-        List<FastRequestParam> waitRemove = new ArrayList<>();
+        List<FastRequestParam> waitRemove = new ArrayList<>(16);
         for (FastRequestParam param : params) {
             if (param.getName().equals(paramName)) {
                 waitRemove.add(param);
@@ -305,16 +266,7 @@ public abstract class FastAction {
      */
     public Set<String> getFileParameterNames() {
         LinkedHashSet<String> strings = new LinkedHashSet<>();
-        HttpServletRequest request = getRequest();
-        if (request instanceof FastMultipartWrapper) {
-            Enumeration<String> fileParameterNames = ((FastMultipartWrapper) request).getFileParameterNames();
-            while (fileParameterNames.hasMoreElements()) {
-                strings.add(fileParameterNames.nextElement());
-            }
-        }else  if (request instanceof FastApplicationPartWrapper) {
-            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
-            strings.addAll(multipartWrapper.getFileParamNames());
-        }
+        strings.addAll(((FastHttpServletRequestWrapper) getRequest()).getFileParamNames());
         return strings;
     }
 
@@ -385,7 +337,7 @@ public abstract class FastAction {
      */
     public String[] getParamToArray(String paramName, boolean notNull) {
         String[] parameterValues = getRequest().getParameterValues(paramName);
-        List<String> arrays = new ArrayList<>();
+        List<String> arrays = new ArrayList<>(16);
 
         //2021-1-11 新增
         boolean breakRequestValue = false;
@@ -427,7 +379,7 @@ public abstract class FastAction {
      * @return Integer[]
      */
     public Integer[] getParamToIntArray(String paramName, boolean notNull) {
-        List<Integer> arrays = new ArrayList<>();
+        List<Integer> arrays = new ArrayList<>(16);
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
             if (FastStringUtils.isEmpty(parameterValue)) {
@@ -456,7 +408,7 @@ public abstract class FastAction {
      * @return Double[]
      */
     public Double[] getParamToDoubleArray(String paramName, boolean notNull) {
-        List<Double> arrays = new ArrayList<>();
+        List<Double> arrays = new ArrayList<>(16);
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
             if (FastStringUtils.isEmpty(parameterValue)) {
@@ -485,7 +437,7 @@ public abstract class FastAction {
      * @return Long[]
      */
     public Long[] getParamToLongArray(String paramName, boolean notNull) {
-        List<Long> arrays = new ArrayList<>();
+        List<Long> arrays = new ArrayList<>(16);
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
             if (FastStringUtils.isEmpty(parameterValue)) {
@@ -514,7 +466,7 @@ public abstract class FastAction {
      * @return Float[]
      */
     public Float[] getParamToFloatArray(String paramName, boolean notNull) {
-        List<Float> arrays = new ArrayList<>();
+        List<Float> arrays = new ArrayList<>(16);
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
             if (FastStringUtils.isEmpty(parameterValue)) {
@@ -543,7 +495,7 @@ public abstract class FastAction {
      * @return Short[]
      */
     public Short[] getParamToShortArray(String paramName, boolean notNull) {
-        List<Short> arrays = new ArrayList<>();
+        List<Short> arrays = new ArrayList<>(16);
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
             if (FastStringUtils.isEmpty(parameterValue)) {
@@ -572,7 +524,7 @@ public abstract class FastAction {
      * @return Boolean[]
      */
     public Boolean[] getParamToBooleanArray(String paramName, boolean notNull) {
-        List<Boolean> arrays = new ArrayList<>();
+        List<Boolean> arrays = new ArrayList<>(16);
         String[] parameterValues = getParamToArray(paramName, notNull);
         for (String parameterValue : parameterValues) {
             if (FastStringUtils.isEmpty(parameterValue)) {
@@ -1266,7 +1218,7 @@ public abstract class FastAction {
      */
     public Map<String, Object> getParamToMap() {
         fastCheck.setHold(true);
-        Map<String, Object> mapParam = new HashMap<>();
+        Map<String, Object> mapParam = new HashMap<>(16);
         Set<String> paramNames = getParamNames();
         for (String paramName : paramNames) {
             String[] parameterValues = getParamToArray(paramName);
@@ -1302,7 +1254,7 @@ public abstract class FastAction {
      */
     public Map<String, Object> getParamToMap(String prefix, boolean notNull) {
         fastCheck.setHold(true);
-        Map<String, Object> mapParam = new HashMap<>();
+        Map<String, Object> mapParam = new HashMap<>(16);
 
         //2020-3-13 新增
         mapParam.put(DATA_PREFIX, prefix);
@@ -1402,8 +1354,8 @@ public abstract class FastAction {
             return null;
         }
         Map<String, Object> paramToMap = getParamToMap(prefix, notNull);
-        for (String key : paramToMap.keySet()) {
-            fastEntity.set(key, paramToMap.get(key));
+        for (Map.Entry<String, Object> stringObjectEntry : paramToMap.entrySet()) {
+            fastEntity.set(stringObjectEntry.getKey(), stringObjectEntry.getValue());
         }
         if (fastEntity.size() == 0) {
             return null;
@@ -1444,8 +1396,8 @@ public abstract class FastAction {
             if (fastEntity == null) {
                 return null;
             }
-            for (String key : paramToMap.keySet()) {
-                fastEntity.set(key, paramToMap.get(key));
+            for (Map.Entry<String, Object> stringObjectEntry : paramToMap.entrySet()) {
+                fastEntity.set(stringObjectEntry.getKey(), stringObjectEntry.getValue());
             }
             if (fastEntity.size() == 0) {
                 continue;
@@ -1525,14 +1477,7 @@ public abstract class FastAction {
      * @return 当前对象
      */
     public <T extends FastFile<?>> FastAction addParamFile(T fastFile) {
-        HttpServletRequest request = getRequest();
-        if (request instanceof FastMultipartWrapper) {
-            FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
-            multipartWrapper.putFile(fastFile.getParamName(), fastFile);
-        }else  if (request instanceof FastApplicationPartWrapper) {
-            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
-            multipartWrapper.putFile(fastFile.getParamName(), fastFile);
-        }
+        ((FastHttpServletRequestWrapper) getRequest()).putFile(fastFile.getParamName(), fastFile);
         return this;
     }
 
@@ -1568,15 +1513,7 @@ public abstract class FastAction {
      * @return FastFile
      */
     public <T extends FastFile<?>> T getParamFile(String paramName) {
-        HttpServletRequest request = getRequest();
-        if (request instanceof FastMultipartWrapper) {
-            FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
-            return (T) multipartWrapper.getFile(paramName);
-        } else if (request instanceof FastApplicationPartWrapper) {
-            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
-            return (T) multipartWrapper.getFile(paramName);
-        }
-        return null;
+        return (T) ((FastHttpServletRequestWrapper) getRequest()).getFile(paramName);
     }
 
     /**
@@ -1600,15 +1537,7 @@ public abstract class FastAction {
      * @return FastFile[]
      */
     public <T extends FastFile<?>> T[] getParamFiles(String paramName) {
-        HttpServletRequest request = getRequest();
-        if (request instanceof FastMultipartWrapper) {
-            FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
-            return (T[]) multipartWrapper.getFiles(paramName);
-        } else if (request instanceof FastApplicationPartWrapper) {
-            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
-            return (T[]) multipartWrapper.getFiles(paramName);
-        }
-        return null;
+        return (T[]) ((FastHttpServletRequestWrapper) getRequest()).getFiles(paramName);
     }
 
     /**
@@ -1666,28 +1595,19 @@ public abstract class FastAction {
      * @return List&lt;FastFile&lt;?&gt;&gt;
      */
     public <T extends FastFile<?>> List<T> getParamListFile() {
-        HttpServletRequest request = getRequest();
-        if (request instanceof FastMultipartWrapper) {
-            FastMultipartWrapper multipartWrapper = (FastMultipartWrapper) request;
-            return (List<T>) multipartWrapper.getFiles();
-        }else  if (request instanceof FastApplicationPartWrapper) {
-            FastApplicationPartWrapper multipartWrapper = (FastApplicationPartWrapper) request;
-            return (List<T>) multipartWrapper.getFiles();
-        }
-        return new ArrayList<>();
+        return (List<T>) ((FastHttpServletRequestWrapper) getRequest()).getFiles();
     }
 
 
     private String getParamNameAttr(String paramName) {
         //where['attr']  where[0]['attr']
-        String regStr = "(.*)\\[(['\"])(.*)\\2\\]";
-        Matcher matcher = Pattern.compile(regStr).matcher(paramName);
+        Matcher matcher = PARAM_PATTERN.matcher(paramName);
         if (matcher.find()) {
             return matcher.group(3);
         }
         //where.attr  where[0].attr
         if (paramName.indexOf(".") > 0) {
-            String[] split = paramName.split("\\.");
+            String[] split = FastStringUtils.splitByWholeSeparator(paramName,".");
             return split[split.length - 1];
         }
         return paramName;
@@ -1695,13 +1615,12 @@ public abstract class FastAction {
 
     private String getParamNamePrefix(String paramName) {
         //where['attr']  where[0]['attr']   前缀：where   where[0]
-        String regStr = "(.*)\\[(['\"])(.*)\\2\\]";
-        Matcher matcher = Pattern.compile(regStr).matcher(paramName);
+        Matcher matcher = PARAM_PATTERN.matcher(paramName);
         if (matcher.find()) {
             return matcher.group(1);
         }
         //where.attr  where[0].attr    前缀：where   where[0]
-        return paramName.split("\\.")[0];
+        return FastStringUtils.splitByWholeSeparator(paramName,".")[0];
     }
 
     /**
@@ -1823,7 +1742,7 @@ public abstract class FastAction {
      * @param data    响应的数据
      */
     public void responseJson(int code, String message, Object... data) {
-        Map<String, Object> json = new HashMap<>();
+        Map<String, Object> json = new HashMap<>(16);
         json.put("code", code);
         json.put("success", code == 0);
         json.put("message", message);
@@ -2068,13 +1987,6 @@ public abstract class FastAction {
     }
 
     /**
-     * 响应图片验证码
-     */
-    public void responseCaptcha() {
-        response(FastChar.getOverrides().newInstance(FastOutCaptcha.class).setStatus(this.status));
-    }
-
-    /**
      * 响应图片
      *
      * @param image 图片流
@@ -2104,6 +2016,20 @@ public abstract class FastAction {
         response(FastChar.getOverrides().newInstance(FastOutStream.class).setData(stream).setContentType(contentType).setStatus(this.status));
     }
 
+    /**
+     * 响应图片验证码
+     */
+    public void responseCaptcha() {
+        response(FastChar.getOverrides().newInstance(FastOutCaptcha.class).setStatus(this.status));
+    }
+
+    /**
+     * 响应图片验证码
+     */
+    public void responseCaptcha(boolean simple) {
+        response(FastChar.getOverrides().newInstance(FastOutCaptcha.class).setSimpleCaptcha(simple).setStatus(this.status));
+    }
+
 
     /**
      * 判断验证码是否正确
@@ -2112,11 +2038,7 @@ public abstract class FastAction {
      * @return boolean
      */
     public boolean validateCaptcha(String code) {
-        Object captcha = getSession(FastMD5Utils.MD5(FastChar.getConstant().getProjectName()));
-        if (captcha != null) {
-            return captcha.toString().equalsIgnoreCase(code);
-        }
-        return false;
+        return FastChar.getOverrides().newInstance(FastOutCaptcha.class).validateCaptcha(this, code);
     }
 
 
@@ -2124,7 +2046,7 @@ public abstract class FastAction {
      * 重置验证码
      */
     public void resetCaptcha() {
-        removeSession(FastMD5Utils.MD5(FastChar.getConstant().getProjectName()));
+        FastChar.getOverrides().newInstance(FastOutCaptcha.class).resetCaptcha(this);
     }
 
 
@@ -2163,7 +2085,7 @@ public abstract class FastAction {
      * @return String
      */
     public final String getRequestMethod() {
-        return request.getMethod();
+        return getRequest().getMethod();
     }
 
     /**
@@ -2172,7 +2094,7 @@ public abstract class FastAction {
      * @return String
      */
     public String getContentType() {
-        return request.getContentType();
+        return getRequest().getContentType();
     }
 
     /**
@@ -2180,8 +2102,8 @@ public abstract class FastAction {
      *
      * @return HttpSession
      */
-    public final HttpSession getSession() {
-        HttpSession session = request.getSession();
+    public final FastHttpSession getSession() {
+        FastHttpSession session = getRequest().getSession();
         session.setMaxInactiveInterval(FastChar.getConstant().getSessionMaxInterval());
         return session;
     }
@@ -2194,7 +2116,7 @@ public abstract class FastAction {
      * @return T
      */
     public <T> T getSession(String attr) {
-        return (T) request.getSession().getAttribute(attr);
+        return (T) getRequest().getSession().getAttribute(attr);
     }
 
     /**
@@ -2225,7 +2147,7 @@ public abstract class FastAction {
      * @return 当前对象
      */
     public FastAction setRequestAttr(String attr, Object value) {
-        request.setAttribute(attr, value);
+        getRequest().setAttribute(attr, value);
         return this;
     }
 
@@ -2236,8 +2158,8 @@ public abstract class FastAction {
      * @return 当前对象
      */
     public FastAction setRequestAttr(Map<String, Object> attrs) {
-        for (String s : attrs.keySet()) {
-            setRequestAttr(s, attrs.get(s));
+        for (Map.Entry<String, Object> stringObjectEntry : attrs.entrySet()) {
+            setRequestAttr(stringObjectEntry.getKey(), stringObjectEntry.getValue());
         }
         return this;
     }
@@ -2249,7 +2171,7 @@ public abstract class FastAction {
      * @return 属性值
      */
     public Object getRequesetAttr(String attr) {
-        return request.getAttribute(attr);
+        return getRequest().getAttribute(attr);
     }
 
 
@@ -2259,7 +2181,7 @@ public abstract class FastAction {
      * @param attr 名称
      */
     public void removeRequestAttr(String attr) {
-        request.removeAttribute(attr);
+        getRequest().removeAttribute(attr);
     }
 
 
@@ -2396,7 +2318,7 @@ public abstract class FastAction {
      */
     public FastAction setCookie(String name, Object value, int maxAge, String path, String domain,
                                 Boolean httpOnly) {
-        Cookie cookie = new Cookie(name, String.valueOf(value));
+        FastCookie cookie = FastCookie.newInstance(name, String.valueOf(value));
         cookie.setMaxAge(maxAge);
         if (path == null) {
             path = "/";
@@ -2422,7 +2344,7 @@ public abstract class FastAction {
      * @return String
      */
     public String getCookie(String name, String defaultValue) {
-        Cookie cookie = getCookieObject(name);
+        FastCookie cookie = getCookieObject(name);
         return cookie != null ? cookie.getValue() : defaultValue;
     }
 
@@ -2528,12 +2450,12 @@ public abstract class FastAction {
      * 获得cookie
      *
      * @param name 名称
-     * @return Cookie
+     * @return FastCookie
      */
-    public Cookie getCookieObject(String name) {
-        Cookie[] cookies = request.getCookies();
+    public FastCookie getCookieObject(String name) {
+        FastCookie[] cookies = getRequest().getCookies();
         if (cookies != null) {
-            for (Cookie cookie : cookies) {
+            for (FastCookie cookie : cookies) {
                 if (cookie.getName().equals(name)) {
                     return cookie;
                 }
@@ -2572,7 +2494,7 @@ public abstract class FastAction {
      * @return 当前对象
      */
     public FastAction removeCookie(String name, String path, String domain) {
-        Cookie cookie = new Cookie(name, null);
+        FastCookie cookie = FastCookie.newInstance(name, null);
         cookie.setMaxAge(0);
         if (path == null) {
             path = "/";
@@ -2589,20 +2511,45 @@ public abstract class FastAction {
     /**
      * 获得cookie数组
      *
-     * @return Cookie[]
+     * @return FastCookie[]
      */
-    public Cookie[] getCookieObjects() {
-        Cookie[] result = request.getCookies();
-        return result != null ? result : new Cookie[0];
+    public FastCookie[] getCookieObjects() {
+        FastCookie[] result = getRequest().getCookies();
+        return result != null ? result : new FastCookie[0];
     }
 
     /**
      * 获取响应对象
      *
-     * @return HttpServletResponse
+     * @return FastHttpServletResponse
      */
-    public HttpServletResponse getResponse() {
+    public FastHttpServletResponse getResponse() {
         return response;
+    }
+
+
+    /**
+     * 设置响应的Head信息
+     *
+     * @param name  Head名称
+     * @param value Head值
+     * @return
+     */
+    public FastAction setResponseHeader(String name, String value) {
+        getResponse().setHeader(name, value);
+        return this;
+    }
+
+    /**
+     * 添加响应的Head信息
+     *
+     * @param name  Head名称
+     * @param value Head值
+     * @return
+     */
+    public FastAction addResponseHeader(String name, String value) {
+        getResponse().addHeader(name, value);
+        return this;
     }
 
     /**
@@ -2782,6 +2729,16 @@ public abstract class FastAction {
      */
     public FastAction check(int index, String validator) {
         return fastCheck.check(index, validator);
+    }
+
+
+    /**
+     * 获取Action对象的扩展属性对象
+     *
+     * @return FastMapWrap
+     */
+    public FastMapWrap getAttribute() {
+        return attribute;
     }
 
 }

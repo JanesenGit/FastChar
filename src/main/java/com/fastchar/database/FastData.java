@@ -1,6 +1,5 @@
 package com.fastchar.database;
 
-import com.alibaba.druid.sql.ast.expr.SQLFlashbackExpr;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.core.FastHandler;
@@ -14,6 +13,7 @@ import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -45,7 +45,7 @@ public class FastData<T extends FastEntity<?>> {
         if (entity.getTable() == null) {
             return;
         }
-        List<FastColumnInfo<?>> columns = entity.getTable().getColumns();
+        Collection<FastColumnInfo<?>> columns = entity.getTable().getColumns();
         for (FastColumnInfo<?> column : columns) {
             if (FastStringUtils.isNotEmpty(column.getEncrypt())) {
                 String decryptValue = FastChar.getOverrides()
@@ -61,13 +61,13 @@ public class FastData<T extends FastEntity<?>> {
         return selectById(false, ids);
     }
 
-    public T selectById(boolean cache,Object... ids) {
+    public T selectById(Boolean cache,Object... ids) {
         try {
             FastSqlInfo sqlInfo = FastSql.getInstance(getDatabaseType()).buildSelectSqlByIds(target, ids);
             if (sqlInfo == null) {
                 return null;
             }
-            FastEntity<?> fastEntity = FastChar.getDb()
+            FastEntity<?> fastEntity = FastChar.getDB()
                     .setCache(cache)
                     .setDatabase(target.getDatabase())
                     .setIgnoreCase(target.isIgnoreCase())
@@ -96,10 +96,10 @@ public class FastData<T extends FastEntity<?>> {
         return selectBySql(false, sqlStr, params);
     }
 
-    public List<T> selectBySql(boolean cache,String sqlStr, Object... params) {
+    public List<T> selectBySql(Boolean cache,String sqlStr, Object... params) {
         try {
             List<T> list = new ArrayList<>();
-            List<FastEntity<?>> fastEntities = FastChar.getDb()
+            List<FastEntity<?>> fastEntities = FastChar.getDB()
                     .setCache(cache)
                     .setDatabase(target.getDatabase())
                     .setIgnoreCase(target.isIgnoreCase())
@@ -128,9 +128,9 @@ public class FastData<T extends FastEntity<?>> {
     public T selectFirstBySql(String sqlStr, Object... params) {
         return selectFirstBySql(false, sqlStr, params);
     }
-    public T selectFirstBySql(boolean cache,String sqlStr, Object... params) {
+    public T selectFirstBySql(Boolean cache,String sqlStr, Object... params) {
         try {
-            FastEntity<?> fastEntity = FastChar.getDb()
+            FastEntity<?> fastEntity = FastChar.getDB()
                     .setCache(cache)
                     .setDatabase(target.getDatabase())
                     .setIgnoreCase(target.isIgnoreCase())
@@ -158,9 +158,9 @@ public class FastData<T extends FastEntity<?>> {
     public T selectLastBySql(String sqlStr, Object... params) {
         return selectLastBySql(false, sqlStr, params);
     }
-    public T selectLastBySql(boolean cache,String sqlStr, Object... params) {
+    public T selectLastBySql(Boolean cache,String sqlStr, Object... params) {
         try {
-            FastEntity<?> fastEntity = FastChar.getDb()
+            FastEntity<?> fastEntity = FastChar.getDB()
                     .setCache(cache)
                     .setDatabase(target.getDatabase())
                     .setIgnoreCase(target.isIgnoreCase())
@@ -185,13 +185,12 @@ public class FastData<T extends FastEntity<?>> {
         return null;
     }
 
-
     public FastPage<T> selectBySql(int page, int pageSize, String sqlStr, Object... params) {
         return selectBySql(false, page, pageSize, sqlStr, params);
     }
-    public FastPage<T> selectBySql(boolean cache,int page, int pageSize, String sqlStr, Object... params) {
+    public FastPage<T> selectBySql(Boolean cache,int page, int pageSize, String sqlStr, Object... params) {
         try {
-            FastPage<FastEntity<?>> result = FastChar.getDb()
+            FastPage<FastEntity<?>> result = FastChar.getDB()
                     .setCache(cache)
                     .setDatabase(target.getDatabase())
                     .setIgnoreCase(target.isIgnoreCase())
@@ -234,7 +233,7 @@ public class FastData<T extends FastEntity<?>> {
             if (sqlInfo == null) {
                 return false;
             }
-            return FastChar.getDb()
+            return FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
@@ -252,7 +251,7 @@ public class FastData<T extends FastEntity<?>> {
             if (sqlInfo == null) {
                 return false;
             }
-            return FastChar.getDb()
+            return FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
@@ -270,7 +269,7 @@ public class FastData<T extends FastEntity<?>> {
             if (sqlInfo == null) {
                 return false;
             }
-            int insert = FastChar.getDb()
+            int insert = FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
@@ -298,7 +297,7 @@ public class FastData<T extends FastEntity<?>> {
             if (sqlInfo == null) {
                 return false;
             }
-            int insert = FastChar.getDb()
+            int insert = FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
@@ -352,7 +351,7 @@ public class FastData<T extends FastEntity<?>> {
             return 0;
         }
         try {
-            FastEntity<?> fastEntity = FastChar.getDb()
+            FastEntity<?> fastEntity = FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
@@ -386,7 +385,7 @@ public class FastData<T extends FastEntity<?>> {
                 target.setError(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR3));
                 return false;
             }
-            boolean result = FastChar.getDb()
+            boolean result = FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
@@ -409,7 +408,7 @@ public class FastData<T extends FastEntity<?>> {
                 target.setError(FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR3));
                 return false;
             }
-            boolean result = FastChar.getDb()
+            boolean result = FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
@@ -426,7 +425,7 @@ public class FastData<T extends FastEntity<?>> {
 
     public int updateBySql(String sql, Object... params) {
         try {
-            return FastChar.getDb()
+            return FastChar.getDB()
                     .setDatabase(target.getDatabase())
                     .setListener(target.getBoolean("sqlListener"))
                     .setLog(target.getBoolean("log", true))

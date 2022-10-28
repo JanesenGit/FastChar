@@ -21,7 +21,7 @@ public class FastTemplateResolver extends ServletContextTemplateResolver {
         } else {
             setCacheTTLMs(3600000L);//缓存一个小时
         }
-        setCharacterEncoding(FastChar.getConstant().getEncoding());
+        setCharacterEncoding(FastChar.getConstant().getCharset());
         setTemplateMode(TemplateMode.HTML);
     }
 

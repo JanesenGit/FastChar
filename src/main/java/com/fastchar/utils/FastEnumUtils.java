@@ -53,7 +53,7 @@ public class FastEnumUtils {
     }
 
     public static <T extends Enum<?>> T[] getEnumValues(Class<T> targetClass, String... keys) {
-        List<T> enumList = new ArrayList<>();
+        List<T> enumList = new ArrayList<>(10);
         T[] enumConstants = targetClass.getEnumConstants();
         for (T enumConstant : enumConstants) {
             for (String key : keys) {
@@ -68,7 +68,7 @@ public class FastEnumUtils {
 
 
     public static <T extends Enum<?>> T[] getEnumValuesAnd(Class<T> targetClass, String... keys) {
-        List<T> enumList = new ArrayList<>();
+        List<T> enumList = new ArrayList<>(10);
         T[] enumConstants = targetClass.getEnumConstants();
         for (T enumConstant : enumConstants) {
             boolean hasKey = true;
@@ -91,7 +91,7 @@ public class FastEnumUtils {
 
 
     public static Integer[] getEnumOrdinals(Class<? extends Enum<?>> targetClass, String... keys) {
-        List<Integer> enumList = new ArrayList<>();
+        List<Integer> enumList = new ArrayList<>(10);
         Enum[] enumConstants = targetClass.getEnumConstants();
         for (Enum enumConstant : enumConstants) {
             for (String key : keys) {
@@ -106,7 +106,7 @@ public class FastEnumUtils {
 
 
     public static Integer[] getEnumOrdinalsAnd(Class<? extends Enum<?>> targetClass, String... keys) {
-        List<Integer> enumList = new ArrayList<>();
+        List<Integer> enumList = new ArrayList<>(10);
         Enum[] enumConstants = targetClass.getEnumConstants();
         for (Enum enumConstant : enumConstants) {
             boolean hasKey = true;

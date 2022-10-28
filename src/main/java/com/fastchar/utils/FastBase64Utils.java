@@ -26,7 +26,6 @@ public class FastBase64Utils {
         if (hasUtilBase64) {
             return java.util.Base64.getMimeEncoder().encodeToString(content);
         } else {
-
             return new BASE64Encoder().encode(content);
         }
     }

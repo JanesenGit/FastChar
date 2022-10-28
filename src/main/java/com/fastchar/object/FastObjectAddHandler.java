@@ -31,7 +31,7 @@ public class FastObjectAddHandler {
     public void add(int index, Object value) {
         Object propertyValue = new FastObjectGetHandler(target, property).get();
         if (FastArrayUtils.isArray(propertyValue)) {
-            List<Object> objects = new ArrayList<>();
+            List<Object> objects = new ArrayList<>(5);
             int length = Array.getLength(propertyValue);
             for (int i = 0; i < length; i++) {
                 objects.add(Array.get(propertyValue, i));
@@ -67,7 +67,7 @@ public class FastObjectAddHandler {
         if (handler.getCode() == 0) {
             return;
         }
-        Map<String, Object> objectMap = new HashMap<>();
+        Map<String, Object> objectMap = new HashMap<>(16);
         objectMap.put(key, value);
         add(objectMap);
     }

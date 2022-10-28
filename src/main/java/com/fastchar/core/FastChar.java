@@ -1,14 +1,19 @@
 package com.fastchar.core;
 
+import com.fastchar.database.FastDB;
+import com.fastchar.database.FastDatabaseTransaction;
 import com.fastchar.database.FastDatabaseXml;
-import com.fastchar.database.FastDb;
+import com.fastchar.database.FastDatabases;
 import com.fastchar.interfaces.*;
-import javax.servlet.ServletContext;
+import com.fastchar.servlet.FastServletContext;
+
+import java.io.File;
 
 /**
  * FastChar全局工具类，涵盖了所有FastChar提供功能
- * @see <a href="https://www.fastchar.com">FastChar</a>
+ *
  * @author 沈建（Janesen）
+ * @see <a href="https://www.fastchar.com">FastChar</a>
  */
 public final class FastChar {
     private static final ThreadLocal<FastAction> THREAD_LOCAL_ACTION = new ThreadLocal<FastAction>();
@@ -57,7 +62,7 @@ public final class FastChar {
     }
 
 
-    public static ServletContext getServletContext() {
+    public static FastServletContext getServletContext() {
         return FastEngine.instance().getServletContext();
     }
 
@@ -86,8 +91,8 @@ public final class FastChar {
         return FastEngine.instance().getModules();
     }
 
-    public static FastDb getDb() {
-        return FastEngine.instance().getDb();
+    public static FastDB getDB() {
+        return FastEngine.instance().getDB();
     }
 
     public static FastPath getPath() {
@@ -124,6 +129,10 @@ public final class FastChar {
 
     public static FastLog getLog() {
         return FastEngine.instance().getLog();
+    }
+
+    public static FastLogger getLogger() {
+        return FastEngine.instance().getLogger();
     }
 
     public static String wrapperUrl(String url) {
@@ -171,7 +180,7 @@ public final class FastChar {
         return FastEngine.instance().getConfig(targetClass);
     }
 
-    public static <T extends IFastConfig> T getConfig(String onlyCode,Class<T> targetClass) {
+    public static <T extends IFastConfig> T getConfig(String onlyCode, Class<T> targetClass) {
         return FastEngine.instance().getConfig(onlyCode, targetClass);
     }
 
@@ -183,12 +192,56 @@ public final class FastChar {
         return FastEngine.instance().getProperties(fileName);
     }
 
+    public static FastProperties getProperties(File properties) {
+        return FastEngine.instance().getProperties(properties);
+    }
+
+
     public static FastFindClass getFindClass() {
         return FastEngine.instance().getFindClass();
     }
 
     public static boolean isMain() {
         return FastEngine.instance().isMain();
+    }
+
+
+    /**
+     * 判断当前线程是否开启了数据库事务
+     *
+     * @return 布尔值
+     */
+    public static boolean isThreadTransaction() {
+        return FastDatabaseTransaction.isThreadTransaction();
+    }
+
+
+    /**
+     * 开启当前线程的数据库事务
+     */
+    public synchronized static void beginDatabaseThreadTransaction() {
+        FastDatabaseTransaction.beginThreadTransaction();
+    }
+
+    /**
+     * 结束当前线程的数据库事务
+     */
+    public synchronized static void endDatabaseThreadTransaction()  {
+        FastDatabaseTransaction.endThreadTransaction();
+    }
+
+    /**
+     * 回滚当前线程的数据库事务
+     */
+    public synchronized static void rollbackDatabaseThreadTransaction()  {
+        FastDatabaseTransaction.rollbackThreadTransaction();
+    }
+
+    /**
+     * 获取当前线程的数据库事务
+     */
+    public static FastDatabaseTransaction getDatabaseThreadTransaction() {
+        return FastDatabaseTransaction.getThreadTransaction();
     }
 
 

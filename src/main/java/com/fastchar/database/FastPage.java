@@ -1,11 +1,10 @@
 package com.fastchar.database;
 
-import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastSqlInfo;
 
 import java.util.List;
 
-public class FastPage<T extends FastEntity<?>> {
+public class FastPage<T> {
     private transient FastSqlInfo sqlInfo;
     private int page;
     private int totalPage;

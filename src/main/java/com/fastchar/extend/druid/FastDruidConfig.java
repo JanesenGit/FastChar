@@ -6,8 +6,9 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.support.http.StatViewServlet;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastConfig;
+import com.fastchar.servlet.FastServletRegistration;
+import com.fastchar.utils.FastStringUtils;
 
-import javax.servlet.ServletRegistration;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ public class FastDruidConfig implements IFastConfig {
     private int maxOpenPreparedStatements = 20;
 
 
-    private List<Filter> filters = new ArrayList<>();
+    private final List<Filter> filters = new ArrayList<>();
 
     private int validationQueryTimeout;
 
@@ -235,12 +236,13 @@ public class FastDruidConfig implements IFastConfig {
             if (filters != null && filters.length() != 0) {
 
                 if (FastChar.getServletContext() != null) {
-                    ServletRegistration.Dynamic druidStatView = FastChar.getServletContext().addServlet("DruidStatView", StatViewServlet.class);
+                    FastServletRegistration druidStatView = FastChar.getServletContext().addServlet("DruidStatView",
+                            StatViewServlet.class);
                     druidStatView.addMapping("/druid/*");
                     FastChar.getActions().addExcludeUrls("/druid/*");
                 }
 
-                String[] filterArray = filters.split("\\,");
+                String[] filterArray = FastStringUtils.splitByWholeSeparator(filters,",");
                 String[] var3 = filterArray;
                 int var4 = filterArray.length;
 

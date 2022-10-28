@@ -16,5 +16,5 @@ public @interface AFastAction {
      * 是否启用FastAction 默认 启用
      * @return 布尔值
      */
-    boolean value() default true;
+    boolean enable() default true;
 }

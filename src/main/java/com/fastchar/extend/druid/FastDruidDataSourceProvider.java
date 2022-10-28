@@ -1,7 +1,6 @@
 package com.fastchar.extend.druid;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.druid.support.http.StatViewServlet;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.annotation.AFastObserver;
 import com.fastchar.annotation.AFastPriority;
@@ -11,9 +10,6 @@ import com.fastchar.interfaces.IFastDataSource;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRegistration;
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 
@@ -22,7 +18,7 @@ import java.lang.reflect.Field;
 @AFastPriority(AFastPriority.P_HIGH)
 @AFastClassFind("com.alibaba.druid.pool.DruidDataSource")
 public class FastDruidDataSourceProvider implements IFastDataSource {
-    private DruidDataSource dataSource = null;
+    private volatile DruidDataSource dataSource = null;
     private FastDatabaseInfo databaseInfo;
 
     public FastDruidDataSourceProvider() {
@@ -30,35 +26,43 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
     }
 
     @Override
-    public synchronized DataSource getDataSource(FastDatabaseInfo databaseInfo) {
+    public DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (dataSource == null) {
-            dataSource = new DruidDataSource();
-            dataSource.setUrl(databaseInfo.toUrl());
-            dataSource.setUsername(databaseInfo.getUser());
-            dataSource.setPassword(databaseInfo.getPassword());
-            dataSource.setDriverClassName(databaseInfo.getDriver());
-            dataSource.setValidationQuery(buildValidationQuery(databaseInfo.toUrl()));
-            this.databaseInfo = databaseInfo;
-
-            try {
-                FastDruidConfig druid = FastChar.getConfigs().getDruidConfig();
-                for (Field field : FastDruidConfig.class.getDeclaredFields()) {
-                    field.setAccessible(true);
-                    Object o = field.get(druid);
-                    if (o != null) {
-                        Field declaredField = FastClassUtils.getDeclaredField(DruidDataSource.class, field.getName());
-                        if (declaredField != null) {
-                            declaredField.setAccessible(true);
-                            declaredField.set(dataSource, o);
-                        }
+            synchronized (FastDruidDataSourceProvider.class) {
+                if (dataSource == null) {
+                    dataSource = new DruidDataSource();
+                    dataSource.setUrl(databaseInfo.toUrl());
+                    dataSource.setUsername(databaseInfo.getUser());
+                    dataSource.setPassword(databaseInfo.getPassword());
+                    dataSource.setDriverClassName(databaseInfo.getDriver());
+                    if (databaseInfo.isValidate()) {
+                        dataSource.setValidationQuery(buildValidationQuery(databaseInfo.toUrl()));
                     }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+                    this.databaseInfo = databaseInfo;
 
-            if (FastChar.getConstant().isDebug()) {
-                FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, "Druid of " + databaseInfo.getName() + "[" + databaseInfo.getType() + "] "));
+                    try {
+                        FastDruidConfig druid = FastChar.getConfigs().getDruidConfig();
+                        for (Field field : FastDruidConfig.class.getDeclaredFields()) {
+                            field.setAccessible(true);
+                            Object o = field.get(druid);
+                            if (o != null) {
+                                Field declaredField = FastClassUtils.getDeclaredField(DruidDataSource.class, field.getName());
+                                if (declaredField != null) {
+                                    declaredField.setAccessible(true);
+                                    declaredField.set(dataSource, o);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    String poolInfo = "Druid jdbc pool of " +databaseInfo.toSimpleInfo();
+                    if (FastChar.getConstant().isDebug()) {
+                        FastChar.getLog().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
+                    }
+                    FastChar.getValues().put("jdbcPool", "Druid jdbc pool");
+                }
             }
         }
         return dataSource;
@@ -84,7 +88,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Druid of " + databaseInfo.getName() + "[" + databaseInfo.getType() + "]"));
+                    FastChar.getLog().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Druid jdbc pool of " + databaseInfo.toSimpleInfo()));
                 }
             }
         } finally {

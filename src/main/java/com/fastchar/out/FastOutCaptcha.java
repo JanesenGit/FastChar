@@ -1,31 +1,29 @@
 package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
-import com.fastchar.core.FastChar;
-import com.fastchar.utils.FastMD5Utils;
-import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 import sun.font.FontDesignMetrics;
 
 import javax.imageio.ImageIO;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.OutputStream;
 import java.util.Random;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应验证码图片
+ *
  * @author Janesen
  */
 public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
+    protected static final String DEFAULT_CAPTCHA_KEY = "FastChar-Captcha";
 
-    private static final String CAPTCHA_STR = "3456789ABCDEFGHJKMNPQRSTUVWXY";
-    private static final String[] FONT_NAMES = new String[]{"Verdana"};
-    private static final int[][] COLOR = {{0, 135, 255}, {51, 153, 51}, {255, 102, 102}, {255, 153, 0}, {153, 102, 0}, {153, 102, 153}, {51, 153, 153}, {102, 102, 255}, {0, 102, 204}, {204, 51, 51}, {0, 153, 204}, {0, 51, 102}};
-    private int width = 120;
-    private int height = 40;
+    protected String captchaChars = "3456789ABCDEFGHJKMNPQRSTUVWXY";
+    protected String[] fontNames = new String[]{"Verdana"};
+    protected int[][] colors = {{0, 135, 255}, {51, 153, 51}, {255, 102, 102}, {255, 153, 0}, {153, 102, 0}, {153, 102, 153}, {51, 153, 153}, {102, 102, 255}, {0, 102, 204}, {204, 51, 51}, {0, 153, 204}, {0, 51, 102}};
+
+    protected boolean simpleCaptcha;
 
     public FastOutCaptcha() {
         this.contentType = "image/jpeg";
@@ -33,7 +31,10 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
 
     @Override
     public void response(FastAction action) throws Exception {
-        HttpServletResponse response = action.getResponse();
+        String captchaKey = action.getParam("captchaKey", DEFAULT_CAPTCHA_KEY);
+        simpleCaptcha = action.getParamToBoolean("captchaSimple", Boolean.valueOf(simpleCaptcha));
+
+        FastHttpServletResponse response = action.getResponse();
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Cache-Control", "no-cache");
         response.setDateHeader("Expires", 0);
@@ -41,8 +42,22 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
         response.setContentType(toContentType(action));
 
         char[] chars = randomChar();
-        action.setSession(FastMD5Utils.MD5(FastChar.getConstant().getProjectName()), new String(chars));
+        action.setSession(captchaKey, new String(chars));
         outCaptcha(action, chars);
+    }
+
+    public boolean validateCaptcha(FastAction action, String code) {
+        String captchaKey = action.getParam("captchaKey", DEFAULT_CAPTCHA_KEY);
+        Object captcha = action.getSession(captchaKey);
+        if (captcha != null) {
+            return captcha.toString().equalsIgnoreCase(code);
+        }
+        return false;
+    }
+
+    public void resetCaptcha(FastAction action) {
+        String captchaKey = action.getParam("captchaKey", DEFAULT_CAPTCHA_KEY);
+        action.removeSession(captchaKey);
     }
 
 
@@ -57,16 +72,18 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
 
     private char[] randomChar() {
         Random random = new Random();
-        return new char[]{CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length())),
-                CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length())),
-                CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length())),
-                CAPTCHA_STR.charAt(random.nextInt(CAPTCHA_STR.length()))};
+        return new char[]{captchaChars.charAt(random.nextInt(captchaChars.length())),
+                captchaChars.charAt(random.nextInt(captchaChars.length())),
+                captchaChars.charAt(random.nextInt(captchaChars.length())),
+                captchaChars.charAt(random.nextInt(captchaChars.length()))};
     }
 
 
-    private void outCaptcha(FastAction action,char[] codes) throws Exception {
+    private void outCaptcha(FastAction action, char[] codes) throws Exception {
         Random random = new Random();
 
+        int width = 120;
+        int height = 40;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = (Graphics2D) image.getGraphics();
 
@@ -82,13 +99,16 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
 
 
         g2d.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL));
-        for (int i = 0; i < 15; i++) {
-            g2d.setColor(randomColor(150));
-            int oWidth = Math.max(random.nextInt(28), 10);
-            int oHeight = Math.max(random.nextInt(28), 10);
-            g2d.drawOval(random.nextInt(width - oWidth), random.nextInt(height),
-                    oWidth,
-                    oHeight);
+
+        if (!simpleCaptcha) {
+            for (int i = 0; i < 15; i++) {
+                g2d.setColor(randomColor(150));
+                int oWidth = Math.max(random.nextInt(28), 10);
+                int oHeight = Math.max(random.nextInt(28), 10);
+                g2d.drawOval(random.nextInt(width - oWidth), random.nextInt(height),
+                        oWidth,
+                        oHeight);
+            }
         }
 
 
@@ -97,12 +117,15 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
         Font[] fontArray = new Font[codes.length];
 
         for (int i = 0; i < codes.length; i++) {
-            Font font = new Font(FONT_NAMES[random.nextInt(FONT_NAMES.length)], Font.ITALIC | Font.BOLD, 28);
+            String code = String.valueOf(codes[i]);
+            Font font = new Font(fontNames[random.nextInt(fontNames.length)], Font.ITALIC | Font.BOLD, 32);
             fontArray[i] = font;
             FontMetrics fm = FontDesignMetrics.getMetrics(font);
-            int charWidth = fm.charWidth(codes[i]);
-            int y = Math.max(random.nextInt(height), fm.getHeight());
-            int x = charWidth * i + (width - charWidth * codes.length) / 2;
+            Rectangle2D stringBounds = fm.getStringBounds(code, g2d);
+            double charWidth = stringBounds.getWidth();
+            double charHeight = stringBounds.getHeight();
+            int y = (int) Math.max(random.nextInt(height), charHeight);
+            int x = (int) (charWidth * i + (width - charWidth * codes.length) / 2);
             yArray[i] = y;
             xArray[i] = x;
         }
@@ -119,19 +142,22 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
             int y = yArray[i];
             g2d.rotate(Math.toRadians(degree), x, y);
 
-            int index = random.nextInt(COLOR.length);
-            lastColor = new Color(COLOR[index][0], COLOR[index][1], COLOR[index][2]);
+            int index = random.nextInt(colors.length);
+            lastColor = new Color(colors[index][0], colors[index][1], colors[index][2]);
             g2d.setColor(lastColor);
             g2d.drawString(String.valueOf(codes[i]), x, y);
             g2d.rotate(-Math.toRadians(degree), x, y);
         }
 
-        int area = (int) (0.1f * width * height);
-        for (int i = 0; i < area; i++) {
-            int x = random.nextInt(width);
-            int y = random.nextInt(height);
-            image.setRGB(x, y, lastColor.getRGB());
+        if (!simpleCaptcha) {
+            int area = (int) (0.1f * width * height);
+            for (int i = 0; i < area; i++) {
+                int x = random.nextInt(width);
+                int y = random.nextInt(height);
+                image.setRGB(x, y, lastColor.getRGB());
+            }
         }
+
         g2d.dispose();
 
         try (OutputStream outputStream = action.getResponse().getOutputStream()) {
@@ -140,4 +166,12 @@ public class FastOutCaptcha extends FastOut<FastOutCaptcha> {
         }
     }
 
+    public boolean isSimpleCaptcha() {
+        return simpleCaptcha;
+    }
+
+    public FastOutCaptcha setSimpleCaptcha(boolean simpleCaptcha) {
+        this.simpleCaptcha = simpleCaptcha;
+        return this;
+    }
 }

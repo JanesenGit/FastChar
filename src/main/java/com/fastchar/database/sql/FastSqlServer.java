@@ -4,26 +4,25 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.enums.FastDatabaseType;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastStringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.*;
 
 public class FastSqlServer extends FastSql {
 
     public static boolean isOverride(String type) {
         if (FastStringUtils.isNotEmpty(type)) {
-            return "sql_server".equalsIgnoreCase(type);
+            return FastDatabaseType.SQL_SERVER.name().equalsIgnoreCase(type);
         }
         return false;
     }
 
 
     public FastSqlServer() {
-        this.type = "sql_server";
+        this.type = FastDatabaseType.SQL_SERVER.name().toLowerCase();
     }
 
     @Override
@@ -31,14 +30,20 @@ public class FastSqlServer extends FastSql {
         if (entity == null) {
             return null;
         }
-        List<String> columns = new ArrayList<>();
-        List<String> placeholders = new ArrayList<>();
-        List<Object> values = new ArrayList<>();
         entity.markSetDefaultValue("insert");
         entity.setDefaultValue();
         entity.unmarkSetDefaultValue();
 
-        TreeSet<String> treeKeys = new TreeSet<>(entity.allKeys());
+        Set<String> allKeys = entity.allKeys();
+        List<String> columns = new ArrayList<>(allKeys.size());
+        List<String> placeholders = new ArrayList<>(allKeys.size());
+        List<Object> values = new ArrayList<>(allKeys.size());
+
+        TreeSet<String> treeKeys = new TreeSet<>(allKeys);
+
+        Map<String, Object> keyValue = new LinkedHashMap<>();
+
+
         for (String key : treeKeys) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
@@ -49,20 +54,17 @@ public class FastSqlServer extends FastSql {
                 columns.add(key);
                 values.add(columnValue);
                 placeholders.add("?");
+
+                keyValue.put(key, columnValue);
             }
         }
         if (values.size() == 0) {
             return null;
         }
-        List<Object> checkValues = new ArrayList<>();
+
         for (String key : checks) {
-            FastColumnInfo<?> column = entity.getColumn(key);
-            if (column != null) {
-                Object columnValue = getColumnValue(entity, column);
-                checkValues.add(columnValue);
-            }
+            values.add(keyValue.get(key));
         }
-        values.addAll(0, checkValues);
 
         FastSqlInfo sqlInfo = newSqlInfo();
         if (checks.length == 0) {
@@ -74,8 +76,13 @@ public class FastSqlServer extends FastSql {
             StringBuilder builder = new StringBuilder("if not exits (select * from " + entity.getTableName()
                     + " where 1=1 ");
             for (String check : checks) {
-                builder.append(" and ").append(check).append(" = ? ");
+                boolean exclude = check.charAt(0) == '!';
+                if (exclude) {
+                    check = check.substring(1);
+                }
+                builder.append(" and ").append(check).append(exclude ? " != " : " = ").append(" ? ");
             }
+
             builder.append(") begin ");
 
             String insertSql = "insert into " + entity.getTableName()

@@ -13,18 +13,16 @@ public interface IFastScannerAccepter {
      * 扫描到class类触发
      * @param engine FastChar核心引擎
      * @param scannedClass 扫描到的类
-     * @return 是否使用扫描的类
      * @throws Exception 异常
      */
-    boolean onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception;
+    void onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception;
 
     /**
      * 扫描到文件触发
      * @param engine FastChar核心引擎
      * @param file 扫描到的文件
-     * @return 是否使用扫描的文件
      * @throws Exception 异常
      */
-    boolean onScannerFile(FastEngine engine, File file) throws Exception;
+    void onScannerFile(FastEngine engine, File file) throws Exception;
 
 }

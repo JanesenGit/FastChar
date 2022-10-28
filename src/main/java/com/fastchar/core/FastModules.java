@@ -5,7 +5,10 @@ import com.fastchar.utils.FastFileUtils;
 
 import java.io.File;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -15,6 +18,7 @@ import java.util.jar.JarFile;
  * @author 沈建（Janesen）
  * @date 2021/5/18 18:19
  */
+@SuppressWarnings("UnusedReturnValue")
 public final class FastModules {
 
     /**
@@ -28,6 +32,7 @@ public final class FastModules {
         try {
             FastChar.getScanner().resolveJar(false, jarFiles);
             FastChar.getScanner().scannerJar();
+            FastChar.getScanner().registerOverrider();
             FastChar.getScanner().registerWeb();
             FastEngine.instance().getWebs().initWeb(FastEngine.instance());
             FastChar.getScanner().notifyAccepter();
@@ -51,9 +56,8 @@ public final class FastModules {
      */
     public FastModules loadModule(String... paths) throws Exception {
         try {
-            for (String path : paths) {
-                FastChar.getScanner().resolvePath(path);
-            }
+            FastChar.getScanner().resolvePath(paths);
+            FastChar.getScanner().registerOverrider();
             FastChar.getScanner().registerWeb();
             FastEngine.instance().getWebs().initWeb(FastEngine.instance());
             FastChar.getScanner().notifyAccepter();
@@ -165,7 +169,7 @@ public final class FastModules {
      * @throws Exception 异常信息
      */
     public List<File> getJarLoadModules() throws Exception {
-        List<File> jarLoadFiles = new ArrayList<>();
+        List<File> jarLoadFiles = new ArrayList<>(16);
         Map<String, FastClassLoader> jarLoaders = FastChar.getScanner().getJarLoaders();
         for (FastClassLoader value : jarLoaders.values()) {
             URL[] urLs = value.getURLs();

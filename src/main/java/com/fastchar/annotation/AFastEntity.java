@@ -15,5 +15,5 @@ public @interface AFastEntity {
      * 是否启用FastEntity 默认：true
      * @return 布尔值
      */
-    boolean value() default true;
+    boolean enable() default true;
 }

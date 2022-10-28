@@ -3,19 +3,34 @@ package com.fastchar.core;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastStringUtils;
 
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.*;
 
 final class FastUrlParser {
 
+    public static String getPureUrl(String url) {
+        int paramSplitChar = url.indexOf("?");
+        if (paramSplitChar > 0) {
+            return url.substring(0, paramSplitChar);
+        }
+        return url;
+    }
+
+    public static String getParamsUrl(String url) {
+        int paramSplitChar = url.indexOf("?");
+        if (paramSplitChar > 0) {
+            return url.substring(paramSplitChar + 1);
+        }
+        return "";
+    }
+
+
     public static String getContentPath(String url) {
         try {
-            URL netUrl = new URL( URLDecoder.decode(url,"utf-8"));
-            String replace = netUrl.getPath().replace(FastChar.getConstant().getProjectName(), "");
-            return "/" + FastStringUtils.strip(replace, "/");
+            URL netUrl = new URL(URLDecoder.decode(url, "utf-8"));
+            int index = netUrl.getPath().indexOf(FastChar.getConstant().getProjectName()) + FastChar.getConstant().getProjectName().length();
+            return "/" + FastStringUtils.strip(netUrl.getPath().substring(index), "/");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -23,17 +38,19 @@ final class FastUrlParser {
     }
 
     public static boolean isFileUrl(String url) {
-        return url.split("[?]")[0].lastIndexOf(".") > 0;
+        return getPureUrl(url).lastIndexOf(".") > 0;
     }
 
 
     public static List<FastUrl> parse(String url) {
         List<FastRequestParam> params = parseParams(url);
 
-        url = url.split("[?]")[0];
-        List<FastUrl> urls = new ArrayList<>();
-        String[] split = FastArrayUtils.trimEmpty(url.split("/"));
+        url = getPureUrl(url);
+        //url参数分割符，/
+        String[] split = FastArrayUtils.trimEmpty(FastStringUtils.splitByWholeSeparator(url, "/"));
         StringBuilder stringBuilder = new StringBuilder("/");
+
+        List<FastUrl> urls = new ArrayList<>(split.length + 1);
 
         FastUrl first = new FastUrl();
         first.setLevel(1);
@@ -72,18 +89,24 @@ final class FastUrlParser {
      */
     public static List<FastRequestParam> parseParams(String url) {
         try {
-            url=URLDecoder.decode(url,"utf-8");
-        } catch (Exception ignored) { }
-        String[] splitUrl = url.split("[?]");
-        if (splitUrl.length != 2) {
+            url = URLDecoder.decode(url, "utf-8");
+        } catch (Exception ignored) {
+        }
+
+        String paramsUrl = getParamsUrl(url);
+        if (FastStringUtils.isEmpty(paramsUrl)) {
             return null;
         }
-        List<FastRequestParam> params = new ArrayList<>();
-        String[] split = splitUrl[1].split("[&]");
+
+        String[] split = FastStringUtils.splitByWholeSeparator(paramsUrl, "&");
+        List<FastRequestParam> params = new ArrayList<>(split.length);
         for (String keyValue : split) {
-            String[] values = keyValue.split("[=]");
-            if (values.length == 2) {
-                params.add(new FastRequestParam().setName(values[0]).setValue(values[1]));
+            if (FastStringUtils.isEmpty(keyValue)) {
+                continue;
+            }
+            int valueSplit = keyValue.indexOf("=");
+            if (valueSplit >= 0) {
+                params.add(new FastRequestParam().setName(keyValue.substring(0, valueSplit)).setValue(keyValue.substring(valueSplit + 1)));
             }
         }
         return params;

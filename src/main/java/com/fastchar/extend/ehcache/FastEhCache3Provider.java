@@ -7,12 +7,15 @@ import com.fastchar.interfaces.IFastCache;
 import com.fastchar.utils.FastStringUtils;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.xml.XmlConfiguration;
 
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @SuppressWarnings("unchecked")
@@ -21,26 +24,30 @@ import java.util.Set;
 public class FastEhCache3Provider implements IFastCache {
     private static final Object LOCKER = new Object();
 
-    private CacheManager cacheManager;
+    private volatile CacheManager cacheManager;
 
     private synchronized CacheManager getCacheManager() {
-        if (cacheManager == null) {
-            FastEhCache3Config ehCacheConfig = FastChar.getConfigs().getEhCache3Config();
-            if (ehCacheConfig != null) {
-                if (ehCacheConfig.getConfiguration() != null) {
-                    cacheManager = CacheManagerBuilder.newCacheManager(ehCacheConfig.getConfiguration());
-                } else if (ehCacheConfig.getConfigurationURL() != null) {
-                    cacheManager = CacheManagerBuilder.newCacheManager(new XmlConfiguration(ehCacheConfig.getConfigurationURL()));
-                } else if (ehCacheConfig.getConfigurationFileName() != null) {
-                    cacheManager = CacheManagerBuilder.newCacheManager(new XmlConfiguration(getClass().getResource(ehCacheConfig.getConfigurationFileName())));
-                } else {
-                    cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build();
-                }
-            } else {
-                cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build();
-            }
-            cacheManager.init();
-        }
+       if(cacheManager==null){
+           synchronized (FastEhCache3Provider.class) {
+               if (cacheManager == null) {
+                   FastEhCache3Config ehCacheConfig = FastChar.getConfigs().getEhCache3Config();
+                   if (ehCacheConfig != null) {
+                       if (ehCacheConfig.getConfiguration() != null) {
+                           cacheManager = CacheManagerBuilder.newCacheManager(ehCacheConfig.getConfiguration());
+                       } else if (ehCacheConfig.getConfigurationURL() != null) {
+                           cacheManager = CacheManagerBuilder.newCacheManager(new XmlConfiguration(ehCacheConfig.getConfigurationURL()));
+                       } else if (ehCacheConfig.getConfigurationFileName() != null) {
+                           cacheManager = CacheManagerBuilder.newCacheManager(new XmlConfiguration(Objects.requireNonNull(getClass().getResource(ehCacheConfig.getConfigurationFileName()))));
+                       } else {
+                           cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build();
+                       }
+                   } else {
+                       cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build();
+                   }
+                   cacheManager.init();
+               }
+           }
+       }
         return cacheManager;
     }
 
@@ -75,10 +82,10 @@ public class FastEhCache3Provider implements IFastCache {
             return tags;
         }
 
-        Set<String> cacheNames = getCacheManager().getRuntimeConfiguration().getCacheConfigurations().keySet();
-        for (String cacheName : cacheNames) {
-            if (FastStringUtils.matches(pattern, cacheName)) {
-                tags.add(cacheName);
+        Map<String, CacheConfiguration<?, ?>> cacheConfigurations = getCacheManager().getRuntimeConfiguration().getCacheConfigurations();
+        for (Map.Entry<String, CacheConfiguration<?, ?>> stringCacheConfigurationEntry : cacheConfigurations.entrySet()) {
+            if (FastStringUtils.matches(pattern, stringCacheConfigurationEntry.getKey())) {
+                tags.add(stringCacheConfigurationEntry.getKey());
             }
         }
         return tags;

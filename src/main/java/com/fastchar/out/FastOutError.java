@@ -3,15 +3,8 @@ package com.fastchar.out;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastConstant;
-import com.fastchar.utils.FastMD5Utils;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 import com.fastchar.utils.FastStringUtils;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应错误
@@ -56,7 +49,7 @@ public class FastOutError extends FastOut<FastOutError> {
     @Override
     public void response(FastAction action) {
         try {
-            HttpServletResponse response = action.getResponse();
+            FastHttpServletResponse response = action.getResponse();
             if (FastStringUtils.isEmpty(getErrorPage())) {
                 response.setHeader("Pragma", "no-cache");
                 response.setHeader("Cache-Control", "no-cache");
@@ -65,10 +58,7 @@ public class FastOutError extends FastOut<FastOutError> {
                 response.setContentType(toContentType(action));
                 response.setCharacterEncoding(getCharset());
 
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.write(toHtml(action));
-                    writer.flush();
-                }
+                write(response,toHtml(action));
             } else {
                 response.sendRedirect(FastChar.wrapperUrl(getErrorPage()));
             }

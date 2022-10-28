@@ -2,6 +2,7 @@ package com.fastchar.validators;
 
 import com.fastchar.interfaces.IFastValidator;
 import com.fastchar.local.FastCharLocal;
+import com.fastchar.utils.FastStringUtils;
 
 import java.text.MessageFormat;
 import java.util.*;
@@ -10,17 +11,17 @@ import java.util.regex.Pattern;
 
 public abstract class FastBaseValidator implements IFastValidator {
 
+    private static final Pattern KEY_PATTERN = Pattern.compile("#(.*)");
     private boolean securityMessage;
 
 
     @Override
     public Set<String> pluckKeys(String validator) {
         Set<String> keys = new HashSet<>();
-        String regStr = "#(.*)";
-        Matcher matcher = Pattern.compile(regStr).matcher(validator);
+        Matcher matcher = KEY_PATTERN.matcher(validator);
         if (matcher.find()) {
             String attr = matcher.group(1).replace(" ", "");
-            String[] split = attr.split("#");
+            String[] split = FastStringUtils.splitByWholeSeparator(attr,"#");
             keys.addAll(Arrays.asList(split));
         }
         return keys;

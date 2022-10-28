@@ -18,7 +18,7 @@ public final class FastFindClass {
             if (throwException) {
                 throw new FastFindException(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, jarUrl));
             }else{
-                FastChar.getLog().error(FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, jarUrl));
+                FastChar.getLog().error(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.CLASS_ERROR4, className, jarUrl));
             }
         }
         return this;

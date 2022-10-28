@@ -12,6 +12,7 @@ public enum FastObservableEvent {
      * 当Web停止时
      */
     onWebStop("当Web停止时"),
+
     /**
      * 当Web开始运行
      */

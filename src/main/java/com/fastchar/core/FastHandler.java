@@ -26,4 +26,10 @@ public final class FastHandler extends FastMapWrap {
         return this;
     }
 
+
+    public FastHandler put(String key, Object value) {
+        super.put(key, value);
+        return this;
+    }
+
 }

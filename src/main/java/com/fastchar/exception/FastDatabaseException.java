@@ -8,4 +8,15 @@ public class FastDatabaseException extends SAXException {
     public FastDatabaseException(String message) {
         super(message);
     }
+
+    public FastDatabaseException(Exception e) {
+        super(e);
+    }
+
+    public FastDatabaseException(String message, Exception e) {
+        super(message, e);
+    }
+
+    public FastDatabaseException() {
+    }
 }

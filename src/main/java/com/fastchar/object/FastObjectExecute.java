@@ -15,6 +15,8 @@ import java.util.regex.Pattern;
  * @date 2021/8/20 10:02
  */
 public class FastObjectExecute {
+    private static final Pattern ATTR_PATTERN = Pattern.compile("\\$\\{(.*)}");
+    private static final Pattern EXTRACT_PATTERN = Pattern.compile("(.*)\\[(\\d+)]");
     private final Object value;
 
     public FastObjectExecute(Object value) {
@@ -29,8 +31,7 @@ public class FastObjectExecute {
         if (FastStringUtils.isEmpty(expression)) {
             return new FastObjectProperty(value, expression);
         }
-        String regStr = "\\$\\{(.*)}";
-        Matcher matcher = Pattern.compile(regStr).matcher(expression);
+        Matcher matcher = ATTR_PATTERN.matcher(expression);
         if (matcher.find()) {
             List<Object> extractAttr = extractAttr(matcher.group(1));
             if (extractAttr.isEmpty()) {
@@ -50,14 +51,13 @@ public class FastObjectExecute {
     }
 
     public List<Object> extractAttr(String attr) {
-        List<Object> attrList = new ArrayList<>();
-        String[] inAttrs = attr.split("\\.");
+        List<Object> attrList = new ArrayList<>(16);
+        String[] inAttrs = FastStringUtils.splitByWholeSeparator(attr,".");
         for (String inAttr : inAttrs) {
             if (FastStringUtils.isEmpty(inAttr)) {
                 continue;
             }
-            String regStr = "(.*)\\[(\\d+)]";
-            Matcher matcher = Pattern.compile(regStr).matcher(inAttr);
+            Matcher matcher = EXTRACT_PATTERN.matcher(inAttr);
             if (matcher.find()) {
                 String realAttr = matcher.group(1);
                 int index = FastNumberUtils.formatToInt(matcher.group(2));

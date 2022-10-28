@@ -10,17 +10,16 @@ import com.fastchar.interfaces.IFastCache;
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastMethodRead;
 import com.fastchar.interfaces.IFastRootInterceptor;
-
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.out.FastOut;
-import com.fastchar.response.FastResponseCacheConfig;
+import com.fastchar.servlet.FastFilterChain;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
+import com.fastchar.servlet.http.cache.FastResponseCacheConfig;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastMethodUtils;
 import com.fastchar.utils.FastStringUtils;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.Method;
@@ -36,11 +35,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("unchecked")
 public final class FastDispatcher {
 
-    static final ConcurrentHashMap<String, FastRoute> FAST_ROUTE_MAP = new ConcurrentHashMap<>();
-    private static final Set<Class<?>> RESOLVED = new HashSet<>();
+    static final ConcurrentHashMap<String, FastRoute> FAST_ROUTE_MAP = new ConcurrentHashMap<>(16);
+    static final Set<Class<?>> RESOLVED = new HashSet<>(16);
 
     synchronized static void initDispatcher() {
-        FastEngine.instance().getInterceptors().sortRootInterceptor();
         RESOLVED.clear();
     }
 
@@ -60,7 +58,7 @@ public final class FastDispatcher {
                     "\n\tat " + new StackTraceElement(targetClass.getName(), "getRoute",
                     targetClass.getSimpleName() + ".java", line));
         }
-        List<String> classRoutes = new ArrayList<>();
+        List<String> classRoutes = new ArrayList<>(16);
         classRoutes.add(classRoute);
         if (targetClass.isAnnotationPresent(AFastRoute.class)) {
             AFastRoute fastRoute = targetClass.getAnnotation(AFastRoute.class);
@@ -93,7 +91,7 @@ public final class FastDispatcher {
     }
 
     public static List<String> getClassMethodRoutes(Class<? extends FastAction> targetClass, Method declaredMethod) throws Exception {
-        List<String> classMethodRoutes = new ArrayList<>();
+        List<String> classMethodRoutes = new ArrayList<>(16);
         if (Modifier.isStatic(declaredMethod.getModifiers())) {
             return classMethodRoutes;
         }
@@ -110,7 +108,7 @@ public final class FastDispatcher {
             return classMethodRoutes;
         }
         List<String> classRoutes = getClassRoutes(targetClass);
-        List<String> methodRoutes = new ArrayList<>();
+        List<String> methodRoutes = new ArrayList<>(16);
         methodRoutes.add(declaredMethod.getName());
         if (declaredMethod.isAnnotationPresent(AFastRoute.class)) {
             AFastRoute fastRoute = declaredMethod.getAnnotation(AFastRoute.class);
@@ -171,9 +169,9 @@ public final class FastDispatcher {
 
         if (actionClass.isAnnotationPresent(AFastAction.class)) {
             AFastAction annotation = actionClass.getAnnotation(AFastAction.class);
-            if (!annotation.value()) {//被禁止
+            if (!annotation.enable()) {//被禁止
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastChar.getLocal().getInfo(FastCharLocal.ACTION_ERROR5, actionClass));
+                    FastChar.getLog().warn(FastAction.class, FastChar.getLocal().getInfo(FastCharLocal.ACTION_ERROR5, actionClass));
                 }
                 return;
             }
@@ -197,12 +195,13 @@ public final class FastDispatcher {
             if (!Modifier.isPublic(declaredMethod.getModifiers())) {
                 continue;
             }
+
             if (!methodCount.containsKey(declaredMethod.getName())) {
                 methodCount.put(declaredMethod.getName(), 0);
             }
             methodCount.put(declaredMethod.getName(), methodCount.get(declaredMethod.getName()) + 1);
 
-            List<IFastMethodRead.MethodLine> lines = new ArrayList<>();
+            List<IFastMethodRead.MethodLine> lines = new ArrayList<>(5);
             List<FastParameter> parameter = parameterConverter.getParameter(declaredMethod, lines);
             List<String> classMethodRoutes = getClassMethodRoutes(actionClass, declaredMethod);
 
@@ -292,7 +291,7 @@ public final class FastDispatcher {
                             cacheConfig.setCache(false);
                         }
                     }
-                    fastRoute.responseCache = cacheConfig;
+                    fastRoute.responseCacheConfig = cacheConfig;
                 }
                 fastRoute.returnOut = defaultOut;
 
@@ -357,10 +356,10 @@ public final class FastDispatcher {
             if (beforeInterceptor != null) {
                 for (Class<? extends IFastInterceptor> aClass : beforeInterceptor.value()) {
                     List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(aClass, "onInterceptor");
-                    FastRoute.RouteInterceptor routeInterceptor = new FastRoute.RouteInterceptor();
+                    FastInterceptorInfo<IFastInterceptor> routeInterceptor = new FastInterceptorInfo<>();
                     routeInterceptor.index = index;
                     routeInterceptor.priority = beforeInterceptor.priority();
-                    routeInterceptor.interceptorClass = aClass;
+                    routeInterceptor.interceptor = aClass;
                     if (lineNumber.size() > 0) {
                         routeInterceptor.firstMethodLineNumber = lineNumber.get(0).getFirstLine();
                         routeInterceptor.lastMethodLineNumber = lineNumber.get(0).getLastLine();
@@ -372,10 +371,10 @@ public final class FastDispatcher {
             if (afterInterceptor != null) {
                 for (Class<? extends IFastInterceptor> aClass : afterInterceptor.value()) {
                     List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(aClass, "onInterceptor");
-                    FastRoute.RouteInterceptor routeInterceptor = new FastRoute.RouteInterceptor();
+                    FastInterceptorInfo<IFastInterceptor> routeInterceptor = new FastInterceptorInfo<>();
                     routeInterceptor.index = index;
                     routeInterceptor.priority = afterInterceptor.priority();
-                    routeInterceptor.interceptorClass = aClass;
+                    routeInterceptor.interceptor = aClass;
                     if (lineNumber.size() > 0) {
                         routeInterceptor.firstMethodLineNumber = lineNumber.get(0).getFirstLine();
                         routeInterceptor.lastMethodLineNumber = lineNumber.get(0).getLastLine();
@@ -388,15 +387,15 @@ public final class FastDispatcher {
 
     synchronized static void initMethodInterceptors() throws Exception {
         IFastMethodRead read = FastChar.getOverrides().newInstance(IFastMethodRead.class);
-        for (String routeUrl : FAST_ROUTE_MAP.keySet()) {
-            FastRoute fastRoute = FAST_ROUTE_MAP.get(routeUrl);
-            List<FastInterceptors.InterceptorInfo<IFastInterceptor>> beforeInterceptors = FastEngine.instance().getInterceptors().getBeforeInterceptors(routeUrl);
-            for (FastInterceptors.InterceptorInfo<IFastInterceptor> beforeInterceptor : beforeInterceptors) {
-                List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(beforeInterceptor.getInterceptor(), "onInterceptor");
-                FastRoute.RouteInterceptor routeInterceptor = new FastRoute.RouteInterceptor();
+        for (Map.Entry<String, FastRoute> stringFastRouteEntry : FAST_ROUTE_MAP.entrySet()) {
+            FastRoute fastRoute = stringFastRouteEntry.getValue();
+            List<FastInterceptorInfo<IFastInterceptor>> beforeInterceptors = FastEngine.instance().getInterceptors().getBeforeInterceptors(stringFastRouteEntry.getKey());
+            for (FastInterceptorInfo<IFastInterceptor> beforeInterceptor : beforeInterceptors) {
+                List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(beforeInterceptor.interceptor, "onInterceptor");
+                FastInterceptorInfo<IFastInterceptor> routeInterceptor = new FastInterceptorInfo<>();
                 routeInterceptor.index = 0;
-                routeInterceptor.priority = beforeInterceptor.getPriority();
-                routeInterceptor.interceptorClass = beforeInterceptor.getInterceptor();
+                routeInterceptor.priority = beforeInterceptor.priority;
+                routeInterceptor.interceptor = beforeInterceptor.interceptor;
                 if (lineNumber.size() > 0) {
                     routeInterceptor.firstMethodLineNumber = lineNumber.get(0).getFirstLine();
                     routeInterceptor.lastMethodLineNumber = lineNumber.get(0).getLastLine();
@@ -404,13 +403,13 @@ public final class FastDispatcher {
                 fastRoute.addBeforeInterceptor(routeInterceptor);
             }
 
-            List<FastInterceptors.InterceptorInfo<IFastInterceptor>> afterInterceptors = FastEngine.instance().getInterceptors().getAfterInterceptors(routeUrl);
-            for (FastInterceptors.InterceptorInfo<IFastInterceptor> afterInterceptor : afterInterceptors) {
-                List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(afterInterceptor.getInterceptor(), "onInterceptor");
-                FastRoute.RouteInterceptor routeInterceptor = new FastRoute.RouteInterceptor();
+            List<FastInterceptorInfo<IFastInterceptor>> afterInterceptors = FastEngine.instance().getInterceptors().getAfterInterceptors(stringFastRouteEntry.getKey());
+            for (FastInterceptorInfo<IFastInterceptor> afterInterceptor : afterInterceptors) {
+                List<IFastMethodRead.MethodLine> lineNumber = read.getMethodLineNumber(afterInterceptor.interceptor, "onInterceptor");
+                FastInterceptorInfo<IFastInterceptor> routeInterceptor = new FastInterceptorInfo<>();
                 routeInterceptor.index = 0;
-                routeInterceptor.priority = afterInterceptor.getPriority();
-                routeInterceptor.interceptorClass = afterInterceptor.getInterceptor();
+                routeInterceptor.priority = afterInterceptor.priority;
+                routeInterceptor.interceptor = afterInterceptor.interceptor;
                 if (lineNumber.size() > 0) {
                     routeInterceptor.firstMethodLineNumber = lineNumber.get(0).getFirstLine();
                     routeInterceptor.lastMethodLineNumber = lineNumber.get(0).getLastLine();
@@ -421,14 +420,14 @@ public final class FastDispatcher {
     }
 
     public static void flush() {
-        List<String> waitRemove = new ArrayList<>();
-        for (String s : FAST_ROUTE_MAP.keySet()) {
-            if (FastClassUtils.isRelease(FAST_ROUTE_MAP.get(s).actionClass)) {
-                waitRemove.add(s);
+        List<String> waitRemove = new ArrayList<>(16);
+        for (Map.Entry<String, FastRoute> stringFastRouteEntry : FAST_ROUTE_MAP.entrySet()) {
+            if (FastClassUtils.isRelease(stringFastRouteEntry.getValue().actionClass)) {
+                waitRemove.add(stringFastRouteEntry.getKey());
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastDispatcher.class,
-                            FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR4, s));
+                            FastChar.getLocal().getInfo(FastCharLocal.ROUTE_ERROR4, stringFastRouteEntry.getKey()));
                 }
             }
         }
@@ -439,19 +438,19 @@ public final class FastDispatcher {
     }
 
 
-    private final FilterChain filterChain;
-    private final HttpServletRequest request;
-    private final HttpServletResponse response;
+    private final FastFilterChain filterChain;
+    private final FastHttpServletRequest request;
+    private final FastHttpServletResponse response;
     private String contentUrl;
-    private List<Class<? extends IFastRootInterceptor>> rootInterceptor;
+    private List<FastInterceptorInfo<IFastRootInterceptor>> rootInterceptor;
     private int interceptorIndex = -1;
     private FastAction forwarder;
 
-    public FastDispatcher(HttpServletRequest request, HttpServletResponse response) {
+    public FastDispatcher(FastHttpServletRequest request, FastHttpServletResponse response) {
         this(null, request, response);
     }
 
-    public FastDispatcher(FilterChain filterChain, HttpServletRequest request, HttpServletResponse response) {
+    public FastDispatcher(FastFilterChain filterChain, FastHttpServletRequest request, FastHttpServletResponse response) {
         this.filterChain = filterChain;
         this.request = request;
         this.response = response;
@@ -460,20 +459,21 @@ public final class FastDispatcher {
 
     private void init() {
         String requestUrl = request.getRequestURL().toString();
+        //此处获取contentUrl 不可使用request.getServletPath()
         this.contentUrl = FastUrlParser.getContentPath(requestUrl);
         this.rootInterceptor = FastEngine.instance().getInterceptors().getRootInterceptors(contentUrl);
         this.interceptorIndex = -1;
     }
 
-    public FilterChain getFilterChain() {
+    public FastFilterChain getFilterChain() {
         return filterChain;
     }
 
-    public HttpServletRequest getRequest() {
+    public FastHttpServletRequest getRequest() {
         return request;
     }
 
-    public HttpServletResponse getResponse() {
+    public FastHttpServletResponse getResponse() {
         return response;
     }
 
@@ -522,7 +522,7 @@ public final class FastDispatcher {
             List<FastUrl> parse = FastUrlParser.parse(contentUrl);
             if ("options".equalsIgnoreCase(request.getMethod())) {
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info("OPTIONS REQUEST : " + request.getRequestURL());
+                    FastChar.getLog().info(this.getClass(), "OPTIONS REQUEST : " + request.getRequestURL());
                 }
                 boolean hasCross = false;
                 boolean hasRoute = false;
@@ -544,12 +544,12 @@ public final class FastDispatcher {
                     if (FastChar.getConstant().isDebug()) {
                         String errorInfo = "CROSS-DOMAIN DISABLED-URL : " + request.getRequestURL() +
                                 "\n\t\tREQUEST-ORIGIN : " + request.getHeader("origin");
-                        FastChar.getLog().error(errorInfo);
+                        FastChar.getLog().error(this.getClass(), errorInfo);
                     }
                 }
                 if (!hasRoute) {
                     if (FastChar.getConstant().isDebug()) {
-                        FastChar.getLog().error("NOT FOUND : " + request.getRequestURL());
+                        FastChar.getLog().error(this.getClass(), "NOT FOUND : " + request.getRequestURL());
                     }
                 }
                 response.setStatus(200);
@@ -562,7 +562,7 @@ public final class FastDispatcher {
 
             interceptorIndex++;
             if (interceptorIndex < rootInterceptor.size()) {
-                IFastRootInterceptor interceptor = FastChar.getOverrides().singleInstance(rootInterceptor.get(interceptorIndex));
+                IFastRootInterceptor interceptor = FastChar.getOverrides().singleInstance(rootInterceptor.get(interceptorIndex).interceptor);
                 interceptor.onInterceptor(request, response, this);
                 return;
             }
@@ -606,7 +606,7 @@ public final class FastDispatcher {
                         fastRoute.response = response;
                         fastRoute.fastUrl = fastUrl;
                         fastRoute.forwarder = forwarder;
-                        fastRoute.rootInterceptor = rootInterceptor;
+                        fastRoute.rootInterceptor = new ArrayList<>(rootInterceptor);
                         if (FastChar.getConstant().isDebug()) {
                             fastRoute.stackTraceElements.addAll(Arrays.asList(Thread.currentThread().getStackTrace()));
                         }
@@ -665,7 +665,7 @@ public final class FastDispatcher {
             return false;
         }
         Set<String> crossAllowDomains = route.crossAllowDomains;
-        String[] split = origin.split(";");
+        String[] split = FastStringUtils.splitByWholeSeparator(origin,";");
         for (String address : split) {
             if (!cross) {
                 for (String crossAllowDomain : crossAllowDomains) {
@@ -678,10 +678,10 @@ public final class FastDispatcher {
         }
 
         if (cross) {
-            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Origin", origin);
             response.setHeader("Access-Control-Allow-Credentials", "true");
             response.setHeader("Access-Control-Max-Age", "3600");
-            response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
+            response.setHeader("Access-Control-Allow-Methods", "POST, GET, PUT, OPTIONS, DELETE");
             response.setHeader("Access-Control-Allow-Headers", FastStringUtils.join(FastChar.getConstant().getCrossHeaders(), ","));
         }
         return cross;

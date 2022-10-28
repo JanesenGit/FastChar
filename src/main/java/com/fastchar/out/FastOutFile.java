@@ -3,18 +3,14 @@ package com.fastchar.out;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.exception.FastFileException;
-
 import com.fastchar.local.FastCharLocal;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应文件流，下载文件
@@ -84,7 +80,7 @@ public class FastOutFile extends FastOut<FastOutFile> {
         }
 
         this.setDescription("response file '" + file.getAbsolutePath() + "' ");
-        HttpServletResponse response = action.getResponse();
+        FastHttpServletResponse response = action.getResponse();
         response.setHeader("Accept-Ranges", "bytes");
         if (FastStringUtils.isEmpty(fileName)) {
             fileName = file.getName();
@@ -107,24 +103,15 @@ public class FastOutFile extends FastOut<FastOutFile> {
     }
 
 
-    private String encodeFileName(HttpServletRequest request, String fileName) {
+    private String encodeFileName(FastHttpServletRequest request, String fileName) {
         String userAgent = request.getHeader("User-Agent");
         try {
-            String encodedFileName = URLEncoder.encode(fileName, "UTF8");
+            String encodedFileName = URLEncoder.encode(fileName, "utf-8");
             if (userAgent == null) {
                 return "filename=\"" + encodedFileName + "\"";
             }
             userAgent = userAgent.toLowerCase();
-            if (userAgent.contains("msie")) {
-                return "filename=\"" + encodedFileName + "\"";
-            }
-            if (userAgent.contains("opera")) {
-                return "filename*=UTF-8''" + encodedFileName;
-            }
-            if (userAgent.contains("safari") || userAgent.contains("applewebkit") || userAgent.contains("chrome")) {
-                return "filename=\"" + new String(fileName.getBytes(StandardCharsets.UTF_8), "ISO8859-1") + "\"";
-            }
-            if (userAgent.contains("mozilla")) {
+            if (userAgent.contains("mozilla") || userAgent.contains("safari") || userAgent.contains("applewebkit") || userAgent.contains("opera")) {
                 return "filename*=UTF-8''" + encodedFileName;
             }
             return "filename=\"" + encodedFileName + "\"";
@@ -133,20 +120,13 @@ public class FastOutFile extends FastOut<FastOutFile> {
         }
     }
 
-    private void responseAllFile(HttpServletResponse response, File file) {
+    @SuppressWarnings("IOStreamConstructor")
+    private void responseAllFile(FastHttpServletResponse response, File file) {
         response.setContentLength((int) file.length());
         InputStream inputStream = null;
         try {
             inputStream = new BufferedInputStream(new FileInputStream(file));
-
-            try (ServletOutputStream outputStream = response.getOutputStream()) {
-                byte[] buffer = new byte[inputSize];
-                int len;
-                while ((len = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, len);
-                }
-                outputStream.flush();
-            }
+            write(response, inputStream, inputSize);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -155,48 +135,24 @@ public class FastOutFile extends FastOut<FastOutFile> {
     }
 
 
-    private void responseRangFile(HttpServletRequest request, HttpServletResponse response, File file) {
+    @SuppressWarnings("IOStreamConstructor")
+    private void responseRangFile(FastHttpServletRequest request, FastHttpServletResponse response, File file) {
         Long[] range = {null, null};
         processRange(request, file, range);
-
         response.setContentLength((int) (range[1] - range[0] + 1));
-        response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-
+        response.setStatus(FastHttpServletResponse.SC_PARTIAL_CONTENT);
         response.setHeader("Content-Range", "bytes " + range[0] + "-" + range[1] + "/" + file.length());
-
-        InputStream inputStream = null;
         try {
             long start = range[0];
             long end = range[1];
-            inputStream = new BufferedInputStream(new FileInputStream(file));
-            if (inputStream.skip(start) != start) {
-                throw new RuntimeException("File skip error");
-            }
-
-            try (ServletOutputStream outputStream = response.getOutputStream()) {
-                byte[] buffer = new byte[inputSize];
-                long position = start;
-                for (int len; position <= end && (len = inputStream.read(buffer)) != -1; ) {
-                    if (position + len <= end) {
-                        outputStream.write(buffer, 0, len);
-                        position += len;
-                    } else {
-                        for (int i = 0; i < len && position <= end; i++) {
-                            outputStream.write(buffer[i]);
-                            position++;
-                        }
-                    }
-                }
-                outputStream.flush();
-            }
+            InputStream inputStream = new BufferedInputStream(new FileInputStream(file));
+            write(response, inputStream, inputSize, start, end);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            FastFileUtils.closeQuietly(inputStream);
         }
     }
 
-    private void processRange(HttpServletRequest request, File file, Long[] range) {
+    private void processRange(FastHttpServletRequest request, File file, Long[] range) {
         String rangeStr = request.getHeader("Range");
         int index = rangeStr.indexOf(',');
         if (index != -1) {

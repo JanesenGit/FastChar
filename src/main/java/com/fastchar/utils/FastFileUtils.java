@@ -1,8 +1,6 @@
 package com.fastchar.utils;
 
 
-import com.fastchar.core.FastChar;
-
 import javax.activation.MimetypesFileTypeMap;
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -11,7 +9,6 @@ import java.net.URLConnection;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -21,6 +18,30 @@ import java.util.zip.ZipOutputStream;
  * from org.apache.commons.io
  */
 public class FastFileUtils {
+
+    private static Map<String, String> MIME_TYPE_MAP = null;
+
+    static {
+        try {
+            MIME_TYPE_MAP = new HashMap<>(16);
+            URL resource = FastFileUtils.class.getResource("/mime-type.txt");
+            if (resource != null) {
+                try (InputStream input = resource.openStream()) {
+                    String mimeTypes = FastStringUtils.join(FastFileUtils.readLines(input, StandardCharsets.UTF_8), "");
+
+                    String[] mimeTypeArray = FastStringUtils.splitByWholeSeparator(mimeTypes, ",");
+                    for (String mimeType : mimeTypeArray) {
+                        String[] child = FastStringUtils.splitByWholeSeparator(mimeType, "@");
+                        if (child.length == 2) {
+                            MIME_TYPE_MAP.put(child[0].toLowerCase(), child[1]);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static boolean isImageFile(String fileName) {
         String[] extensions = new String[]{
@@ -59,6 +80,7 @@ public class FastFileUtils {
     public static boolean isMP3File(String fileName) {
         return isTargetFile(fileName, ".mp3");
     }
+
     public static boolean isTxtFile(String fileName) {
         return isTargetFile(fileName, ".txt");
     }
@@ -125,6 +147,7 @@ public class FastFileUtils {
         };
         return isTargetFileByMimeType(mimeType, extensions);
     }
+
     public static boolean isTxtFileByMimeType(String mimeType) {
         String[] extensions = new String[]{
                 "text/plain"
@@ -171,7 +194,7 @@ public class FastFileUtils {
         String regex = ".+(" + FastStringUtils.join(extensions, "|").toLowerCase() + ")";
         boolean matches = Pattern.matches(regex, fileName.toLowerCase());
         if (!matches) {
-            List<String> fastCharTypes = new ArrayList<>();
+            List<String> fastCharTypes = new ArrayList<>(16);
             for (String extension : extensions) {
                 fastCharTypes.add(extension.replace(".", "") + "-");
             }
@@ -235,7 +258,7 @@ public class FastFileUtils {
 
     public static List<String> readLines(Reader input) throws IOException {
         BufferedReader reader = toBufferedReader(input);
-        List<String> list = new ArrayList();
+        List<String> list = new ArrayList<>(5);
 
         for (String line = reader.readLine(); line != null; line = reader.readLine()) {
             list.add(line);
@@ -832,14 +855,57 @@ public class FastFileUtils {
         }
     }
 
+    /**
+     * 获取文件地址的文件扩展名，不包含（.）
+     *
+     * @param fileName 文件名
+     */
+    public static String getExtension(String fileName) {
+        if (FastStringUtils.isEmpty(fileName)) {
+            return "";
+        }
+        String extension = fileName.substring(fileName.lastIndexOf(".") + 1);
+        if (fileName.equals(extension)) {
+            for (Map.Entry<String, String> stringStringEntry : MIME_TYPE_MAP.entrySet()) {
+                if (fileName.startsWith(stringStringEntry.getKey() + "-")) {
+                    return stringStringEntry.getKey();
+                }
+            }
+            return "";
+        }
+        return extension;
+    }
 
     public static String guessMimeType(String url) {
         if (FastStringUtils.isEmpty(url)) {
             return null;
         }
-        String fileName = url.substring(url.lastIndexOf("/") + 1);
-        String urlType = HttpURLConnection.guessContentTypeFromName(fileName);
+        String defaultType = "application/octet-stream";
+
+        String pureUrl = url;
+        int paramSplitChar = url.indexOf("?");
+        if (paramSplitChar > 0) {
+            pureUrl = url.substring(0, paramSplitChar);
+        }
+
+        String fileName = pureUrl.substring(pureUrl.lastIndexOf("/") + 1);
         try {
+
+            String extension = getExtension(fileName);
+
+            if (MIME_TYPE_MAP.containsKey(extension.toLowerCase())) {
+                return MIME_TYPE_MAP.get(extension);
+            }
+
+            String contentType = new MimetypesFileTypeMap().getContentType(fileName);
+            if (FastStringUtils.isNotEmpty(contentType)) {
+                return contentType;
+            }
+
+            String urlType = HttpURLConnection.guessContentTypeFromName(fileName);
+            if (FastStringUtils.isEmpty(urlType)) {
+                urlType = defaultType;
+            }
             InputStream inputStream = FastHttpURLConnectionUtils.getInputStream(url);
             if (inputStream == null) {
                 return urlType;
@@ -849,9 +915,23 @@ public class FastFileUtils {
                 return urlType;
             }
             return guessType;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return urlType;
+        return defaultType;
+    }
+
+
+    public static String getExtensionFromContentType(String contentType) {
+        if (FastStringUtils.isEmpty(contentType)) {
+            return null;
+        }
+        for (Map.Entry<String, String> stringStringEntry : MIME_TYPE_MAP.entrySet()) {
+            if (stringStringEntry.getValue().equalsIgnoreCase(contentType)) {
+                return stringStringEntry.getKey();
+            }
+        }
+        return null;
     }
 
 
@@ -886,12 +966,6 @@ public class FastFileUtils {
             double endSize = size / 1024.0;
             return FastNumberUtils.formatToDouble(endSize, 1) + "MB";
         }
-    }
-
-    public static void main(String[] args) {
-        String regStr = ".+(.pdf|.xlx)";
-        System.out.println(Pattern.matches(regStr, ".pdfd"));
-
     }
 
 }

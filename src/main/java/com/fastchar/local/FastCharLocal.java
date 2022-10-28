@@ -31,6 +31,13 @@ public final class FastCharLocal {
 
     /**
      * 描述模板：
+     * {0}初始化异常，启动失败！
+     */
+    public static final String FAST_CHAR_ERROR4 = "FastChar_Error4";
+
+
+    /**
+     * 描述模板：
      * 今天
      */
     public static final String DATE_ERROR1 = "Date_Error1";
@@ -211,17 +218,23 @@ public final class FastCharLocal {
     public static final String SCANNER_ERROR7 = "Scanner_Error7";
 
 
+    /**
+     * 描述模板：
+     * 加载并更新{0}中……
+     */
+    public static final String SCANNER_ERROR8 = "Scanner_Error8";
+
 
     /**
      * 描述模板：
-     * 数据库名称{0}已存在！
+     * 数据库{0}已存在！
      */
     public static final String DB_ERROR1 = "Db_Error1";
 
 
     /**
      * 描述模板：
-     * 数据库名称{0}不存在！
+     * 数据库{0}不存在！
      */
     public static final String DB_ERROR2 = "Db_Error2";
 
@@ -231,6 +244,12 @@ public final class FastCharLocal {
      * 未配置数据库信息！
      */
     public static final String DB_ERROR3 = "Db_Error3";
+
+    /**
+     * 描述模板：
+     * 数据库{0}不可为空！
+     */
+    public static final String DB_ERROR4 = "Db_Error4";
 
 
     /**
@@ -295,6 +314,12 @@ public final class FastCharLocal {
      */
     public static final String DB_TABLE_INFO4 = "Db_Table_Info4";
 
+
+    /**
+     * 描述模板：
+     * 表格 {0} 缺少主键！
+     */
+    public static final String DB_TABLE_INFO5 = "Db_Table_Info5";
 
     /**
      * 描述模板：
@@ -387,7 +412,7 @@ public final class FastCharLocal {
 
     /**
      * 描述模板：
-     * 目录{0}无法创建！
+     * 文件{0}无法创建！
      */
     public static final String FILE_ERROR1 = "File_Error1";
 

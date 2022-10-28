@@ -3,17 +3,14 @@ package com.fastchar.out;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 import freemarker.template.Template;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * 响应Freemarker模板
@@ -30,8 +27,8 @@ public class FastOutFreemarker extends FastOut<FastOutFreemarker> {
         if (String.valueOf(data).toLowerCase().endsWith(".xml")) {
             this.contentType = "text/xml";
         }
-        HttpServletResponse response = action.getResponse();
-        HttpServletRequest request = action.getRequest();
+        FastHttpServletResponse response = action.getResponse();
+        FastHttpServletRequest request = action.getRequest();
         response.setContentType(toContentType(action));
         response.setCharacterEncoding(getCharset());
 
@@ -47,8 +44,8 @@ public class FastOutFreemarker extends FastOut<FastOutFreemarker> {
             data.put(attrName, request.getSession().getAttribute(attrName));
         }
 
-        Template template = FastChar.getTemplates().getFreemarker().getTemplate(String.valueOf(data));
-        try (PrintWriter writer = response.getWriter()){
+        Template template = FastChar.getTemplates().getFreemarker().getTemplate(String.valueOf(data), FastChar.getConstant().getCharset());
+        try (PrintWriter writer = getWriter(response)) {
             template.process(data, writer);
             writer.flush();
         }

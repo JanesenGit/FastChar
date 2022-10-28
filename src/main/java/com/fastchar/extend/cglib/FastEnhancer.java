@@ -36,8 +36,8 @@ public class FastEnhancer<T> {
 
     private Class<T> targetClass;
     private boolean safe;
-    private final List<IFastMethodInterceptor> beforeInterceptors = new ArrayList<>();
-    private final List<IFastMethodInterceptor> afterInterceptors = new ArrayList<>();
+    private final List<IFastMethodInterceptor> beforeInterceptors = new ArrayList<>(5);
+    private final List<IFastMethodInterceptor> afterInterceptors = new ArrayList<>(5);
     private final MethodInterceptor interceptor = new MethodInterceptor() {
         @Override
         public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {

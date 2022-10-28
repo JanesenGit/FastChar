@@ -3,10 +3,10 @@ package com.fastchar.out;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
-import org.thymeleaf.context.WebContext;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
+import org.thymeleaf.context.Context;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.util.Enumeration;
 import java.util.Map;
@@ -22,25 +22,28 @@ public class FastOutThymeleaf extends FastOut<FastOutThymeleaf> {
 
     /**
      * 响应数据
-     *
-     * @param action
      */
     @Override
     public void response(FastAction action) throws Exception {
         if (String.valueOf(data).toLowerCase().endsWith(".xml")) {
             this.contentType = "text/xml";
         }
-        HttpServletResponse response = action.getResponse();
-        HttpServletRequest request = action.getRequest();
-        response.setContentType(toContentType(action));
+        FastHttpServletResponse response = action.getResponse();
+        FastHttpServletRequest request = action.getRequest();
+        response.setContentType(toContentType(action, false));
         response.setCharacterEncoding(getCharset());
 
 
-        WebContext context = new WebContext(request,response,
-                action.getServletContext());
+        Context context = new Context();
+
         Map<String, Object> finalContext = FastChar.getTemplates().getFinalContext();
-        for (String key : finalContext.keySet()) {
-            context.setVariable(key, finalContext.get(key));
+        for (Map.Entry<String, Object> stringObjectEntry : finalContext.entrySet()) {
+            context.setVariable(stringObjectEntry.getKey(), stringObjectEntry.getValue());
+        }
+
+        for (Enumeration<String> attrs = request.getAttributeNames(); attrs.hasMoreElements(); ) {
+            String attrName = attrs.nextElement();
+            context.setVariable(attrName, request.getAttribute(attrName));
         }
 
         for (Enumeration<String> attrs = request.getSession().getAttributeNames(); attrs.hasMoreElements();) {
@@ -48,7 +51,7 @@ public class FastOutThymeleaf extends FastOut<FastOutThymeleaf> {
             context.setVariable(attrName, request.getSession().getAttribute(attrName));
         }
 
-        try (PrintWriter writer = response.getWriter()){
+        try (PrintWriter writer = getWriter(response)) {
             FastChar.getTemplates().getThymeleaf().process(String.valueOf(data),
                     context, writer);
             writer.flush();

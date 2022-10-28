@@ -4,25 +4,24 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.enums.FastDatabaseType;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastStringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.*;
 
 public class FastOracle extends FastSql {
 
     public static boolean isOverride(String type) {
         if (FastStringUtils.isNotEmpty(type)) {
-            return "oracle".equalsIgnoreCase(type);
+            return FastDatabaseType.ORACLE.name().equalsIgnoreCase(type);
         }
         return false;
     }
 
     public FastOracle() {
-        this.type = "oracle";
+        this.type = FastDatabaseType.ORACLE.name().toLowerCase();
     }
 
     @Override
@@ -30,14 +29,20 @@ public class FastOracle extends FastSql {
         if (entity == null) {
             return null;
         }
-        List<String> columns = new ArrayList<>();
-        List<String> placeholders = new ArrayList<>();
-        List<Object> values = new ArrayList<>();
+
         entity.markSetDefaultValue("insert");
         entity.setDefaultValue();
         entity.unmarkSetDefaultValue();
 
-        TreeSet<String> treeKeys = new TreeSet<>(entity.allKeys());
+
+        Set<String> allKeys = entity.allKeys();
+        List<String> columns = new ArrayList<>(allKeys.size());
+        List<String> placeholders = new ArrayList<>(allKeys.size());
+        List<Object> values = new ArrayList<>(allKeys.size());
+        TreeSet<String> treeKeys = new TreeSet<>(allKeys);
+
+        Map<String, Object> keyValue = new LinkedHashMap<>();
+
         for (String key : treeKeys) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
@@ -48,17 +53,15 @@ public class FastOracle extends FastSql {
                 columns.add(key);
                 values.add(columnValue);
                 placeholders.add("?");
+                keyValue.put(key, columnValue);
             }
         }
         if (values.size() == 0) {
             return null;
         }
+
         for (String key : checks) {
-            FastColumnInfo<?> column = entity.getColumn(key);
-            if (column != null) {
-                Object columnValue = getColumnValue(entity, column);
-                values.add(columnValue);
-            }
+            values.add(keyValue.get(key));
         }
 
         FastSqlInfo sqlInfo = newSqlInfo();
@@ -74,7 +77,11 @@ public class FastOracle extends FastSql {
                     " (select " + FastStringUtils.join(checks, ",") + " from " + entity.getTableName() + " where 1=1 ");
 
             for (String check : checks) {
-                sqlStr.append(" and ").append(check).append(" = ? ");
+                boolean exclude = check.charAt(0) == '!';
+                if (exclude) {
+                    check = check.substring(1);
+                }
+                sqlStr.append(" and ").append(check).append(exclude ? " != " : " = ").append(" ? ");
             }
             sqlStr.append(")");
             sqlInfo.setSql(sqlStr.toString());
@@ -89,8 +96,14 @@ public class FastOracle extends FastSql {
     @Override
     public String buildPageSql(String selectSql, int page, int pageSize) {
         if (page > 0) {
-            selectSql = "select * from (select rownum AS _rownum,* from (" + selectSql + ") where _rownum <=" + page * pageSize + ") as me where me._rownum>" + (page - 1) * pageSize;
+            selectSql = "select * from ( select rownum as rownumVal , sub.* from (" + selectSql + ") sub " +
+                    " ) me where me.rownumVal>" + (page - 1) * pageSize + " and me.rownumVal <= " + page * pageSize;
         }
         return selectSql;
     }
+
+    public String getCountSql(String selectSql, String alias) {
+        return "select count(1) as " + alias + " from (" + selectSql + ") rst ";
+    }
+
 }

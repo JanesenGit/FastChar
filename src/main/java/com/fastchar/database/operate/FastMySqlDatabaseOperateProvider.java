@@ -2,22 +2,24 @@ package com.fastchar.database.operate;
 
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
-import com.fastchar.database.*;
+import com.fastchar.database.FastDB;
+import com.fastchar.database.FastResultSet;
+import com.fastchar.database.FastScriptRunner;
+import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
+import com.fastchar.enums.FastDatabaseType;
 import com.fastchar.interfaces.IFastDatabaseOperate;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.FileReader;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * MySql数据库操作
@@ -28,39 +30,55 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         if (data == null) {
             return false;
         }
-        return "mysql".equalsIgnoreCase(data.toString());
+        return FastDatabaseType.MYSQL.name().equalsIgnoreCase(data.toString());
     }
 
     private Set<String> tables = null;
-    private final Map<String, Set<String>> tableColumns = new HashMap<>();
-    private final FastDb fastDb = new FastDb().setLog(false).setUseCache(false);
+    private final Map<String, Set<String>> tableColumns = new HashMap<>(16);
+    private final FastDB fastDB = new FastDB().setLog(false).setUseCache(false);
 
     @Override
     public void fetchDatabaseInfo(FastDatabaseInfo databaseInfo) throws Exception {
-        Connection connection = fastDb.setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getName()).getConnection();
+        Connection connection = fastDB.setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getCode()).getConnection();
         if (connection == null) {
             return;
         }
-        ResultSet resultSet = null;
         try {
             DatabaseMetaData dmd = connection.getMetaData();
             String databaseProductName = dmd.getDatabaseProductName();
             databaseInfo.setProduct(databaseProductName);
             databaseInfo.setVersion(dmd.getDatabaseProductVersion());
-            databaseInfo.setType("mysql");
+            databaseInfo.setType(FastDatabaseType.MYSQL.name().toLowerCase());
             databaseInfo.setUrl(dmd.getURL());
 
-            resultSet = dmd.getTables(databaseInfo.getName(), null, null, new String[]{"table", "TABLE"});
+
+            List<FastEntity<?>> tableColumnIndex = getColumnIndex(databaseInfo);
+            Map<String, Map<String, List<FastEntity<?>>>> tableColumnMap = new HashMap<>();
+            for (FastEntity<?> columnIndex : tableColumnIndex) {
+                String table_name = columnIndex.getString("table_name");
+                if (!tableColumnMap.containsKey(table_name)) {
+                    tableColumnMap.put(table_name, new HashMap<>());
+                }
+                Map<String, List<FastEntity<?>>> stringListMap = tableColumnMap.get(table_name);
+
+                String column_name = columnIndex.getString("column_name");
+                if (!stringListMap.containsKey(column_name)) {
+                    stringListMap.put(column_name, new ArrayList<>());
+                }
+                stringListMap.get(column_name).add(columnIndex);
+            }
+
+
+            ResultSet resultSet = dmd.getTables(databaseInfo.getName(), null, null, new String[]{"table", "TABLE"});
             List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
+
+            fastDB.close(resultSet);
+
             for (FastEntity<?> fastEntity : listResult) {
                 String table_name = fastEntity.getString("table_name");
-                FastTableInfo<?> tableInfo = databaseInfo.getTableInfo(table_name);
-                if (tableInfo == null) {
-                    tableInfo = FastTableInfo.newInstance();
-                    tableInfo.setName(table_name);
-                    tableInfo.setComment(fastEntity.getString("remarks"));
-                    databaseInfo.getTables().add(tableInfo);
-                }
+                FastTableInfo<?> tableInfo = FastTableInfo.newInstance();
+                tableInfo.setName(table_name);
+                tableInfo.setExist(true);
 
                 //检索主键
                 ResultSet keyRs = dmd.getPrimaryKeys(null, null, tableInfo.getName());
@@ -70,17 +88,22 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                     if (FastStringUtils.isEmpty(column_name)) {
                         continue;
                     }
-                    FastColumnInfo<?> columnInfo = tableInfo.getColumnInfo(column_name);
-                    if (columnInfo == null) {
-                        columnInfo = FastColumnInfo.newInstance();
-                        columnInfo.setName(column_name);
-                        tableInfo.getColumns().add(columnInfo);
-                    }
+                    FastColumnInfo<?> columnInfo = FastColumnInfo.newInstance();
+                    columnInfo.setName(column_name);
+                    columnInfo.setExist(true);
                     columnInfo.setPrimary("true");
-                }
-                keyRs.close();
 
-                //检索列
+                    tableInfo.addColumn(columnInfo);
+                }
+                fastDB.close(keyRs);
+
+
+                Map<String, List<FastEntity<?>>> columnIndexMap = tableColumnMap.get(tableInfo.getName());
+                if (columnIndexMap == null) {
+                    columnIndexMap = new HashMap<>();
+                }
+
+                //获取表格的所有列
                 String sqlStr = String.format("select * from %s where 1=0 ", tableInfo.getName());
                 PreparedStatement statement = null;
                 ResultSet columnsRs = null;
@@ -88,57 +111,47 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                     statement = connection.prepareStatement(sqlStr);
                     columnsRs = statement.executeQuery();
                     ResultSetMetaData data = columnsRs.getMetaData();
-                    for (int i = 1; i < data.getColumnCount() + 1; i++) {
+                    int totalCount = data.getColumnCount() + 1;
+                    for (int i = 1; i < totalCount; i++) {
                         String columnName = data.getColumnName(i);
                         String type = data.getColumnTypeName(i).toLowerCase();
                         int displaySize = data.getColumnDisplaySize(i);
                         int nullable = data.isNullable(i);
                         boolean isAutoIncrement = data.isAutoIncrement(i);
-                        //                        int precision = data.getPrecision(i);
-//                        int scale = data.getScale(i);
 
-                        if (displaySize >= 715827882) {
-                            type = "longtext";
-                        } else if (displaySize >= 21845) {
-                            type = "text";
+                        FastColumnInfo<?> columnInfo = FastColumnInfo.newInstance();
+                        columnInfo.setName(columnName);
+                        columnInfo.setType(type);
+                        columnInfo.setAutoincrement(String.valueOf(isAutoIncrement));
+                        if (nullable == ResultSetMetaData.columnNoNulls) {
+                            columnInfo.setNullable("not null");
+                        } else {
+                            columnInfo.setNullable("null");
+                        }
+                        List<FastEntity<?>> indexEntityList = columnIndexMap.get(columnName);
+                        if (indexEntityList == null) {
+                            indexEntityList = new ArrayList<>();
                         }
 
-                        FastColumnInfo<?> columnInfo = tableInfo.getColumnInfo(columnName);
-                        if (columnInfo == null) {
-                            columnInfo = FastColumnInfo.newInstance();
-                            columnInfo.setName(columnName);
-                            columnInfo.setType(type);
-                            columnInfo.setAutoincrement(String.valueOf(isAutoIncrement));
-                            if (nullable == ResultSetMetaData.columnNoNulls) {
-                                columnInfo.setNullable("not null");
-                            } else {
-                                columnInfo.setNullable("null");
-                            }
-                            String index = getColumnIndex(databaseInfo.getName(), tableInfo.getName(), columnName);
-                            columnInfo.setIndex(formatIndex(index));
-                            columnInfo.fromProperty();
-                            tableInfo.getColumns().add(columnInfo);
+                        for (FastEntity<?> entity : indexEntityList) {
+                            columnInfo.setIndex(formatIndex(entity.getString("index_name")));
                         }
+
+                        columnInfo.setExist(true);
+                        columnInfo.put("index_array", indexEntityList);
+                        columnInfo.setDisplaySize(displaySize);
                         if (FastStringUtils.isEmpty(columnInfo.getType())) {
                             columnInfo.setType(type);
                         }
-                        if (FastStringUtils.isEmpty(columnInfo.getComment())) {
-                            columnInfo.setComment(getColumnComment(databaseInfo, tableInfo, columnInfo));
-                        }
-//                        if (!columnInfo.getType().contains("text")) {
-//                            if (FastStringUtils.isEmpty(columnInfo.getLength())) {
-//                                columnInfo.setLength(String.valueOf(displaySize));
-//                            }
-//                        }
+                        tableInfo.addColumn(columnInfo);
                     }
                 } finally {
-                    fastDb.close(statement, columnsRs);
+                    fastDB.close(statement, columnsRs);
+                    databaseInfo.addTable(tableInfo);
                 }
-                tableInfo.fromProperty();
             }
-            databaseInfo.fromProperty();
         } finally {
-            fastDb.close(connection, resultSet);
+            fastDB.close(connection);
         }
     }
 
@@ -146,8 +159,8 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
     private String getColumnComment(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo) throws Exception {
         try {
             String sqlStr = String.format("SHOW FULL COLUMNS FROM %s  where FIELD = '%s' ", tableInfo.getName(), columnInfo.getName());
-            FastEntity<?> first = fastDb.setLog(false)
-                    .setDatabase(databaseInfo.getName())
+            FastEntity<?> first = fastDB.setLog(false)
+                    .setDatabase(databaseInfo.getCode())
                     .setIgnoreCase(databaseInfo.isIgnoreCase())
                     .selectFirst(sqlStr);
             if (first != null) {
@@ -181,13 +194,13 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             String sqlStr = String.format("create database if not exists %s default character set utf8mb4 collate utf8mb4_general_ci", databaseInfo.getName());
             statement.executeUpdate(sqlStr);
         } finally {
-            fastDb.close(connection, statement);
+            fastDB.close(connection, statement);
         }
     }
 
     @Override
     public boolean checkTableExists(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo) throws Exception {
-        Connection connection = fastDb.setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getName()).getConnection();
+        Connection connection = fastDB.setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getCode()).getConnection();
         if (connection == null) {
             return true;
         }
@@ -208,7 +221,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                 }
             }
         } finally {
-            fastDb.close(connection, resultSet);
+            fastDB.close(connection, resultSet);
         }
         if (databaseInfo.isIgnoreCase()) {
             return tables.contains(tableInfo.getName().toLowerCase());
@@ -219,9 +232,17 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
     @Override
     public void createTable(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo) throws Exception {
         try {
-            List<String> columnSql = new ArrayList<>();
-            List<String> primaryKey = new ArrayList<>();
-            for (FastColumnInfo<?> column : tableInfo.getColumns()) {
+            List<String> columnSql = new ArrayList<>(16);
+            List<String> primaryKey = new ArrayList<>(5);
+            List<FastColumnInfo<?>> columns = new ArrayList<>(tableInfo.getColumns());
+            Collections.sort(columns, new Comparator<FastColumnInfo<?>>() {
+                @Override
+                public int compare(FastColumnInfo<?> o1, FastColumnInfo<?> o2) {
+                    return Integer.compare(o1.getSortIndex(), o2.getSortIndex());
+                }
+            });
+
+            for (FastColumnInfo<?> column : columns) {
                 columnSql.add(buildColumnSql(column));
                 if (column.isPrimary()) {
                     primaryKey.add(column.getName());
@@ -232,29 +253,35 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             }
             String sql = String.format(" create table if not exists %s ( %s ) comment = '%s' ;", tableInfo.getName(), FastStringUtils.join(columnSql, ","), tableInfo.getComment());
 
-            fastDb.setLog(true).setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getName()).update(sql);
+            fastDB.setLog(true).setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getCode()).update(sql);
+
+            for (FastColumnInfo<?> column : columns) {
+                alterColumnIndex(databaseInfo, tableInfo.getName(), column);
+            }
+
             if (databaseInfo.getDefaultData().containsKey(tableInfo.getName())) {
                 for (FastSqlInfo sqlInfo : databaseInfo.getDefaultData().get(tableInfo.getName())) {
-                    fastDb.setLog(true).setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getName()).update(sqlInfo.getSql(), sqlInfo.toParams());
+                    fastDB.setLog(true).setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getCode()).update(sqlInfo.getSql(), sqlInfo.toParams());
                 }
             }
+
             if (FastStringUtils.isNotEmpty(tableInfo.getData())) {
                 File file = new File(tableInfo.getData());
                 if (file.exists() && file.getName().toLowerCase().endsWith(".sql")) {
-                    FastScriptRunner scriptRunner = new FastScriptRunner(fastDb.setLog(true).setDatabase(databaseInfo.getName()).getConnection());
-                    scriptRunner.setLogWriter(null);
+                    FastScriptRunner scriptRunner = new FastScriptRunner(fastDB.setLog(true).setDatabase(databaseInfo.getCode()).getConnection());
                     scriptRunner.runScript(new FileReader(file));
                     scriptRunner.closeConnection();
                 }
             }
+
         } finally {
-            FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO1, databaseInfo.getName(), tableInfo.getName()));
+            FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO1, databaseInfo.getCode(), tableInfo.getName()));
         }
     }
 
     @Override
     public boolean checkColumnExists(FastDatabaseInfo databaseInfo, FastTableInfo<?> tableInfo, FastColumnInfo<?> columnInfo) throws Exception {
-        Connection connection = fastDb.setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getName()).getConnection();
+        Connection connection = fastDB.setIgnoreCase(databaseInfo.isIgnoreCase()).setDatabase(databaseInfo.getCode()).getConnection();
         if (connection == null) {
             return true;
         }
@@ -290,7 +317,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             }
             return tableColumns.get(realTableName).contains(columnInfo.getName());
         } finally {
-            fastDb.close(connection, statement, resultSet);
+            fastDB.close(connection, statement, resultSet);
         }
     }
 
@@ -299,7 +326,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         try {
             String sql = String.format("alter table %s add %s", tableInfo.getName(), buildColumnSql(columnInfo));
             if (columnInfo.isPrimary()) {
-                List<String> keys = getKeys(databaseInfo.getName(), tableInfo.getName());
+                List<String> keys = getKeys(databaseInfo, tableInfo.getName());
                 if (!keys.contains(columnInfo.getName())) {
                     sql += ",";
                     if (keys.size() > 0) {
@@ -309,11 +336,11 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                     sql += "add primary key (" + FastStringUtils.join(keys, ",") + ") using btree;";
                 }
             }
-            fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(sql);
+            fastDB.setLog(true).setDatabase(databaseInfo.getCode()).update(sql);
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
             FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO2, databaseInfo.getName(), tableInfo.getName(), columnInfo.getName()));
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO2, databaseInfo.getCode(), tableInfo.getName(), columnInfo.getName()));
         }
     }
 
@@ -322,7 +349,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         try {
             String sql = String.format("alter table %s modify %s ", tableInfo.getName(), buildColumnSql(columnInfo));
             if (columnInfo.isPrimary()) {
-                List<String> keys = getKeys(databaseInfo.getName(), tableInfo.getName());
+                List<String> keys = getKeys(databaseInfo, tableInfo.getName());
                 if (!keys.contains(columnInfo.getName())) {
                     sql += ",";
                     if (keys.size() > 0) {
@@ -332,11 +359,11 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
                     sql += "add primary key (" + FastStringUtils.join(keys, ",") + ") using btree;";
                 }
             }
-            fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(sql);
+            fastDB.setLog(true).setDatabase(databaseInfo.getCode()).update(sql);
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
             FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO3, databaseInfo.getName(),
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO3, databaseInfo.getCode(),
                             tableInfo.getName(), columnInfo.getName()));
         }
     }
@@ -349,48 +376,67 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
 
             String indexName = String.format("%s_OF_%s", columnName, convertIndex.toUpperCase());
 
-            String oldIndexName = getColumnIndex(databaseInfo.getName(), tableName, columnName);
-            //如果数据库存在了此列索引，则跳过
-            if (FastStringUtils.isNotEmpty(oldIndexName)) {
-                return;
+            List<FastEntity<?>> oldIndexEntityList = getColumnIndex(databaseInfo, tableName, columnName);
+            for (FastEntity<?> fastEntity : oldIndexEntityList) {
+                //如果数据库存在了此列索引则跳过，不做二次操作，避免照成手动配置错乱
+                if (fastEntity.getString("index_name", "none").equalsIgnoreCase(indexName)) {
+                    return;
+                }
             }
 
-            if (StringUtils.isNotEmpty(oldIndexName)) {
-                String deleteIndexStr = "drop index " + oldIndexName + " on " + tableName + ";";
-                fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(deleteIndexStr);
-            }
             String createIndexSql = String.format("alter table %s add %s index %s (%s%s)", tableName, convertIndex,
                     indexName, columnName, getIndexMaxLength(getLength(columnInfo), getType(columnInfo)));
-            fastDb.setLog(true).setDatabase(databaseInfo.getName()).update(createIndexSql);
-            FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
-                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO4, databaseInfo.getName(), tableName, columnInfo.getName(), indexName));
-        }
-    }
 
-
-    private String getColumnIndex(String databaseName, String tableName, String columnName) {
-        try {
-            String checkIndexSql = String.format("select index_name  from information_schema.statistics where table_name = '%s'" +
-                    "  and column_name='%s' and table_schema='%s' ", tableName, columnName, databaseName);
-
-            FastEntity<?> fastEntity = fastDb.setLog(false)
-                    .setDatabase(databaseName)
-                    .selectFirst(checkIndexSql);
-            if (fastEntity != null) {
-                return fastEntity.getString("index_name", "");
+            //配置了全文索引，使用ngram检索引擎
+            if (convertIndex.equalsIgnoreCase("fulltext")) {
+                createIndexSql += " with parser ngram ";
             }
-        } catch (Exception ignored) {
+
+            fastDB.setLog(true).setDatabase(databaseInfo.getCode()).update(createIndexSql);
+            FastChar.getLog().info(FastMySqlDatabaseOperateProvider.class,
+                    FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO4, databaseInfo.getCode(), tableName, columnInfo.getName(), indexName));
         }
-        return "";
     }
 
-    private List<String> getKeys(String databaseName, String tableName) {
-        List<String> keys = new ArrayList<>();
+
+    private List<FastEntity<?>> getColumnIndex(FastDatabaseInfo databaseInfo, String tableName, String columnName) {
+        try {
+            String checkIndexSql = String.format("select index_name ,index_type  from information_schema.statistics where table_name = '%s'" +
+                    "  and column_name='%s' and table_schema='%s' ", tableName, columnName, databaseInfo.getName());
+
+            return fastDB.setLog(false)
+                    .setDatabase(databaseInfo.getCode())
+                    .setIgnoreCase(true)
+                    .select(checkIndexSql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    private List<FastEntity<?>> getColumnIndex(FastDatabaseInfo databaseInfo) {
+        try {
+            String checkIndexSql = String.format("select index_name ,index_type,column_name,table_name  from information_schema.statistics where 1=1 " +
+                    " and table_schema='%s' ", databaseInfo.getName());
+
+            return fastDB.setLog(false)
+                    .setDatabase(databaseInfo.getCode())
+                    .setIgnoreCase(true)
+                    .select(checkIndexSql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+
+    private List<String> getKeys(FastDatabaseInfo databaseInfo, String tableName) {
+        List<String> keys = new ArrayList<>(5);
         try {
             String checkKeysSql = String.format("select column_name  from information_schema.key_column_usage where table_name = '%s'" +
-                    "  and table_schema='%s'", tableName, databaseName);
-            List<FastEntity<?>> select = fastDb.setLog(false)
-                    .setDatabase(databaseName)
+                    "  and table_schema='%s'", tableName, databaseInfo.getName());
+            List<FastEntity<?>> select = fastDB.setLog(false)
+                    .setDatabase(databaseInfo.getCode())
                     .select(checkKeysSql);
             for (FastEntity<?> fastEntity : select) {
                 String column_name = fastEntity.getString("column_name", "");
@@ -428,7 +474,7 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         if (indexName.endsWith("_OF_")) {
             return "true";
         }
-        String[] of_s = indexName.split("_OF_");
+        String[] of_s = FastStringUtils.splitByWholeSeparator(indexName, "_OF_");
         if (of_s.length > 1) {
             indexName = of_s[1];
         }
@@ -442,18 +488,22 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
         StringBuilder stringBuilder = new StringBuilder(columnInfo.getName());
         stringBuilder.append(" ");
         stringBuilder.append(getType(columnInfo));
-
         String length = getLength(columnInfo);
         if (FastStringUtils.isNotEmpty(length)) {
             stringBuilder.append(" (").append(length).append(") ");
         }
+
+        if (columnInfo.isAutoincrement()) {
+            stringBuilder.append(" unsigned ");
+        }
+
         if (FastType.isStringType(getType(columnInfo))) {
             stringBuilder.append(" character set ").append(FastStringUtils.defaultValue(columnInfo.getCharset(),
                     " utf8mb4 collate utf8mb4_general_ci "));
         }
 
         if (columnInfo.isAutoincrement()) {
-            stringBuilder.append(" auto_increment ");
+            stringBuilder.append(" auto_increment  ");
         }
 
         stringBuilder.append(" ");
@@ -494,10 +544,10 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
             return null;
         } else if (FastType.isStringType(type)) {
             if (FastStringUtils.isEmpty(length)) {
+                if (columnInfo.isPrimary()) {
+                    return "188";
+                }
                 return "500";
-            }
-            if (columnInfo.isPrimary()) {
-                return "250";
             }
         } else if (FastType.isSqlDateType(type) || FastType.isSqlTimeType(type) || FastType.isTimestampType(type)) {
             return null;
@@ -506,11 +556,11 @@ public class FastMySqlDatabaseOperateProvider implements IFastDatabaseOperate {
     }
 
     private String getType(FastColumnInfo<?> columnInfo) {
-        return FastType.convertType("mysql", columnInfo.getType());
+        return FastType.convertType(FastDatabaseType.MYSQL.name().toLowerCase(), columnInfo.getType());
     }
 
 
-    public String getIndexMaxLength(String length,String type) {
+    public String getIndexMaxLength(String length, String type) {
         if ("fulltext".equals(type.toLowerCase())) {
             return "";
         }

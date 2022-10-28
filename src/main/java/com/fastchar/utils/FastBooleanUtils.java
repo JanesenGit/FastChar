@@ -29,6 +29,12 @@ public class FastBooleanUtils {
                 if ("false".equalsIgnoreCase(string)) {
                     return false;
                 }
+                if ("on".equalsIgnoreCase(string)) {
+                    return true;
+                }
+                if ("off".equalsIgnoreCase(string)) {
+                    return false;
+                }
                 int intValue = FastNumberUtils.formatToInt(string, -1);
                 if (intValue == 0) {
                     return false;

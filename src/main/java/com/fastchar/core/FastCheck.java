@@ -16,7 +16,7 @@ final class FastCheck<T> {
         this.target = target;
     }
 
-    private List<String> validators = new ArrayList<>();
+    private final List<String> validators = new ArrayList<>(16);
     public T check(int index,String validator) {
         if (rollback) {
             rollback = false;

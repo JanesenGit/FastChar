@@ -13,4 +13,5 @@ public interface IFastInterceptor {
      * @throws Exception 异常
      */
     void onInterceptor(FastAction fastAction) throws Exception;
+
 }

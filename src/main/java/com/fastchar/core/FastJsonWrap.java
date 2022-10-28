@@ -26,7 +26,12 @@ public class FastJsonWrap {
 
     public FastJsonWrap(String json) {
         if (FastStringUtils.isNotEmpty(json)) {
-            this.jsonObject = FastChar.getJson().fromJson(json, Object.class);
+            try {
+                this.jsonObject = FastChar.getJson().fromJson(json, Object.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+                this.jsonObject = null;
+            }
         }
     }
 

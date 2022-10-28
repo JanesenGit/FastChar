@@ -1,14 +1,15 @@
 package com.fastchar.database;
 
+import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
-import com.fastchar.core.FastEngine;
 import com.fastchar.core.FastEntity;
+import com.fastchar.core.FastHandler;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
-
 import com.fastchar.database.sql.FastSql;
 import com.fastchar.interfaces.IFastCache;
 import com.fastchar.interfaces.IFastSqlListener;
+import com.fastchar.interfaces.IFastSqlOperateListener;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastNumberUtils;
@@ -23,24 +24,51 @@ import java.util.concurrent.ConcurrentSkipListSet;
  * 数据库sql操作
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
-public class FastDb {
+public class FastDB {
     private static final ConcurrentSkipListSet<String> CACHE_TABLE = new ConcurrentSkipListSet<>();
-    private static final ThreadLocal<FastTransaction> TRANSACTION_THREAD_LOCAL = new ThreadLocal<FastTransaction>();
 
-    public static boolean isTransaction() {
-        FastTransaction fastTransaction = TRANSACTION_THREAD_LOCAL.get();
-        return fastTransaction != null && fastTransaction.isValid();
+    private FastDatabaseTransaction fastTransaction;
+
+    /**
+     * 是否开启了事务
+     * @return 布尔值
+     */
+    public boolean isTransaction() {
+        return (fastTransaction != null && fastTransaction.isValid());
     }
 
-    public static FastTransaction doTransaction() {
-        FastTransaction fastTransaction = new FastTransaction();
-        TRANSACTION_THREAD_LOCAL.set(fastTransaction);
-        return fastTransaction;
+    /**
+     * 开启事务
+     */
+    public synchronized void beginTransaction() {
+        if (isTransaction()) {
+            return;
+        }
+        fastTransaction = new FastDatabaseTransaction();
+    }
+
+    /**
+     * 结束事务
+     */
+    public synchronized void endTransaction() {
+        if (fastTransaction != null && fastTransaction.isValid()) {
+            fastTransaction.commit();
+        }
+    }
+
+    /**
+     * 回滚事务
+     */
+    public synchronized void rollbackTransaction() {
+        if (fastTransaction != null && fastTransaction.isValid()) {
+            fastTransaction.rollback();
+        }
     }
 
 
     private boolean log = true;
     private boolean listener = true;
+    private boolean operateListener = true;
     private boolean useCache = true;
     private boolean cache;
     private String database;
@@ -48,11 +76,15 @@ public class FastDb {
     private long firstBuildTime;
     private long lastBuildTime;
     private boolean ignoreCase = false;
-    private FastDatabaseInfo databaseInfo;
+    private volatile FastDatabaseInfo databaseInfo;
 
     private FastDatabaseInfo getDatabaseInfo() {
         if (databaseInfo == null) {
-            databaseInfo = FastChar.getDatabases().get(database);
+            synchronized (FastDB.class) {
+                if (databaseInfo == null) {
+                    databaseInfo = FastChar.getDatabases().get(database);
+                }
+            }
         }
         return databaseInfo;
     }
@@ -66,28 +98,30 @@ public class FastDb {
         if (dataSource == null) {
             return null;
         }
-        FastTransaction fastTransaction = TRANSACTION_THREAD_LOCAL.get();
-        if (fastTransaction != null) {
-            if (fastTransaction.isValid()) {
-                if (!fastTransaction.contains(databaseInfo.getName())) {
-                    fastTransaction.setConnection(databaseInfo.getName(), dataSource.getConnection());
-                }
-                return fastTransaction.getConnection(databaseInfo.getName());
-            }
-            TRANSACTION_THREAD_LOCAL.remove();
+
+        Connection connection = dataSource.getConnection();
+
+        if (fastTransaction != null && fastTransaction.isValid()) {
+            fastTransaction.registerConnection(connection);
         }
-        return dataSource.getConnection();
+
+        FastDatabaseTransaction threadTransaction = FastDatabaseTransaction.getThreadTransaction();
+        if (threadTransaction != null && threadTransaction.isValid()) {
+            threadTransaction.registerConnection(connection);
+        }
+        return connection;
     }
+
 
     private String buildCacheKeyBySql(String sqlStr, Object... params) {
         FastDatabaseInfo fastDatabaseInfo = getDatabaseInfo();
-        return FastChar.getSecurity().MD5_Encrypt(fastDatabaseInfo.getName() + sqlStr + Arrays.toString(params));
+        return FastChar.getSecurity().MD5_Encrypt(fastDatabaseInfo.getCode() + sqlStr + Arrays.toString(params));
     }
 
     private String buildCacheTag(String... tableNames) {
         FastDatabaseInfo fastDatabaseInfo = getDatabaseInfo();
         for (int i = 0; i < tableNames.length; i++) {
-            tableNames[i] = fastDatabaseInfo.getName() + "@" + tableNames[i];
+            tableNames[i] = fastDatabaseInfo.getCode() + "@" + tableNames[i];
         }
         return "@" + FastStringUtils.join(tableNames, "@") + "@";
     }
@@ -107,6 +141,19 @@ public class FastDb {
      * @return FastEntity集合
      */
     public List<FastEntity<?>> select(String sqlStr, Object... params) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                List<FastEntity<?>> result = iFastSqlOperateListener.select(handler, sqlStr, params);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         if (FastStringUtils.isEmpty(sqlStr)) {
             return new ArrayList<>();
         }
@@ -135,7 +182,7 @@ public class FastDb {
             if (connection == null) {
                 return null;
             }
-            preparedStatement = connection.prepareStatement(sqlStr);
+            preparedStatement = connection.prepareStatement(sqlStr, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             for (int i = 0; i < params.length; i++) {
                 Object value = params[i];
                 if (value != null) {
@@ -170,6 +217,19 @@ public class FastDb {
      * @throws Exception 异常信息
      */
     public FastPage<FastEntity<?>> select(int page, int pageSize, String sqlStr, Object... params) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                FastPage<FastEntity<?>> result = iFastSqlOperateListener.select(handler, page,pageSize,sqlStr, params);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         if (FastStringUtils.isEmpty(sqlStr)) {
             return new FastPage<>();
         }
@@ -193,8 +253,7 @@ public class FastDb {
             fastPage.setPage(1);
         }
         String pageSql = FastSql.getInstance(type).buildPageSql(sqlStr, page, pageSize);
-        FastSqlInfo fastSqlInfo = FastSqlInfo.newInstance().setSql(sqlStr).setParams(params);
-        fastSqlInfo.fromProperty();
+        FastSqlInfo fastSqlInfo = FastSqlInfo.newInstance().setType(type).setSql(sqlStr).setParams(params);
         fastPage.setSqlInfo(fastSqlInfo);
         fastPage.setList(select(pageSql, params));
         if (page < 0) {
@@ -213,6 +272,19 @@ public class FastDb {
      * @return FastEntity
      */
     public FastEntity<?> selectFirst(String sqlStr, Object... params) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                FastEntity<?> result = iFastSqlOperateListener.selectFirst(handler,sqlStr, params);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         if (FastStringUtils.isEmpty(sqlStr)) {
             return null;
         }
@@ -241,7 +313,8 @@ public class FastDb {
             if (connection == null) {
                 return null;
             }
-            preparedStatement = connection.prepareStatement(sqlStr);
+
+            preparedStatement = connection.prepareStatement(sqlStr, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             for (int i = 0; i < params.length; i++) {
                 Object value = params[i];
                 if (value != null) {
@@ -261,15 +334,15 @@ public class FastDb {
             int fetchSize = 0;
             try {
                 fetchSize = -1;
-                if (resultSet != null) {
-                    if (FastChar.getConstant().isLogSql() && isLog()) {
-                        if (getDatabaseInfo().isMySql() || getDatabaseInfo().isOracle()) {
-                            resultSet.last();
-                            fetchSize = resultSet.getRow();
-                        }
+                if (resultSet != null && FastChar.getConstant().isLogSql() && isLog()
+                        && (getDatabaseInfo().isMySql() || getDatabaseInfo().isOracle())) {
+                    if (!resultSet.isLast()) {
+                        resultSet.last();
                     }
+                    fetchSize = resultSet.getRow();
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                e.printStackTrace();
             }
             close(connection, preparedStatement, resultSet);
             log(sqlStr, params, fetchSize);
@@ -285,6 +358,19 @@ public class FastDb {
      * @return FastEntity
      */
     public FastEntity<?> selectLast(String sqlStr, Object... params) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                FastEntity<?> result = iFastSqlOperateListener.selectLast(handler,sqlStr, params);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         if (FastStringUtils.isEmpty(sqlStr)) {
             return null;
         }
@@ -312,7 +398,7 @@ public class FastDb {
             if (connection == null) {
                 return null;
             }
-            preparedStatement = connection.prepareStatement(sqlStr);
+            preparedStatement = connection.prepareStatement(sqlStr, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             for (int i = 0; i < params.length; i++) {
                 Object value = params[i];
                 if (value != null) {
@@ -332,21 +418,38 @@ public class FastDb {
             int fetchSize = 0;
             try {
                 fetchSize = -1;
-                if (resultSet != null) {
-                    if (FastChar.getConstant().isLogSql() && isLog()) {
-                        if (getDatabaseInfo().isMySql() || getDatabaseInfo().isOracle()) {
-                            resultSet.last();
-                            fetchSize = resultSet.getRow();
-                        }
+                if (resultSet != null && FastChar.getConstant().isLogSql() && isLog()
+                        && (getDatabaseInfo().isMySql() || getDatabaseInfo().isOracle())) {
+                    if (!resultSet.isLast()) {
+                        resultSet.last();
                     }
+                    fetchSize = resultSet.getRow();
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                e.printStackTrace();
             }
             close(connection, preparedStatement, resultSet);
             log(sqlStr, params, fetchSize);
         }
     }
 
+    /**
+     * 清除表格的缓存数据
+     *
+     * @param tables 表格名称
+     */
+    public void clearCache(String... tables) {
+        for (String table : tables) {
+            if (CACHE_TABLE.contains(table)) {
+                IFastCache iFastCacheProvider = FastChar.getCache();
+                Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
+                for (String tag : tags) {
+                    iFastCacheProvider.delete(tag);
+                }
+                CACHE_TABLE.remove(table);
+            }
+        }
+    }
 
     /**
      * 执行更新sql
@@ -356,22 +459,26 @@ public class FastDb {
      * @return 更新成功的数量
      */
     public int update(String sqlStr, Object... params) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                int result = iFastSqlOperateListener.update(handler,sqlStr, params);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         if (FastStringUtils.isEmpty(sqlStr)) {
             return 0;
         }
         inTime = System.currentTimeMillis();
         if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-            for (String table : allTables) {
-                if (CACHE_TABLE.contains(table)) {
-                    IFastCache iFastCacheProvider = FastChar.getCache();
-                    Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                    for (String tag : tags) {
-                        iFastCacheProvider.delete(tag);
-                    }
-                    CACHE_TABLE.remove(table);
-                }
-            }
+            clearCache(allTables.toArray(new String[]{}));
         }
 
         int count = 0;
@@ -409,22 +516,26 @@ public class FastDb {
      * @return 主键
      */
     public int insert(String sqlStr, Object... params) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                int result = iFastSqlOperateListener.insert(handler,sqlStr, params);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         if (FastStringUtils.isEmpty(sqlStr)) {
             return 0;
         }
         inTime = System.currentTimeMillis();
         if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-            for (String table : allTables) {
-                if (CACHE_TABLE.contains(table)) {
-                    IFastCache iFastCacheProvider = FastChar.getCache();
-                    Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                    for (String tag : tags) {
-                        iFastCacheProvider.delete(tag);
-                    }
-                    CACHE_TABLE.remove(table);
-                }
-            }
+            clearCache(allTables.toArray(new String[]{}));
         }
 
         int primary = 0;
@@ -452,17 +563,7 @@ public class FastDb {
                 primary = resultSet.getInt(1);
             }
         } finally {
-            try {
-                int fetchSize = 0;
-                if (resultSet != null) {
-                    if (FastChar.getConstant().isLogSql() && isLog()) {
-                        resultSet.last();
-                        fetchSize = resultSet.getRow();
-                    }
-                }
-                log(sqlStr, params, fetchSize);
-            } catch (Exception ignored) {
-            }
+            log(sqlStr, params, 1);
             close(connection, preparedStatement, resultSet);
         }
         return primary;
@@ -470,13 +571,26 @@ public class FastDb {
 
 
     /**
-     * 执行复杂Sql
+     * 执行复杂Sql，注意：sql文件的执行，请使用FastScriptRunner 运行
      *
-     * @param sql 语句
+     * @param sqlStr 语句
      * @return 是否成功
      * @throws Exception 异常信息
      */
-    public boolean run(String sql) throws Exception {
+    public boolean run(String sqlStr) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                boolean result = iFastSqlOperateListener.run(handler,sqlStr);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         inTime = System.currentTimeMillis();
         Connection connection = null;
         Statement statement = null;
@@ -487,12 +601,13 @@ public class FastDb {
                 return false;
             }
             statement = connection.createStatement();
-            return statement.execute(sql);
+            return statement.execute(sqlStr);
         } finally {
             close(connection, statement);
-            log(sql, null, -1);
+            log(sqlStr, null, -1);
         }
     }
+
 
     /**
      * 批量执行sql
@@ -504,6 +619,7 @@ public class FastDb {
         return batch(Arrays.asList(sqlArray), batchSize);
     }
 
+
     /**
      * 批量执行sql
      *
@@ -511,6 +627,19 @@ public class FastDb {
      * @return 执行结果
      */
     public int[] batch(List<String> sqlList, int batchSize) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                int[] result = iFastSqlOperateListener.batch(handler,sqlList,batchSize);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+        }
+
         if (sqlList == null) {
             return new int[0];
         }
@@ -518,28 +647,19 @@ public class FastDb {
         if (isUseCache()) {
             for (String sqlStr : sqlList) {
                 List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-                for (String table : allTables) {
-                    if (CACHE_TABLE.contains(table)) {
-                        IFastCache iFastCacheProvider = FastChar.getCache();
-                        Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                        for (String tag : tags) {
-                            iFastCacheProvider.delete(tag);
-                        }
-                        CACHE_TABLE.remove(table);
-                    }
-                }
+                clearCache(allTables.toArray(new String[]{}));
             }
         }
 
         Connection connection = null;
         Statement statement = null;
         try {
-            List<Integer> result = new ArrayList<>();
-            int count = 0;
             connection = getConnection();
             if (connection == null) {
                 return new int[0];
             }
+            List<Integer> result = new ArrayList<>();
+            int count = 0;
             statement = connection.createStatement();
             for (String sql : sqlList) {
                 statement.addBatch(sql);
@@ -550,7 +670,6 @@ public class FastDb {
                         if (integers != null) {
                             result.addAll(Arrays.asList(integers));
                         }
-                    } catch (Exception ignored) {
                     } finally {
                         statement.clearBatch();
                     }
@@ -576,6 +695,20 @@ public class FastDb {
      * @param params 参数数据的数组
      */
     public int[] batch(String sqlStr, List<Object[]> params, int batchSize) throws Exception {
+        if (isOperateListener()) {
+            List<IFastSqlOperateListener> iFastSqlOperateListeners = FastChar.getOverrides().singleInstances(false, IFastSqlOperateListener.class);
+            for (IFastSqlOperateListener iFastSqlOperateListener : iFastSqlOperateListeners) {
+                FastHandler handler = new FastHandler();
+                handler.setCode(-1);
+                handler.put("database", getDatabase());
+                int[] result = iFastSqlOperateListener.batch(handler, sqlStr, params, batchSize);
+                if (handler.getCode() == 0) {//拦截执行
+                    return result;
+                }
+            }
+
+        }
+
         if (FastStringUtils.isEmpty(sqlStr)) {
             return new int[0];
         }
@@ -597,11 +730,11 @@ public class FastDb {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         try {
-            int count = 0;
             connection = getConnection();
             if (connection == null) {
                 return new int[0];
             }
+            int count = 0;
             List<Integer> result = new ArrayList<>();
             preparedStatement = connection.prepareStatement(sqlStr);
             if (params != null) {
@@ -626,7 +759,6 @@ public class FastDb {
                             if (integers != null) {
                                 result.addAll(Arrays.asList(integers));
                             }
-                        } catch (Exception ignored) {
                         } finally {
                             preparedStatement.clearBatch();
                         }
@@ -645,8 +777,10 @@ public class FastDb {
         }
     }
 
+
+
     /**
-     * 批量添加FastEntity实体集合
+     * 批量添加FastEntity实体集合，注意：如果数据量超过百万级别，建议自主拼接静态SQL语句，避免多余逻辑照成耗时过长
      *
      * @param entities  FastEntity实体集合
      * @param batchSize 单次批量提交的数据大小
@@ -659,7 +793,7 @@ public class FastDb {
     }
 
     /**
-     * 批量添加FastEntity实体集合
+     * 批量添加FastEntity实体集合，注意：如果数据量超过百万级别，建议自主拼接静态SQL语句，避免多余逻辑照成耗时过长
      *
      * @param staticSql 是否转为静态语句执行
      * @param entities  FastEntity实体集合
@@ -699,8 +833,8 @@ public class FastDb {
             }
             lastBuildTime = System.currentTimeMillis();
             List<Integer> result = new ArrayList<>();
-            for (String sql : batchSqlMap.keySet()) {
-                int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
+            for (Map.Entry<String, List<Object[]>> stringListEntry : batchSqlMap.entrySet()) {
+                int[] batch = this.batch(stringListEntry.getKey(), stringListEntry.getValue(), batchSize);
                 for (int i : batch) {
                     result.add(i);
                 }
@@ -710,7 +844,7 @@ public class FastDb {
     }
 
     /**
-     * 批量更新FastEntity实体集合
+     * 批量更新FastEntity实体集合，注意：如果数据量超过百万级别，建议自主拼接静态SQL语句，避免多余逻辑照成耗时过长
      *
      * @param entities  FastEntity实体集合
      * @param batchSize 单次批量提交的数据大小
@@ -723,7 +857,7 @@ public class FastDb {
     }
 
     /**
-     * 批量更新FastEntity实体集合
+     * 批量更新FastEntity实体集合，注意：如果数据量超过百万级别，建议自主拼接静态SQL语句，避免多余逻辑照成耗时过长
      *
      * @param staticSql 是否转为静态语句执行
      * @param entities  FastEntity实体集合
@@ -763,8 +897,8 @@ public class FastDb {
             }
             lastBuildTime = System.currentTimeMillis();
             List<Integer> result = new ArrayList<>();
-            for (String sql : batchSqlMap.keySet()) {
-                int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
+            for (Map.Entry<String, List<Object[]>> stringListEntry : batchSqlMap.entrySet()) {
+                int[] batch = this.batch(stringListEntry.getKey(), stringListEntry.getValue(), batchSize);
                 for (int i : batch) {
                     result.add(i);
                 }
@@ -774,7 +908,7 @@ public class FastDb {
     }
 
     /**
-     * 批量删除FastEntity实体集合
+     * 批量删除FastEntity实体集合，注意：如果数据量超过百万级别，建议自主拼接静态SQL语句，避免多余逻辑照成耗时过长
      *
      * @param entities  FastEntity实体集合
      * @param batchSize 单次批量提交的数据大小
@@ -787,7 +921,7 @@ public class FastDb {
     }
 
     /**
-     * 批量删除FastEntity实体集合
+     * 批量删除FastEntity实体集合，注意：如果数据量超过百万级别，建议自主拼接静态SQL语句，避免多余逻辑照成耗时过长
      *
      * @param staticSql 是否转为静态语句执行
      * @param entities  FastEntity实体集合
@@ -827,8 +961,8 @@ public class FastDb {
             }
             lastBuildTime = System.currentTimeMillis();
             List<Integer> result = new ArrayList<>();
-            for (String sql : batchSqlMap.keySet()) {
-                int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
+            for (Map.Entry<String, List<Object[]>> stringListEntry : batchSqlMap.entrySet()) {
+                int[] batch = this.batch(stringListEntry.getKey(), stringListEntry.getValue(), batchSize);
                 for (int i : batch) {
                     result.add(i);
                 }
@@ -860,8 +994,8 @@ public class FastDb {
         }
         lastBuildTime = System.currentTimeMillis();
         List<Integer> result = new ArrayList<>();
-        for (String sql : batchSqlMap.keySet()) {
-            int[] batch = this.batch(sql, batchSqlMap.get(sql), batchSize);
+        for (Map.Entry<String, List<Object[]>> stringListEntry : batchSqlMap.entrySet()) {
+            int[] batch = this.batch(stringListEntry.getKey(), stringListEntry.getValue(), batchSize);
             for (int i : batch) {
                 result.add(i);
             }
@@ -870,7 +1004,7 @@ public class FastDb {
     }
 
     public void close(Connection connection) {
-        if (isTransaction()) {
+        if (isTransaction() || FastDatabaseTransaction.isThreadTransaction()) {
             return;
         }
         if (connection != null) {
@@ -959,6 +1093,9 @@ public class FastDb {
                 return;
             }
             LinkedHashMap<String, String> printMap = new LinkedHashMap<>();
+            if (FastStringUtils.isNotEmpty(database)) {
+                printMap.put("database", database);
+            }
             if (sql instanceof List) {
                 List<?> list = (List<?>) sql;
                 if (list.size() < 100) {
@@ -1006,16 +1143,26 @@ public class FastDb {
             printMap.put("Total", FastNumberUtils.formatToFloat((useTotal + buildTotal), 6) + " seconds");
             printMap.put("Time", FastDateUtils.getDateString("yyyy-MM-dd HH:mm:ss:SSS"));
             int maxKeyLength = 0;
-            for (String key : printMap.keySet()) {
-                maxKeyLength = Math.max(maxKeyLength, key.length() + 1);
+            for (Map.Entry<String, String> stringStringEntry : printMap.entrySet()) {
+                maxKeyLength = Math.max(maxKeyLength, stringStringEntry.getKey().length() + 1);
             }
+            FastAction threadLocalAction = FastChar.getThreadLocalAction();
+            if (threadLocalAction != null) {
+                if (!threadLocalAction.getAttribute().containsAttr("sqlLogList")) {
+                    threadLocalAction.getAttribute().put("sqlLogList", new ArrayList<>());
+                }
+                ArrayList<Map<String, String>> sqlLogList = threadLocalAction.getAttribute().getObject("sqlLogList");
+                sqlLogList.add(printMap);
+                return;
+            }
+
             StringBuilder print = new StringBuilder();
-            for (String key : printMap.keySet()) {
-                String text = printMap.get(key);
+            for (Map.Entry<String, String> stringStringEntry : printMap.entrySet()) {
+                String text = stringStringEntry.getValue();
                 if (FastStringUtils.isEmpty(text)) {
                     continue;
                 }
-                print.append("\n").append(formatString(key, maxKeyLength)).append(text);
+                print.append("\n").append(formatString(stringStringEntry.getKey(), maxKeyLength)).append(text);
             }
             System.out.println(color(print.toString()));
         }
@@ -1029,7 +1176,7 @@ public class FastDb {
 
 
     private static String color(String content) {
-        return FastChar.getLog().tipStyle(content);
+        return FastChar.getLog().colorStyle(13, content);
     }
 
 
@@ -1049,7 +1196,7 @@ public class FastDb {
         return log;
     }
 
-    public FastDb setLog(boolean log) {
+    public FastDB setLog(boolean log) {
         this.log = log;
         return this;
     }
@@ -1058,7 +1205,7 @@ public class FastDb {
         return useCache;
     }
 
-    public FastDb setUseCache(boolean useCache) {
+    public FastDB setUseCache(boolean useCache) {
         this.useCache = useCache;
         return this;
     }
@@ -1067,7 +1214,7 @@ public class FastDb {
         return database;
     }
 
-    public FastDb setDatabase(String database) {
+    public FastDB setDatabase(String database) {
         this.database = database;
         return this;
     }
@@ -1076,7 +1223,7 @@ public class FastDb {
         return ignoreCase;
     }
 
-    public FastDb setIgnoreCase(boolean ignoreCase) {
+    public FastDB setIgnoreCase(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
         return this;
     }
@@ -1085,7 +1232,7 @@ public class FastDb {
         return cache;
     }
 
-    public FastDb setCache(boolean cache) {
+    public FastDB setCache(boolean cache) {
         this.cache = cache;
         return this;
     }
@@ -1110,8 +1257,17 @@ public class FastDb {
         return listener;
     }
 
-    public FastDb setListener(boolean listener) {
+    public FastDB setListener(boolean listener) {
         this.listener = listener;
+        return this;
+    }
+
+    public boolean isOperateListener() {
+        return operateListener;
+    }
+
+    public FastDB setOperateListener(boolean operateListener) {
+        this.operateListener = operateListener;
         return this;
     }
 }

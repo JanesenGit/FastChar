@@ -12,11 +12,12 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class FastLockUtils {
 
-    private static final ConcurrentHashMap<String, ReentrantLock> LOCK_MAP = new ConcurrentHashMap<String, ReentrantLock>();
+    private static final ConcurrentHashMap<String, ReentrantLock> LOCK_MAP = new ConcurrentHashMap<String, ReentrantLock>(16);
 
 
     /**
      * 根据key获取一个对象锁
+     *
      * @param key 唯一key
      * @return ReentrantLock
      */
@@ -40,7 +41,7 @@ public class FastLockUtils {
      *
      * @param key 唯一key
      */
-    public static  void removeLock(String key) {
+    public static void removeLock(String key) {
         IFastMemoryCache iFastMemoryCache = FastChar.safeGetMemoryCache();
         if (iFastMemoryCache != null) {
             iFastMemoryCache.remove(key);

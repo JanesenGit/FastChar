@@ -9,7 +9,7 @@ import java.util.Map;
 
 public final class FastTemplates {
 
-    private final Map<String, Object> finalContext = new HashMap<>();
+    private final Map<String, Object> finalContext = new HashMap<>(16);
 
     FastTemplates() {
     }

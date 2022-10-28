@@ -1,9 +1,9 @@
 package com.fastchar.interfaces;
 
 import com.fastchar.core.FastDispatcher;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * 系统根拦截器
@@ -17,6 +17,6 @@ public interface IFastRootInterceptor {
      * @param dispatcher 路由分配器
      * @throws Exception 异常
      */
-    void onInterceptor(HttpServletRequest request, HttpServletResponse response, FastDispatcher dispatcher) throws Exception;
+    void onInterceptor(FastHttpServletRequest request, FastHttpServletResponse response, FastDispatcher dispatcher) throws Exception;
 
 }

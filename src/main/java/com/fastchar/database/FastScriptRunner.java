@@ -4,7 +4,6 @@ import com.fastchar.exception.FastSqlException;
 import com.fastchar.utils.FastIOUtils;
 
 import java.io.BufferedReader;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.sql.*;
 import java.util.regex.Matcher;
@@ -17,21 +16,19 @@ import java.util.regex.Pattern;
 public class FastScriptRunner {
     private static final String LINE_SEPARATOR = System.getProperty("line.separator", "\n");
     private static final Pattern DELIMITER_PATTERN = Pattern.compile("^\\s*((--)|(//))?\\s*(//)?\\s*@DELIMITER\\s+([^\\s]+)", 2);
-    private Connection connection;
+    private final Connection connection;
     private boolean stopOnError;
     private boolean throwWarning;
     private boolean autoCommit;
     private boolean sendFullScript;
     private boolean removeCRs;
     private boolean escapeProcessing = true;
-    private PrintWriter logWriter;
-    private PrintWriter errorLogWriter;
     private String delimiter;
     private boolean fullLineDelimiter;
 
+    private int maxFullLineCount = 10000;
+
     public FastScriptRunner(Connection connection) {
-        this.logWriter = new PrintWriter(System.out);
-        this.errorLogWriter = new PrintWriter(System.err);
         this.delimiter = ";";
         this.connection = connection;
     }
@@ -60,20 +57,21 @@ public class FastScriptRunner {
         this.escapeProcessing = escapeProcessing;
     }
 
-    public void setLogWriter(PrintWriter logWriter) {
-        this.logWriter = logWriter;
-    }
-
-    public void setErrorLogWriter(PrintWriter errorLogWriter) {
-        this.errorLogWriter = errorLogWriter;
-    }
-
     public void setDelimiter(String delimiter) {
         this.delimiter = delimiter;
     }
 
     public void setFullLineDelimiter(boolean fullLineDelimiter) {
         this.fullLineDelimiter = fullLineDelimiter;
+    }
+
+    public int getMaxFullLineCount() {
+        return maxFullLineCount;
+    }
+
+    public FastScriptRunner setMaxFullLineCount(int maxFullLineCount) {
+        this.maxFullLineCount = maxFullLineCount;
+        return this;
     }
 
     public void runScript(Reader reader) {
@@ -99,19 +97,24 @@ public class FastScriptRunner {
         try {
             BufferedReader lineReader = new BufferedReader(reader);
 
+            int lineCount = 0;
             while ((line = lineReader.readLine()) != null) {
+                lineCount++;
                 script.append(line);
                 script.append(LINE_SEPARATOR);
+                if (lineCount >= maxFullLineCount) {
+                    String command = script.toString();
+                    this.executeStatement(command);
+                    script = new StringBuilder();
+                    lineCount = 0;
+                }
             }
 
             String command = script.toString();
-            this.println(command);
             this.executeStatement(command);
             this.commitConnection();
-        } catch (Exception var6) {
-            line = "Error executing: \n" + script + " \nCause: " + var6;
-            this.printlnError(line);
-            throw new FastSqlException(line, var6);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -128,17 +131,15 @@ public class FastScriptRunner {
 
             this.commitConnection();
             this.checkForMissingLineTerminator(command);
-        } catch (Exception var5) {
-            line = "Error executing: " + command + ".  Cause: " + var5;
-            this.printlnError(line);
-            throw new FastSqlException(line, var5);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     public void closeConnection() {
         try {
             this.connection.close();
-        } catch (Exception var2) {
+        } catch (Exception ignored) {
         }
 
     }
@@ -170,7 +171,7 @@ public class FastScriptRunner {
             if (!this.connection.getAutoCommit()) {
                 this.connection.rollback();
             }
-        } catch (Throwable var2) {
+        } catch (Throwable ignored) {
         }
 
     }
@@ -189,11 +190,9 @@ public class FastScriptRunner {
                 this.delimiter = matcher.group(5);
             }
 
-            this.println(trimmedLine);
         } else if (this.commandReadyToExecute(trimmedLine)) {
             command.append(line.substring(0, line.lastIndexOf(this.delimiter)));
             command.append(LINE_SEPARATOR);
-            this.println(command);
             this.executeStatement(command.toString());
             command.setLength(0);
         } else if (trimmedLine.length() > 0) {
@@ -228,18 +227,13 @@ public class FastScriptRunner {
                 }
             } catch (SQLWarning var14) {
                 throw var14;
-            } catch (SQLException var15) {
-                if (this.stopOnError) {
-                    throw var15;
-                }
-
-                String message = "Error executing: " + command + ".  Cause: " + var15;
-                this.printlnError(message);
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         } finally {
             try {
                 statement.close();
-            } catch (Exception var13) {
+            } catch (Exception ignored) {
             }
 
         }
@@ -269,8 +263,6 @@ public class FastScriptRunner {
                     while (true) {
                         String value;
                         if (i >= cols) {
-                            this.println("");
-
                             while (true) {
                                 if (!rs.next()) {
                                     break label50;
@@ -278,15 +270,11 @@ public class FastScriptRunner {
 
                                 for (i = 0; i < cols; ++i) {
                                     value = rs.getString(i + 1);
-                                    this.print(value + "\t");
                                 }
-
-                                this.println("");
                             }
                         }
 
                         value = md.getColumnLabel(i + 1);
-                        this.print(value + "\t");
                         ++i;
                     }
                 } catch (Throwable var9) {
@@ -297,42 +285,14 @@ public class FastScriptRunner {
                             var9.addSuppressed(var8);
                         }
                     }
-
                     throw var9;
                 }
-
-                if (rs != null) {
-                    rs.close();
-                }
-            } catch (SQLException var10) {
-                this.printlnError("Error printing results: " + var10.getMessage());
+                rs.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
 
         }
-    }
-
-    private void print(Object o) {
-        if (this.logWriter != null) {
-            this.logWriter.print(o);
-            this.logWriter.flush();
-        }
-
-    }
-
-    private void println(Object o) {
-        if (this.logWriter != null) {
-            this.logWriter.println(o);
-            this.logWriter.flush();
-        }
-
-    }
-
-    private void printlnError(Object o) {
-        if (this.errorLogWriter != null) {
-            this.errorLogWriter.println(o);
-            this.errorLogWriter.flush();
-        }
-
     }
 
 }

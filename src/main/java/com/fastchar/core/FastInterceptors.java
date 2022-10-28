@@ -13,42 +13,49 @@ import java.util.List;
 
 /**
  * FastChar核心类，拦截器
+ *
  * @author 沈建（Janesen）
  */
 public final class FastInterceptors {
-    private final List<InterceptorInfo<IFastRootInterceptor>> rootInterceptors = new ArrayList<>();
-    private final List<InterceptorInfo<IFastInterceptor>> beforeInterceptors = new ArrayList<>();
-    private final List<InterceptorInfo<IFastInterceptor>> afterInterceptors = new ArrayList<>();
+    private final List<FastInterceptorInfo<IFastRootInterceptor>> rootInterceptors = new ArrayList<>(16);
+    private final List<FastInterceptorInfo<IFastInterceptor>> beforeInterceptors = new ArrayList<>(16);
+    private final List<FastInterceptorInfo<IFastInterceptor>> afterInterceptors = new ArrayList<>(16);
 
 
     FastInterceptors() {
     }
+
     public FastInterceptors addRoot(Class<? extends IFastRootInterceptor> interceptor,
                                     String... urlPattern) {
         return addRoot(interceptor, 0, urlPattern);
     }
+
     public FastInterceptors addRoot(Class<? extends IFastRootInterceptor> interceptor,
                                     int priority,
                                     String... urlPattern) {
-        if (!FastClassUtils.checkNewInstance(interceptor)) {
-            return this;
-        }
-        for (String url : urlPattern) {
-            InterceptorInfo<IFastRootInterceptor> info = new InterceptorInfo<>();
-            info.interceptor = interceptor;
-            info.url = url;
-            info.priority = priority;
-            if (isRootInterceptor(interceptor.getName(), url)) {
-                continue;
+        try {
+            if (!FastClassUtils.checkNewInstance(interceptor)) {
+                return this;
             }
-            rootInterceptors.add(info);
+            for (String url : urlPattern) {
+                FastInterceptorInfo<IFastRootInterceptor> info = new FastInterceptorInfo<>();
+                info.interceptor = interceptor;
+                info.url = url;
+                info.priority = priority;
+                if (isRootInterceptor(interceptor.getName(), url)) {
+                    continue;
+                }
+                rootInterceptors.add(info);
+            }
+            return this;
+        } finally {
+            sortRootInterceptor();
         }
-        return this;
     }
 
 
     private boolean isRootInterceptor(String className, String url) {
-        for (InterceptorInfo<?> interceptorInfo : rootInterceptors) {
+        for (FastInterceptorInfo<?> interceptorInfo : rootInterceptors) {
             if (interceptorInfo.interceptor.getName().equals(className)
                     && interceptorInfo.url.equals(url)) {
                 return true;
@@ -60,7 +67,7 @@ public final class FastInterceptors {
 
     public FastInterceptors addBefore(Class<? extends IFastInterceptor> interceptor,
                                       String... urlPattern) {
-        return addBefore(interceptor, 0,urlPattern);
+        return addBefore(interceptor, 0, urlPattern);
     }
 
     public FastInterceptors addBefore(Class<? extends IFastInterceptor> interceptor,
@@ -70,7 +77,7 @@ public final class FastInterceptors {
             return this;
         }
         for (String url : urlPattern) {
-            InterceptorInfo<IFastInterceptor> info = new InterceptorInfo<>();
+            FastInterceptorInfo<IFastInterceptor> info = new FastInterceptorInfo<>();
             info.interceptor = interceptor;
             info.url = url;
             info.priority = priority;
@@ -82,7 +89,7 @@ public final class FastInterceptors {
 
     public FastInterceptors addAfter(Class<? extends IFastInterceptor> interceptor,
                                      String... urlPattern) {
-        return addAfter(interceptor,0, urlPattern);
+        return addAfter(interceptor, 0, urlPattern);
     }
 
     public FastInterceptors addAfter(Class<? extends IFastInterceptor> interceptor,
@@ -92,7 +99,7 @@ public final class FastInterceptors {
             return this;
         }
         for (String url : urlPattern) {
-            InterceptorInfo<IFastInterceptor> info = new InterceptorInfo<>();
+            FastInterceptorInfo<IFastInterceptor> info = new FastInterceptorInfo<>();
             info.interceptor = interceptor;
             info.url = url;
             info.priority = priority;
@@ -102,46 +109,40 @@ public final class FastInterceptors {
     }
 
     void sortRootInterceptor() {
-        Comparator<InterceptorInfo<?>> comparator = new Comparator<InterceptorInfo<?>>() {
+        Comparator<FastInterceptorInfo<?>> comparator = new Comparator<FastInterceptorInfo<?>>() {
             @Override
-            public int compare(InterceptorInfo o1, InterceptorInfo o2) {
-                if (o1.priority > o2.priority) {
-                    return -1;
-                }
-                if (o1.priority < o2.priority) {
-                    return 1;
-                }
-                return 0;
+            public int compare(FastInterceptorInfo o1, FastInterceptorInfo o2) {
+                return Integer.compare(o2.priority, o1.priority);
             }
         };
         Collections.sort(rootInterceptors, comparator);
     }
 
 
-    List<Class<? extends IFastRootInterceptor>> getRootInterceptors(String contentPath) {
-        ArrayList<Class<? extends IFastRootInterceptor>> interceptors = new ArrayList<>();
-        for (InterceptorInfo<IFastRootInterceptor> rootInterceptor : rootInterceptors) {
-            if (FastStringUtils.matches(rootInterceptor.getUrl(), contentPath)) {
-                interceptors.add(rootInterceptor.getInterceptor());
+    List<FastInterceptorInfo<IFastRootInterceptor>> getRootInterceptors(String contentPath) {
+        ArrayList<FastInterceptorInfo<IFastRootInterceptor>> interceptors = new ArrayList<>(16);
+        for (FastInterceptorInfo<IFastRootInterceptor> rootInterceptor : rootInterceptors) {
+            if (FastStringUtils.matches(rootInterceptor.url, contentPath)) {
+                interceptors.add(rootInterceptor);
             }
         }
         return interceptors;
     }
 
-    List<InterceptorInfo<IFastInterceptor>> getBeforeInterceptors(String url) {
-        List<InterceptorInfo<IFastInterceptor>> interceptorInfos = new ArrayList<>();
-        for (InterceptorInfo<IFastInterceptor> beforeInterceptor : beforeInterceptors) {
-            if (FastStringUtils.matches(beforeInterceptor.getUrl(), url)) {
+    List<FastInterceptorInfo<IFastInterceptor>> getBeforeInterceptors(String url) {
+        List<FastInterceptorInfo<IFastInterceptor>> interceptorInfos = new ArrayList<>(16);
+        for (FastInterceptorInfo<IFastInterceptor> beforeInterceptor : beforeInterceptors) {
+            if (FastStringUtils.matches(beforeInterceptor.url, url)) {
                 interceptorInfos.add(beforeInterceptor);
             }
         }
         return interceptorInfos;
     }
 
-    List<InterceptorInfo<IFastInterceptor>> getAfterInterceptors(String url) {
-        List<InterceptorInfo<IFastInterceptor>> interceptorInfos = new ArrayList<>();
-        for (InterceptorInfo<IFastInterceptor> afterInterceptor : afterInterceptors) {
-            if (FastStringUtils.matches(afterInterceptor.getUrl(), url)) {
+    List<FastInterceptorInfo<IFastInterceptor>> getAfterInterceptors(String url) {
+        List<FastInterceptorInfo<IFastInterceptor>> interceptorInfos = new ArrayList<>(16);
+        for (FastInterceptorInfo<IFastInterceptor> afterInterceptor : afterInterceptors) {
+            if (FastStringUtils.matches(afterInterceptor.url, url)) {
                 interceptorInfos.add(afterInterceptor);
             }
         }
@@ -150,76 +151,42 @@ public final class FastInterceptors {
 
 
     public void flush() {
-        List<InterceptorInfo<IFastRootInterceptor>> waitRemoveA = new ArrayList<>();
-        for (InterceptorInfo<IFastRootInterceptor> rootInterceptor : rootInterceptors) {
+        List<FastInterceptorInfo<IFastRootInterceptor>> waitRemoveA = new ArrayList<>(16);
+        for (FastInterceptorInfo<IFastRootInterceptor> rootInterceptor : rootInterceptors) {
             if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
                 waitRemoveA.add(rootInterceptor);
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastInterceptors.class,
-                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3,rootInterceptor.interceptor));
+                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3, rootInterceptor.interceptor));
                 }
             }
         }
 
-        List<InterceptorInfo<IFastInterceptor>> waitRemoveB = new ArrayList<>();
-        for (InterceptorInfo<IFastInterceptor> rootInterceptor : beforeInterceptors) {
+        List<FastInterceptorInfo<IFastInterceptor>> waitRemoveB = new ArrayList<>(16);
+        for (FastInterceptorInfo<IFastInterceptor> rootInterceptor : beforeInterceptors) {
             if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
                 waitRemoveB.add(rootInterceptor);
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastInterceptors.class,
-                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3,rootInterceptor.interceptor));
+                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3, rootInterceptor.interceptor));
                 }
             }
         }
-        for (InterceptorInfo<IFastInterceptor> rootInterceptor : afterInterceptors) {
+        for (FastInterceptorInfo<IFastInterceptor> rootInterceptor : afterInterceptors) {
             if (FastClassUtils.isRelease(rootInterceptor.interceptor)) {
                 waitRemoveB.add(rootInterceptor);
 
                 if (FastChar.getConstant().isDebug()) {
                     FastChar.getLog().warn(FastInterceptors.class,
-                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3,rootInterceptor.interceptor));
+                            FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3, rootInterceptor.interceptor));
                 }
             }
         }
         rootInterceptors.removeAll(waitRemoveA);
         beforeInterceptors.removeAll(waitRemoveB);
         afterInterceptors.removeAll(waitRemoveB);
-    }
-
-
-    public static class InterceptorInfo<T> {
-        private String url;
-        private Class<? extends T> interceptor;
-        private int priority;
-
-        public String getUrl() {
-            return url;
-        }
-
-        public InterceptorInfo<T> setUrl(String url) {
-            this.url = url;
-            return this;
-        }
-
-        public Class<? extends T> getInterceptor() {
-            return interceptor;
-        }
-
-        public InterceptorInfo<T> setInterceptor(Class<? extends T> interceptor) {
-            this.interceptor = interceptor;
-            return this;
-        }
-
-        public int getPriority() {
-            return priority;
-        }
-
-        public InterceptorInfo<T> setPriority(int priority) {
-            this.priority = priority;
-            return this;
-        }
     }
 
 }

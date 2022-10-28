@@ -1,13 +1,11 @@
 package com.fastchar.core;
 
 import com.fastchar.annotation.AFastEntity;
-import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastEntityException;
 import com.fastchar.interfaces.IFastMethodRead;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
-import net.sf.cglib.reflect.FastClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +15,7 @@ import java.util.List;
  * @author 沈建（Janesen）
  */
 public final class FastEntities {
-    private final List<EntityInfo> entityInfos = new ArrayList<>();
+    private final List<EntityInfo> entityInfos = new ArrayList<>(16);
 
     FastEntities() {
     }
@@ -28,7 +26,7 @@ public final class FastEntities {
         }
         if (targetClass.isAnnotationPresent(AFastEntity.class)) {
             AFastEntity aFastEntity = targetClass.getAnnotation(AFastEntity.class);
-            if (!aFastEntity.value()) {
+            if (!aFastEntity.enable()) {
                 return this;
             }
         }
@@ -86,7 +84,7 @@ public final class FastEntities {
      * @return EntityInfo集合
      */
     public List<EntityInfo> getEntityInfo(String tableName) {
-        List<EntityInfo> entityInfoList = new ArrayList<>();
+        List<EntityInfo> entityInfoList = new ArrayList<>(5);
         for (EntityInfo entityInfo : entityInfos) {
             if (entityInfo.getTableName().equalsIgnoreCase(tableName)) {
                 entityInfoList.add(entityInfo);
@@ -115,7 +113,7 @@ public final class FastEntities {
 
 
     public void flush() {
-        List<EntityInfo> waitRemove = new ArrayList<>();
+        List<EntityInfo> waitRemove = new ArrayList<>(16);
         for (EntityInfo entityInfo : entityInfos) {
             if (FastClassUtils.isRelease(entityInfo.getTargetClass())) {
                 waitRemove.add(entityInfo);

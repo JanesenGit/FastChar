@@ -24,7 +24,7 @@ public class FastMethodRead implements IFastMethodRead {
      */
     @Override
     public List<FastParameter> getParameter(final Method method, final List<MethodLine> numbers) throws Exception {
-        final List<FastParameter> parameters = new ArrayList<FastParameter>();
+        final List<FastParameter> parameters = new ArrayList<FastParameter>(10);
         String className = method.getDeclaringClass().getName();
         final Class<?>[] parameterTypes = method.getParameterTypes();
         final Type[] genericParameterTypes = method.getGenericParameterTypes();
@@ -92,7 +92,7 @@ public class FastMethodRead implements IFastMethodRead {
 
     @Override
     public List<MethodLine> getMethodLineNumber(Class<?> targetClass, final String methodName) throws Exception {
-        final List<MethodLine> numbers = new ArrayList<MethodLine>();
+        final List<MethodLine> numbers = new ArrayList<MethodLine>(5);
         String className = targetClass.getName();
         String classPath = className.replace('.', '/') + ".class";
         InputStream resourceAsStream = targetClass.getClassLoader().getResourceAsStream(classPath);

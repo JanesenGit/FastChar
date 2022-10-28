@@ -9,7 +9,6 @@ import java.sql.Blob;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.regex.Pattern;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class FastMapWrap {
@@ -19,11 +18,15 @@ public class FastMapWrap {
     }
 
     protected Map<?, ?> map;
+
+    protected transient Map<String, Object> ignoreMap = new HashMap<>(16);
     protected boolean ignoreCase;
 
     protected FastMapWrap() {
 
     }
+
+
 
     public Map<?, ?> getMap() {
         if (map == null) {
@@ -35,6 +38,44 @@ public class FastMapWrap {
     public FastMapWrap setMap(Map<?, ?> map) {
         this.map = map;
         return this;
+    }
+
+    private Object refreshIgnoreCaseMap(Object attr) {
+        if (ignoreCase) {
+            Object catchKey = null;
+            for (Map.Entry<?, ?> entry : getMap().entrySet()) {
+                Object key = entry.getKey();
+                if (key instanceof String) {
+                    String lowerCase = ((String) key).toLowerCase();
+                    ignoreMap.put(lowerCase, key);
+                    if (attr != null && lowerCase.equalsIgnoreCase((String) attr)) {
+                        catchKey = key;
+                    }
+                }
+            }
+            if (catchKey != null) {
+                return catchKey;
+            }
+        }
+        return attr;
+    }
+
+
+    private Object getRealAttr(Object attr) {
+        if (attr == null) {
+            return null;
+        }
+        if (getMap().containsKey(attr.toString())) {
+            return attr;
+        }
+        if (ignoreCase && attr instanceof String) {
+            Object realKey = ignoreMap.get(((String) attr).toLowerCase());
+            if (realKey != null) {
+                return realKey;
+            }
+            return refreshIgnoreCaseMap(attr);
+        }
+        return attr;
     }
 
     public boolean isIgnoreCase() {
@@ -69,22 +110,11 @@ public class FastMapWrap {
      * @return Object对象
      */
     public Object get(String attr) {
-        String regStr = "\\$\\{(.*)}";
-        if (Pattern.matches(regStr, attr)) {
+        //尽量不使用正则表达式
+        if (attr.startsWith("${") && attr.endsWith("}")) {
             return new FastObjectExecute(getMap()).execute(attr);
         }
         return getMap().get(getRealAttr(attr));
-    }
-
-    private Object getRealAttr(Object attr) {
-        if (ignoreCase) {
-            for (Object s : getMap().keySet()) {
-                if (s != null && s.toString().equalsIgnoreCase(String.valueOf(attr))) {
-                    return s;
-                }
-            }
-        }
-        return attr;
     }
 
 
@@ -494,7 +524,7 @@ public class FastMapWrap {
     }
 
     /**
-     * 获取Timestamp值
+     * 获取Timestamp值，注意：此方法
      *
      * @param attr         属性名
      * @param defaultValue 默认值
@@ -507,7 +537,7 @@ public class FastMapWrap {
         Object value = get(attr);
         if (value instanceof Timestamp) {
             return (Timestamp) value;
-        }else  if (value instanceof LocalDateTime) {
+        } else if (value instanceof LocalDateTime) {
             return Timestamp.valueOf((LocalDateTime) value);
         }
         String guessDateFormat = FastDateUtils.guessDateFormat(value.toString());
@@ -572,6 +602,17 @@ public class FastMapWrap {
     }
 
     /**
+     * 设置属性
+     *
+     * @param data 属性集合
+     * @return 当前对象
+     */
+    public FastMapWrap putAll(Map data) {
+        getMap().putAll(data);
+        return this;
+    }
+
+    /**
      * 检测属性是否存在
      *
      * @param attr 属性名称
@@ -625,4 +666,5 @@ public class FastMapWrap {
             map.put(attr, value);
         }
     }
+
 }

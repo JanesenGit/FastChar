@@ -6,10 +6,11 @@ import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
-import com.fastchar.database.sql.FastSql;
-import com.fastchar.exception.FastDatabaseException;
 import com.fastchar.interfaces.IFastJson;
-import com.fastchar.utils.*;
+import com.fastchar.utils.FastArrayUtils;
+import com.fastchar.utils.FastClassUtils;
+import com.fastchar.utils.FastDateUtils;
+import com.fastchar.utils.FastStringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -77,9 +78,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     private transient List<String> modified;
     private transient FastMapWrap mapWrap = null;
     private transient boolean doSetDefaultValue = false;
+
     private transient String fromOperate;
     private String error = "";
-    private boolean ignoreCase;
+    private Boolean ignoreCase;
 
     private boolean isDefaultMethodUse() {
         return doSetDefaultValue;
@@ -101,7 +103,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         if (mapWrap == null) {
             mapWrap = FastMapWrap.newInstance(this);
         }
-        mapWrap.setIgnoreCase(ignoreCase);
+        mapWrap.setIgnoreCase(isIgnoreCase());
         return mapWrap;
     }
 
@@ -157,14 +159,17 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
             if (aPackage != null) {
                 String lockDatabase = FastChar.getDatabases().getLockDatabase(aPackage.getName());
                 if (FastStringUtils.isNotEmpty(lockDatabase)) {
-                    return lockDatabase;
+                    database = lockDatabase;
+                    return database;
                 }
             }
-            List<FastDatabaseInfo> byTableName = FastChar.getDatabases().getByTableName(getTableName());
-            if (byTableName.size() > 0) {
-                return byTableName.get(0).getName();
-            }
-            return FastChar.getDatabases().get().getName();
+//            此处取消根据table查找数据库
+//            List<FastDatabaseInfo> byTableName = FastChar.getDatabases().getByTableName(getTableName());
+//            if (byTableName.size() > 0) {
+//                database = byTableName.get(0).getCode();
+//                return database;
+//            }
+            database = FastChar.getDatabases().get().getCode();
         }
         return database;
     }
@@ -213,7 +218,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
     /**
-     * 设置属性值
+     * 设置属性值，会标识当前属性被修改
      *
      * @param attr  属性名称
      * @param value 属性值
@@ -231,7 +236,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         if (must) {
             defaultMethodUse = false;
         }
-        if (isColumn(attr) && !defaultMethodUse && !getModified().contains(attr)) {
+        if (!defaultMethodUse && !getModified().contains(attr)) {
+            //此处删除 isColumn(attr) 检测，改为在执行数据更新时检测，处理大数据时效果显著
             getModified().add(attr);
         }
         //如果来自update操作进行设置默认值，则必须检查是否是被修改的属性
@@ -257,8 +263,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         if (source == null) {
             return (E) this;
         }
-        for (String s : source.keySet()) {
-            set(s, source.get(s));
+        for (Entry<String, Object> stringObjectEntry : source.entrySet()) {
+            set(stringObjectEntry.getKey(), stringObjectEntry.getValue());
         }
         return (E) this;
     }
@@ -307,9 +313,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return int
      */
     public int getId() {
-        List<FastColumnInfo<?>> primaries = getPrimaries();
+        Collection<FastColumnInfo<?>> primaries = getPrimaries();
         if (primaries != null && primaries.size() > 0) {
-            return getInt(primaries.get(0).getName(), -1);
+            return getInt(primaries.iterator().next().getName(), -1);
         }
         return -1;
     }
@@ -320,8 +326,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return List&lt;Object&gt;
      */
     public List<Object> getIds() {
-        List<Object> values = new ArrayList<>();
-        List<FastColumnInfo<?>> primaries = getPrimaries();
+        List<Object> values = new ArrayList<>(5);
+        Collection<FastColumnInfo<?>> primaries = getPrimaries();
         if (primaries != null) {
             for (FastColumnInfo<?> primary : primaries) {
                 values.add(get(primary.getName()));
@@ -330,6 +336,28 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         return values;
     }
 
+
+    /**
+     * 根据主键查询数据
+     *
+     * @param cache 是否启用缓存
+     * @param ids   主键数组
+     * @return 当前类的新对象
+     */
+    public E selectById(Boolean cache, Object... ids) {
+        return getFastData().selectById(cache, ids);
+    }
+
+    /**
+     * 根据主键查询数据
+     *
+     * @param cache 是否启用缓存
+     * @param ids   主键数组
+     * @return 当前类的新对象
+     */
+    public E selectById(Boolean cache, List<?> ids) {
+        return getFastData().selectById(cache, ids.toArray(new Object[]{}));
+    }
 
     /**
      * 根据主键查询数据
@@ -353,28 +381,6 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
 
 
     /**
-     * 根据主键查询数据
-     *
-     * @param cache 是否启用缓存
-     * @param ids   主键数组
-     * @return 当前类的新对象
-     */
-    public E selectById(boolean cache, Object... ids) {
-        return getFastData().selectById(cache, ids);
-    }
-
-    /**
-     * 根据主键查询数据
-     *
-     * @param cache 是否启用缓存
-     * @param ids   主键数组
-     * @return 当前类的新对象
-     */
-    public E selectById(boolean cache, List<?> ids) {
-        return getFastData().selectById(cache, ids.toArray(new Object[]{}));
-    }
-
-    /**
      * 查询sql语句返回的第一条数据
      *
      * @param sqlStr sql语句
@@ -393,7 +399,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectFirstBySql(boolean cache, String sqlStr, List<?> params) {
+    public E selectFirstBySql(Boolean cache, String sqlStr, List<?> params) {
         return selectFirstBySql(cache, sqlStr, params.toArray(new Object[]{}));
     }
 
@@ -416,7 +422,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectFirstBySql(boolean cache, String sqlStr, Object... params) {
+    public E selectFirstBySql(Boolean cache, String sqlStr, Object... params) {
         return getFastData().selectFirstBySql(cache, sqlStr, params);
     }
 
@@ -448,7 +454,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectLastBySql(boolean cache, String sqlStr, List<?> params) {
+    public E selectLastBySql(Boolean cache, String sqlStr, List<?> params) {
         return selectLastBySql(cache, sqlStr, params.toArray(new Object[]{}));
     }
 
@@ -471,7 +477,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 当前类的新对象
      */
-    public E selectLastBySql(boolean cache, String sqlStr, Object... params) {
+    public E selectLastBySql(Boolean cache, String sqlStr, Object... params) {
         return getFastData().selectLastBySql(cache, sqlStr, params);
     }
 
@@ -515,13 +521,13 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params sql参数
      * @return 返回数据集合
      */
-    public List<E> selectBySql(boolean cache, String sqlStr, Object... params) {
+    public List<E> selectBySql(Boolean cache, String sqlStr, Object... params) {
         return getFastData().selectBySql(cache, sqlStr, params);
     }
 
 
     /**
-     * 查询数据，根据配置的条件属性生成sql语句
+     * 查询所有数据
      *
      * @return 返回数据集合
      */
@@ -531,7 +537,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
     /**
-     * 执行sql语句
+     * 查询所有数据分页数据
      *
      * @param page     页数
      * @param pageSize 每页大小
@@ -565,7 +571,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params   参数
      * @return 分页数据
      */
-    public FastPage<E> selectBySql(boolean cache, int page, int pageSize, String sqlStr, List<?> params) {
+    public FastPage<E> selectBySql(Boolean cache, int page, int pageSize, String sqlStr, List<?> params) {
         return selectBySql(cache, page, pageSize, sqlStr, params.toArray(new Object[]{}));
     }
 
@@ -592,7 +598,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param params   参数
      * @return 分页数据
      */
-    public FastPage<E> selectBySql(boolean cache, int page, int pageSize, String sqlStr, Object... params) {
+    public FastPage<E> selectBySql(Boolean cache, int page, int pageSize, String sqlStr, Object... params) {
         return getFastData().selectBySql(cache, page, pageSize, sqlStr, params);
     }
 
@@ -693,7 +699,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 布尔值
      */
     public boolean isEmptyColumn() {
-        List<FastColumnInfo<?>> columns = getColumns();
+        Collection<FastColumnInfo<?>> columns = getColumns();
         for (FastColumnInfo<?> column : columns) {
             if (isNotEmpty(column.getName())) {
                 return false;
@@ -784,7 +790,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public List<String> getModified() {
         if (modified == null) {
-            modified = new ArrayList<>();
+            modified = new ArrayList<>(16);
         }
         return modified;
     }
@@ -953,12 +959,12 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     /**
      * 获得Float值
      *
-     * @param attr  属性名
-     * @param digit 精度
+     * @param attr         属性名
+     * @param digit        精度
      * @param roundingMode 四舍五入的方式
      * @return Float
      */
-    public float getFloat(String attr, int digit,RoundingMode roundingMode) {
+    public float getFloat(String attr, int digit, RoundingMode roundingMode) {
         return getMapWrap().getFloat(attr, digit, roundingMode);
     }
 
@@ -985,7 +991,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @param roundingMode 四舍五入的方式
      * @return Float
      */
-    public float getFloat(String attr, float defaultValue, int digit,RoundingMode roundingMode) {
+    public float getFloat(String attr, float defaultValue, int digit, RoundingMode roundingMode) {
         return getMapWrap().getFloat(attr, defaultValue, digit, roundingMode);
     }
 
@@ -1024,8 +1030,8 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     /**
      * 获得Double值
      *
-     * @param attr  属性名
-     * @param digit 精度
+     * @param attr         属性名
+     * @param digit        精度
      * @param roundingMode 四舍五入的方式
      * @return Double
      */
@@ -1055,7 +1061,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return Double
      */
     public double getDouble(String attr, double defaultValue, int digit, RoundingMode roundingMode) {
-        return getMapWrap().getDouble(attr, defaultValue, digit,roundingMode);
+        return getMapWrap().getDouble(attr, defaultValue, digit, roundingMode);
     }
 
 
@@ -1176,7 +1182,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     public boolean isColumn(String attr) {
         FastTableInfo<?> tableInfo = getTable();
         if (tableInfo != null) {
-            return tableInfo.checkColumn(attr);
+            return tableInfo.isColumn(attr);
         }
         return false;
     }
@@ -1188,9 +1194,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastColumnInfo
      */
     public <T extends FastColumnInfo<?>> T getColumn(String attr) {
-        FastTableInfo<?> tableInfo = getTable();
-        if (tableInfo != null) {
-            return (T) tableInfo.getColumnInfo(attr);
+        FastTableInfo<?> table = getTable();
+        if (table != null) {
+            return table.getColumnInfo(attr);
         }
         return null;
     }
@@ -1202,6 +1208,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastTableInfo
      */
     public <T extends FastTableInfo<?>> T getTable() {
+        if (FastStringUtils.isEmpty(getTableName())) {
+            return null;
+        }
         FastDatabaseInfo fastDatabaseInfo = FastChar.getDatabases().get(getDatabase());
         if (fastDatabaseInfo == null) {
             return null;
@@ -1215,7 +1224,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      *
      * @return List&lt;FastColumnInfo&lt;?&gt;&gt;
      */
-    public <T extends FastColumnInfo<?>> List<T> getColumns() {
+    public <T extends FastColumnInfo<?>> Collection<T> getColumns() {
         FastTableInfo<?> tableInfo = getTable();
         if (tableInfo != null) {
             return tableInfo.getColumns();
@@ -1229,7 +1238,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      *
      * @return List&lt;FastColumnInfo&lt;?&gt;&gt;
      */
-    public <T extends FastColumnInfo<?>> List<T> getPrimaries() {
+    public <T extends FastColumnInfo<?>> Collection<T> getPrimaries() {
         FastTableInfo<?> tableInfo = getTable();
         if (tableInfo != null) {
             return tableInfo.getPrimaries();
@@ -1244,11 +1253,11 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 布尔值
      */
     public boolean isPrimary(String attr) {
-        FastColumnInfo<?> column = getColumn(attr);
-        if (column == null) {
+        FastTableInfo<?> table = getTable();
+        if (table == null) {
             return false;
         }
-        return column.isPrimary();
+        return table.getPrimaryColumnInfo(attr) != null;
     }
 
 
@@ -1368,11 +1377,9 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public Set<String> getExistsColumn() {
         Set<String> columns = new HashSet<>();
-        Enumeration<String> keys = this.keys();
-        while (keys.hasMoreElements()) {
-            String key = keys.nextElement();
-            if (isColumn(key)) {
-                columns.add(key);
+        for (Entry<String, Object> stringObjectEntry : this.entrySet()) {
+            if (isColumn(stringObjectEntry.getKey())) {
+                columns.add(stringObjectEntry.getKey());
             }
         }
         return columns;
@@ -1385,41 +1392,13 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public Set<String> allKeys() {
         Set<String> allKeys = new HashSet<>();
-        Enumeration<String> keys = this.keys();
-        while (keys.hasMoreElements()) {
-            allKeys.add(keys.nextElement());
+        for (Entry<String, Object> stringObjectEntry : this.entrySet()) {
+            allKeys.add(stringObjectEntry.getKey());
         }
+
         return allKeys;
     }
 
-
-    /**
-     * 获取sql操作对象
-     *
-     * @return FastSql
-     */
-    public FastSql getSql() {
-        return FastSql.getInstance(getDatabaseType());
-    }
-
-    /**
-     * 将当前对象转换成select语句对象
-     *
-     * @return FastSqlInfo
-     */
-    public FastSqlInfo toSelectSql() {
-        return FastSql.getInstance(getDatabaseType()).buildSelectSql(this);
-    }
-
-    /**
-     * 将当前对象转换成select语句对象
-     *
-     * @param sqlStr 指定sql语句
-     * @return FastSqlInfo
-     */
-    public FastSqlInfo toSelectSql(String sqlStr) {
-        return FastSql.getInstance(getDatabaseType()).buildSelectSql(sqlStr, this);
-    }
 
     /**
      * 将当前对象转换成select语句对象
@@ -1428,7 +1407,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toSelectSql(Object... ids) {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildSelectSqlByIds(this, ids);
+        return getFastData().getFastSql().buildSelectSqlByIds(this, ids);
     }
 
     /**
@@ -1438,7 +1417,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toInsertSql(String... checks) {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildInsertSql(this, checks);
+        return getFastData().getFastSql().buildInsertSql(this, checks);
     }
 
 
@@ -1448,7 +1427,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toUpdateSql() {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildUpdateSql(this);
+        return getFastData().getFastSql().buildUpdateSql(this);
     }
 
     /**
@@ -1458,7 +1437,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toUpdateSqlByIds(Object... ids) {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildUpdateSqlByIds(this, ids);
+        return getFastData().getFastSql().buildUpdateSqlByIds(this, ids);
     }
 
     /**
@@ -1468,7 +1447,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toUpdateSql(String... checks) {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildUpdateSql(this, checks);
+        return getFastData().getFastSql().buildUpdateSql(this, checks);
     }
 
     /**
@@ -1477,7 +1456,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toDeleteSql() {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildDeleteSql(this);
+        return getFastData().getFastSql().buildDeleteSql(this);
     }
 
     /**
@@ -1487,7 +1466,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toDeleteSql(String... checks) {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildDeleteSql(this, checks);
+        return getFastData().getFastSql().buildDeleteSql(this, checks);
     }
 
     /**
@@ -1497,7 +1476,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return FastSqlInfo
      */
     public FastSqlInfo toDeleteSqlByIds(Object... ids) {
-        return FastSql.getInstance(FastChar.getDatabases().get(getDatabase()).getType()).buildDeleteSqlByIds(this, ids);
+        return getFastData().getFastSql().buildDeleteSqlByIds(this, ids);
     }
 
 
@@ -1656,7 +1635,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * 构造查询指定列名的列名集合
      *
      * @param alias      指定列名的前缀
-     * @param asNickName 是否命名别名 符合：alias__attr 格式
+     * @param asNickName 是否命名别名 按照 alias__attr 格式命名别名
      * @param excludes   排序指定属性名
      * @return List&lt;String&gt;
      */
@@ -1670,7 +1649,11 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         }
 
         List<String> columns = new ArrayList<>();
-        List<FastColumnInfo<?>> tableColumns = getTable().getColumns();
+        FastTableInfo<?> tableInfo = getTable();
+        if (tableInfo == null) {
+            return columns;
+        }
+        Collection<FastColumnInfo<?>> tableColumns = tableInfo.getColumns();
         for (FastColumnInfo<?> column : tableColumns) {
             if (FastArrayUtils.contains(excludes, column.getName())) {
                 continue;
@@ -1690,6 +1673,12 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      * @return 布尔值
      */
     public boolean isIgnoreCase() {
+        if (ignoreCase == null) {
+            FastDatabaseInfo databaseInfo = FastChar.getDatabases().get(getDatabase());
+            if (databaseInfo != null) {
+                ignoreCase = databaseInfo.isIgnoreCase();
+            }
+        }
         return ignoreCase;
     }
 
@@ -1701,6 +1690,7 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public E setIgnoreCase(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
+        getMapWrap().setIgnoreCase(ignoreCase);
         return (E) this;
     }
 

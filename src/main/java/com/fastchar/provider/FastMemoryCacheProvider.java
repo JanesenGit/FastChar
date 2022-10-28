@@ -2,6 +2,9 @@ package com.fastchar.provider;
 
 import com.fastchar.interfaces.IFastMemoryCache;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,7 +17,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2021/7/5 18:58
  */
 public class FastMemoryCacheProvider implements IFastMemoryCache {
-    private final ConcurrentHashMap<String, Cache> cacheDataMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Cache> cacheDataMap = new ConcurrentHashMap<>(16);
     public static long CACHE_TIMEOUT = 3 * 60 * 1000L;//单位 毫秒
     public static long CACHE_IDLE = 5000;//单位 毫秒
 
@@ -72,16 +75,20 @@ public class FastMemoryCacheProvider implements IFastMemoryCache {
     }
 
     public void clearValidity() {
-        for (String key : cacheDataMap.keySet()) {
-            Cache cache = cacheDataMap.get(key);
+        Set<String> waitRemove = new HashSet<>();
+        for (Map.Entry<String, Cache> stringCacheEntry : cacheDataMap.entrySet()) {
+            Cache cache = stringCacheEntry.getValue();
             Long timeOut = cache.getTimeOut();
             if (timeOut == null) {
                 return;
             }
             long currentTime = System.currentTimeMillis();
             if (currentTime > timeOut) {
-                cacheDataMap.remove(key);
+                waitRemove.add(stringCacheEntry.getKey());
             }
+        }
+        for (String key : waitRemove) {
+            cacheDataMap.remove(key);
         }
     }
 

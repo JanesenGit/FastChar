@@ -16,43 +16,50 @@ import java.beans.PropertyVetoException;
 @AFastPriority(AFastPriority.P_NORMAL)
 @AFastClassFind("com.mchange.v2.c3p0.ComboPooledDataSource")
 public class FastC3p0DataSourceProvider implements IFastDataSource {
-    private ComboPooledDataSource dataSource = null;
+    private volatile ComboPooledDataSource dataSource = null;
     private FastDatabaseInfo databaseInfo;
 
     @Override
-    public synchronized DataSource getDataSource(FastDatabaseInfo databaseInfo) {
+    public  DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (dataSource == null) {
-            try {
-                dataSource = new ComboPooledDataSource();
-                dataSource.setDriverClass(databaseInfo.getDriver());
-                dataSource.setJdbcUrl(databaseInfo.toUrl());
-                dataSource.setUser(databaseInfo.getUser());
-                dataSource.setPassword(databaseInfo.getPassword());
+            synchronized (FastC3p0DataSourceProvider.class) {
+                if (dataSource == null) {
+                    try {
+                        dataSource = new ComboPooledDataSource();
+                        dataSource.setDriverClass(databaseInfo.getDriver());
+                        dataSource.setJdbcUrl(databaseInfo.toUrl());
+                        dataSource.setUser(databaseInfo.getUser());
+                        dataSource.setPassword(databaseInfo.getPassword());
 
-                FastC3p0Config c3p0Config = FastChar.getConfigs().getC3p0Config();
-                dataSource.setPreferredTestQuery(buildValidationQuery(databaseInfo.toUrl()));
-                dataSource.setIdleConnectionTestPeriod(c3p0Config.getIdleConnectionTestPeriod());
-                dataSource.setMaxIdleTime(c3p0Config.getMaxIdleTime());
-                dataSource.setInitialPoolSize(c3p0Config.getInitialPoolSize());
-                dataSource.setMaxPoolSize(c3p0Config.getMaxPoolSize());
-                dataSource.setMinPoolSize(c3p0Config.getMinPoolSize());
-                dataSource.setAcquireIncrement(c3p0Config.getAcquireIncrement());
-                dataSource.setCheckoutTimeout(c3p0Config.getCheckoutTimeout());
-                dataSource.setMaxStatements(c3p0Config.getMaxStatements());
-                dataSource.setAutoCommitOnClose(c3p0Config.isAutoCommitOnClose());
-                dataSource.setNumHelperThreads(c3p0Config.getNumHelperThreads());
-                dataSource.setUnreturnedConnectionTimeout(c3p0Config.getUnreturnedConnectionTimeout());
-                dataSource.setDebugUnreturnedConnectionStackTraces(c3p0Config.isDebugUnreturnedConnectionStackTraces());
-                dataSource.setTestConnectionOnCheckin(c3p0Config.isTestConnectionOnCheckin());
-                dataSource.setTestConnectionOnCheckout(c3p0Config.isTestConnectionOnCheckout());
-                this.databaseInfo = databaseInfo;
+                        FastC3p0Config c3p0Config = FastChar.getConfigs().getC3p0Config();
+                        if (databaseInfo.isValidate()) {
+                            dataSource.setPreferredTestQuery(buildValidationQuery(databaseInfo.toUrl()));
+                        }
+                        dataSource.setIdleConnectionTestPeriod(c3p0Config.getIdleConnectionTestPeriod());
+                        dataSource.setMaxIdleTime(c3p0Config.getMaxIdleTime());
+                        dataSource.setInitialPoolSize(c3p0Config.getInitialPoolSize());
+                        dataSource.setMaxPoolSize(c3p0Config.getMaxPoolSize());
+                        dataSource.setMinPoolSize(c3p0Config.getMinPoolSize());
+                        dataSource.setAcquireIncrement(c3p0Config.getAcquireIncrement());
+                        dataSource.setCheckoutTimeout(c3p0Config.getCheckoutTimeout());
+                        dataSource.setMaxStatements(c3p0Config.getMaxStatements());
+                        dataSource.setAutoCommitOnClose(c3p0Config.isAutoCommitOnClose());
+                        dataSource.setNumHelperThreads(c3p0Config.getNumHelperThreads());
+                        dataSource.setUnreturnedConnectionTimeout(c3p0Config.getUnreturnedConnectionTimeout());
+                        dataSource.setDebugUnreturnedConnectionStackTraces(c3p0Config.isDebugUnreturnedConnectionStackTraces());
+                        dataSource.setTestConnectionOnCheckin(c3p0Config.isTestConnectionOnCheckin());
+                        dataSource.setTestConnectionOnCheckout(c3p0Config.isTestConnectionOnCheckout());
+                        this.databaseInfo = databaseInfo;
 
-                if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, "C3P0 of " + databaseInfo.getName()));
+                        String poolInfo = "C3P0 jdbc pool of " + databaseInfo.toSimpleInfo();
+                        if (FastChar.getConstant().isDebug()) {
+                            FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
+                        }
+                        FastChar.getValues().put("jdbcPool", "C3P0 jdbc pool");
+                    } catch (PropertyVetoException e) {
+                        e.printStackTrace();
+                    }
                 }
-
-            } catch (PropertyVetoException e) {
-                e.printStackTrace();
             }
         }
         return dataSource;
@@ -76,7 +83,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "C3P0 of " + databaseInfo.getName()));
+                    FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "C3P0 jdbc pool of " + databaseInfo.toSimpleInfo()));
                 }
             }
         } finally {

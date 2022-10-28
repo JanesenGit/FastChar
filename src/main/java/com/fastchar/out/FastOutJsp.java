@@ -1,7 +1,6 @@
 package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
-import com.fastchar.core.FastChar;
 
 /**
  * 响应输出jsp

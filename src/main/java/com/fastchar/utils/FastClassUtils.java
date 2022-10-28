@@ -5,9 +5,13 @@ import com.fastchar.exception.FastClassException;
 
 import java.io.InputStream;
 import java.lang.reflect.*;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.jar.JarFile;
 
 @SuppressWarnings("unchecked")
 public class FastClassUtils {
@@ -125,7 +129,7 @@ public class FastClassUtils {
 
 
     public static List<Method> getDeclaredMethod(Class<?> targetClass, String name) {
-        List<Method> methods = new ArrayList<>();
+        List<Method> methods = new ArrayList<>(16);
         try {
             for (Method declaredMethod : targetClass.getDeclaredMethods()) {
                 if (declaredMethod.getName().equals(name)) {
@@ -138,7 +142,7 @@ public class FastClassUtils {
     }
 
     public static List<Method> getMethod(Class<?> targetClass, String methodName) {
-        List<Method> methods = new ArrayList<>();
+        List<Method> methods = new ArrayList<>(16);
         try {
             for (Method method : targetClass.getMethods()) {
                 if (method.getName().equals(methodName)) {
@@ -155,9 +159,10 @@ public class FastClassUtils {
         if (constructorParams.length > 0) {
             try {
                 for (Constructor<?> declaredConstructor : targetClass.getDeclaredConstructors()) {
-                    if (declaredConstructor.getParameterTypes().length == constructorParams.length) {
+                    int length = declaredConstructor.getParameterTypes().length;
+                    if (length == constructorParams.length) {
                         boolean matchParam = true;
-                        for (int i = 0; i < declaredConstructor.getParameterTypes().length; i++) {
+                        for (int i = 0; i < length; i++) {
                             if (constructorParams[i] == null) {
                                 continue;
                             }
@@ -168,6 +173,7 @@ public class FastClassUtils {
                             }
                         }
                         if (matchParam) {
+                            declaredConstructor.setAccessible(true);
                             return (T) declaredConstructor.newInstance(constructorParams);
                         }
                     }
@@ -175,22 +181,51 @@ public class FastClassUtils {
             } catch (Exception e) {
                 throw new FastClassException(e);
             }
-            return newInstance(targetClass);
         }
         return newInstance(targetClass);
     }
 
 
     public static Object invokeMethod(Object object, Method declaredMethod, Object... params) throws Exception {
-        List<Object> methodParams = new ArrayList<>();
-        for (int i = 0; i < declaredMethod.getParameterTypes().length; i++) {
+        List<Object> methodParams = new ArrayList<>(5);
+        int length = declaredMethod.getParameterTypes().length;
+        for (int i = 0; i < length; i++) {
             if (i < params.length) {
                 methodParams.add(params[i]);
             } else {
                 methodParams.add(null);
             }
         }
+        declaredMethod.setAccessible(true);
         return declaredMethod.invoke(object, methodParams.toArray());
+    }
+
+    public static Object safeInvokeMethod(Object object, Method declaredMethod, Object... params) {
+        try {
+            return invokeMethod(object, declaredMethod, params);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static Object invokeMethod(Object target, String name, Object... params) throws Exception {
+        List<Class<?>> paramsClass = new ArrayList<>();
+        for (Object param : params) {
+            paramsClass.add(param.getClass());
+        }
+        Method declaredMethod = target.getClass().getDeclaredMethod(name, paramsClass.toArray(new Class[]{}));
+        declaredMethod.setAccessible(true);
+        return declaredMethod.invoke(target, params);
+    }
+
+    public static Object safeInvokeMethod(Object target, String name, Object... params) {
+        try {
+            return invokeMethod(target, name, params);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 
@@ -330,6 +365,35 @@ public class FastClassUtils {
         }
         return null;
     }
+
+
+    public static List<Class<?>> getAllSuperClasses(Class<?> targetClass) {
+        List<Class<?>> classes = new ArrayList<>(Arrays.asList(targetClass.getInterfaces()));
+        Class<?> superclass = targetClass.getSuperclass();
+        if (superclass != null) {
+            classes.add(superclass);
+            classes.addAll(getAllSuperClasses(superclass));
+        }
+        return classes;
+    }
+
+
+    public static <T> JarFile findClassJarFile(Class<T> targetClass) {
+        try {
+            URL url = targetClass.getResource(targetClass.getSimpleName() + ".class");
+            if (url != null) {
+                String protocol = url.getProtocol();
+                if ("jar".equals(protocol)) {
+                    JarURLConnection jarURLConnection = (JarURLConnection) url.openConnection();
+                    return jarURLConnection.getJarFile();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
 }
 

@@ -13,7 +13,7 @@ public class FastOpcodesHelper {
 
     public static int getLastASM() {
         try {
-            List<String> asmList = new ArrayList<>();
+            List<String> asmList = new ArrayList<>(16);
             Field[] fields = Opcodes.class.getFields();
             for (Field field : fields) {
                 if (field.getName().startsWith("ASM")) {

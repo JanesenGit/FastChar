@@ -12,7 +12,7 @@ import java.util.List;
  */
 public final class FastActions {
     private Class<? extends FastOut<?>> defaultOut;
-    private final List<String> excludeUrls = new ArrayList<>();//排除拦截url
+    private final List<String> excludeUrls = new ArrayList<>(16);//排除拦截url
     private boolean excludeServlet = true;//排除拦截servlet
 
     FastActions() {

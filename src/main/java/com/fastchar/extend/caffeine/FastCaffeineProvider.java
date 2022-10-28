@@ -8,7 +8,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Caffeine内存缓存 https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine
+ * Caffeine内存缓存 <a href="https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine">https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine</a>
  *
  * @author 沈建（Janesen）
  * @date 2021/7/5 18:17

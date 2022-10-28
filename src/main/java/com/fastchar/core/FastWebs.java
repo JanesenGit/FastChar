@@ -5,14 +5,16 @@ import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.interfaces.IFastWebRun;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
-import javassist.tools.web.Webserver;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 final class FastWebs {
-    private final List<Class<? extends IFastWeb>> webs = new ArrayList<>();
-    private final List<Class<? extends IFastWeb>> initialed =new ArrayList<>();
-    private final List<Class<? extends IFastWeb>> ran = new ArrayList<>();
+    private final List<Class<? extends IFastWeb>> webs = new ArrayList<>(5);
+    private final List<Class<? extends IFastWeb>> initialed =new ArrayList<>(5);
+    private final List<Class<? extends IFastWeb>> ran = new ArrayList<>(5);
 
     FastWebs putFastWeb(Class<? extends IFastWeb> webClass) {
         if (!FastClassUtils.checkNewInstance(webClass)) {
@@ -26,7 +28,7 @@ final class FastWebs {
     }
 
     public void flush() {
-        List<Class<? extends IFastWeb>> waitRemove = new ArrayList<>();
+        List<Class<? extends IFastWeb>> waitRemove = new ArrayList<>(16);
         for (Class<? extends IFastWeb> aClass : webs) {
             if (FastClassUtils.isRelease(aClass)) {
                 waitRemove.add(aClass);

@@ -1,10 +1,12 @@
 package com.fastchar.core;
 
 
-import com.fastchar.interfaces.IFastMethodInterceptor;
+import com.fastchar.enums.FastServletType;
 
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * 系统全局配置
@@ -15,7 +17,7 @@ public class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FAST_CHAR_VERSION = "1.6.1";
+    public static final String FAST_CHAR_VERSION = "2.0.0";
 
     /**
      * 数据库xml配置文件的前缀
@@ -27,25 +29,16 @@ public class FastConstant {
      */
     public static String FAST_DATA_FILE_PREFIX = "fast-data";
 
-    /**
-     * mysql数据库类型
-     */
-    public static final String MYSQL = "mysql";
-    /**
-     * sql_server数据库类型
-     */
-    public static final String SQL_SERVER = "sql_server";
-    /**
-     * oracle数据库类型
-     */
-    public static final String ORACLE = "oracle";
-
-
     FastConstant() {
     }
 
+    FastServletType servletType;//启动项目的servlet类型
+    private boolean debug = true;//调试模式
+    
     private String projectName;//项目名称
-    private String encoding = "utf-8";//编码格式
+    private long beginInitTime;//项目开始初始化时间戳
+    private long endInitTime;//项目结束初始化时间戳
+    private String charset = "utf-8";//编码格式
     private boolean encryptDatabaseXml;//是否加密数据库的配置xml
     private String encryptPassword = "FAST_CHAR";//加密的密码
     private boolean syncDatabaseXml = true;//是否同步xml到数据库中
@@ -54,8 +47,7 @@ public class FastConstant {
     private final Set<String> crossHeaders = new HashSet<>();//允许跨域的头部配置名
     private final Set<String> crossAllowDomains = new HashSet<>();//允许跨域的域名配置
 
-    private boolean debug = true;//调试模式
-    private boolean ansi = false;//是否支持控制ansi字体颜色设置
+    private boolean ansi = true; //是否支持控制ansi字体颜色设置
     private int maxResponseTime = 30;//最大响应时间 单位秒 如果超时这控制打印时会标红提醒
     private String dateFormat = "yyyy-MM-dd HH:mm:ss";//日期格式化统一，默认为 yyyy-MM-dd HH:mm:ss
 
@@ -83,19 +75,22 @@ public class FastConstant {
     private boolean attachNameMD5;//自动保存的附件是否自动进行MD5加密处理名称
     private boolean attachNameSuffix = true;//保留文件的后缀名
     private String attachDirectory;//附件保存的路径  默认WebRoot/attachments
-    private int attachMaxPostSize;//附件最大上传大小，单位 字节(b) 默认(500M) 500*1024*1024
+    private int attachMaxPostSize = 100 * 1024 * 1024;//附件最大上传大小，单位 字节(b) 默认(100M) 100*1024*1024
 
     private String propertiesName = "config.properties";//默认配置的properties文件
 
-    private boolean webStarted;//web服务器是否已启动
-    private boolean webStopped;//web服务器是否已停止
+    boolean webStarted;//web服务器是否已启动
+    boolean webStopped;//web服务器是否已停止
 
     private boolean decodeUploadFileName = true;//是否使用URLDecoder解码上传文件的名称
-    private String decodeUploadFileNameEncoding = encoding;//URLDecoder解码时的编码
+    private String decodeUploadFileNameEncoding = charset;//URLDecoder解码时的编码
 
     private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
 
 
+    public FastServletType getServletType() {
+        return servletType;
+    }
 
     /**
      * 是否加密fast-database.xml相关的数据库配置文件
@@ -136,18 +131,18 @@ public class FastConstant {
      *
      * @return 系统编号，默认：utf-8
      */
-    public String getEncoding() {
-        return encoding;
+    public String getCharset() {
+        return charset;
     }
 
     /**
      * 设置系统的编码格式
      *
-     * @param encoding 编码 例如：utf-8
+     * @param charset 编码 例如：utf-8
      * @return 当前对象
      */
-    public FastConstant setEncoding(String encoding) {
-        this.encoding = encoding;
+    public FastConstant setCharset(String charset) {
+        this.charset = charset;
         return this;
     }
 
@@ -274,14 +269,14 @@ public class FastConstant {
     /**
      * 获得上传附件的最大大小
      *
-     * @return 最大附件大小，默认30M
+     * @return 最大附件大小，默认：100M
      */
     public int getAttachMaxPostSize() {
         return attachMaxPostSize;
     }
 
     /**
-     * 设置上传附件的最大大小
+     * 设置上传附件的最大大小，默认：100M
      *
      * @param attachMaxPostSize 附件最大大小，单位：字节(b)
      * @return 当前对象
@@ -552,17 +547,6 @@ public class FastConstant {
     }
 
     /**
-     * 设置web服务器是否已停止
-     *
-     * @param webStopped 布尔值
-     * @return 当前对象
-     */
-    public FastConstant setWebStopped(boolean webStopped) {
-        this.webStopped = webStopped;
-        return this;
-    }
-
-    /**
      * 是否打印请求的header日志
      *
      * @return 布尔值
@@ -773,18 +757,6 @@ public class FastConstant {
     }
 
     /**
-     * 设置项目的Web服务器是否已启动
-     *
-     * @param webStarted 布尔值
-     * @return 当前对象
-     */
-    public FastConstant setWebStarted(boolean webStarted) {
-        this.webStarted = webStarted;
-        return this;
-    }
-
-
-    /**
      * 是否打印不同版本的JAR包
      *
      * @return 布尔值
@@ -922,11 +894,50 @@ public class FastConstant {
         return this;
     }
 
+
+    /**
+     * 获取项目开始初始化时间戳
+     * @return 时间戳
+     */
+    public long getBeginInitTime() {
+        return beginInitTime;
+    }
+
+    /**
+     * 设置项目开始初始化时间戳
+     *
+     * @param beginInitTime 时间戳
+     * @return 当前对象
+     */
+    FastConstant setBeginInitTime(long beginInitTime) {
+        this.beginInitTime = beginInitTime;
+        return this;
+    }
+
+    /**
+     * 获取项目结束初始化时间戳
+     * @return 时间戳
+     */
+    public long getEndInitTime() {
+        return endInitTime;
+    }
+
+    /**
+     * 设置项目开始初始化时间戳
+     *
+     * @param endInitTime 时间戳
+     * @return 当前对象
+     */
+    FastConstant setEndInitTime(long endInitTime) {
+        this.endInitTime = endInitTime;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "FastConstant{" +
                 "projectName='" + projectName + '\'' +
-                ", encoding='" + encoding + '\'' +
+                ", encoding='" + charset + '\'' +
                 ", encryptDatabaseXml=" + encryptDatabaseXml +
                 ", encryptPassword='" + encryptPassword + '\'' +
                 ", syncDatabaseXml=" + syncDatabaseXml +

@@ -3,6 +3,7 @@ package com.fastchar.extend.thymeleaf;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastTemplate;
+import com.fastchar.servlet.FastServletHelper;
 import com.fastchar.utils.FastStringUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -18,8 +19,10 @@ public class FastThymeleafEngine extends TemplateEngine implements IFastTemplate
     private FastTemplateResolver fastTemplateResolver;
 
     public FastThymeleafEngine() {
-        fastTemplateResolver = new FastTemplateResolver(FastChar.getServletContext());
-        setTemplateResolver(fastTemplateResolver);
+        if (FastServletHelper.isJavaxServlet()) {
+            fastTemplateResolver = new FastTemplateResolver((javax.servlet.ServletContext) FastChar.getServletContext().getTarget());
+            setTemplateResolver(fastTemplateResolver);
+        }
         addTemplateResolver(new StringTemplateResolver());
     }
 
@@ -34,8 +37,8 @@ public class FastThymeleafEngine extends TemplateEngine implements IFastTemplate
                 return null;
             }
             Map<String, Object> finalContext = FastChar.getTemplates().getFinalContext();
-            for (String key : finalContext.keySet()) {
-                context.setVariable(key, finalContext.get(key));
+            for (Map.Entry<String, Object> stringObjectEntry : finalContext.entrySet()) {
+                context.setVariable(stringObjectEntry.getKey(), stringObjectEntry.getValue());
             }
             StringWriter writer = new StringWriter();
             process(filePath, context, writer);
@@ -56,8 +59,8 @@ public class FastThymeleafEngine extends TemplateEngine implements IFastTemplate
             }
             Context context = new Context();
             params.putAll(FastChar.getTemplates().getFinalContext());
-            for (String key : params.keySet()) {
-                context.setVariable(key, params.get(key));
+            for (Map.Entry<String, Object> stringObjectEntry : params.entrySet()) {
+                context.setVariable(stringObjectEntry.getKey(), stringObjectEntry.getValue());
             }
             StringWriter writer = new StringWriter();
             process(template, context, writer);
@@ -77,8 +80,8 @@ public class FastThymeleafEngine extends TemplateEngine implements IFastTemplate
         }
         Context context = new Context();
         params.putAll(FastChar.getTemplates().getFinalContext());
-        for (String key : params.keySet()) {
-            context.setVariable(key, params.get(key));
+        for (Map.Entry<String, Object> stringObjectEntry : params.entrySet()) {
+            context.setVariable(stringObjectEntry.getKey(), stringObjectEntry.getValue());
         }
         return run(context, template.getAbsolutePath());
     }

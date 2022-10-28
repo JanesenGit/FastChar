@@ -1,19 +1,11 @@
 package com.fastchar.local;
 
-import com.fastchar.utils.FastClassUtils;
-import com.fastchar.utils.FastFileUtils;
-import com.fastchar.utils.FastStringUtils;
-
-import java.io.File;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
-
 public class FastCharLocal_CN extends FastCharBaseLocal {
 
     private final String FastChar_Error1 = "{0}启动成功！耗时：{1}秒！";
     private final String FastChar_Error2 = "{0}正在初始化，请稍后……";
     private final String FastChar_Error3 = "{0}已停止运行！";
+    private final String FastChar_Error4 = "{0}初始化异常，已停止启动！";
 
     private final String Date_Error1 = "今天";
     private final String Date_Error2 = "昨天";
@@ -53,11 +45,14 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Scanner_Error5 = "解压{0}成功!";
     private final String Scanner_Error6 = "移除被释放的扫描接收器类 {0} ";
     private final String Scanner_Error7 = "加载新的{0}成功!";
+    private final String Scanner_Error8 = "加载并更新{0}中……";
+    
 
     //数据库相关错误
     private final String Db_Error1 = "数据库名称{0}已存在！";
     private final String Db_Error2 = "数据库名称{0}不存在！";
     private final String Db_Error3 = "未配置数据库信息！";
+    private final String Db_Error4 = "数据库{0}不可为空！{1}";
 
 
     //数据库sql相关错误
@@ -73,8 +68,8 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Db_Table_Info1 = "在数据库 {0} 中创建表格：{1}";
     private final String Db_Table_Info2 = "在表格 {1}@{0} 中添加列：{2}";
     private final String Db_Table_Info3 = "修改表格 {1}@{0} 中的列：{2}";
-    private final String Db_Table_Info4 = "在表格 {1}@{0} 中添加列 {2} 的索引:{3}";
-
+    private final String Db_Table_Info4 = "在表格 {1}@{0} 中设置列 {2} 的索引:{3}";
+    private final String Db_Table_Info5 = "表格 {0} 缺少主键！";
 
     //数据库表格字段相关错误
     private final String Db_Column_Error1 = "字段名称[name]不可为空！";
@@ -128,6 +123,8 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String DataSource_Info1 = "已启用{0}数据源！";
     private final String DataSource_Info2 = "已关闭{0}数据源！";
     private final String DataSource_Info3 = "未获取到{0}数据源！";
+    private final String DataSource_Info4 = "已启用{0}数据源，此数据源仅用于测试，不可在正式项目中使用！！";
+
 
     //cglib相关错误
     private final String CGLib_Error1 = "被代理的类不可以为空！";
@@ -138,7 +135,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Velocity_Error1 = "文件不存在于WebRoot目录下！{0}";
 
     //ticket的错误
-    private final String Ticket_Error1 = "必读！此文件为FastChar配置文件！请勿轻易的删除！！！";
+    private final String Ticket_Error1 = "必读！此文件为FastChar配置文件！请勿删除！！！";
 
     //观察者类
     private final String Observable_Error1 = "移除被释放的观察者类 {0} ";

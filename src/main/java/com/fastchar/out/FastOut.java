@@ -2,21 +2,21 @@ package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.servlet.http.FastHttpServletResponse;
+import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
+import org.apache.catalina.connector.ClientAbortException;
 
-import javax.servlet.ServletOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.util.Date;
-import java.util.zip.GZIPOutputStream;
 
 public abstract class FastOut<T> {
 
     protected Object data;
     protected Date outTime;
     protected String contentType;
-    protected String charset = FastChar.getConstant().getEncoding();
+    protected String charset = FastChar.getConstant().getCharset();
     protected String description;
     protected int status = 200;
     private transient boolean logged;
@@ -35,7 +35,7 @@ public abstract class FastOut<T> {
      * @param fieldName  字段名
      * @param fieldValue 字段值
      */
-    public FastOut<?> setFieldValue(String fieldName, Object fieldValue) {
+    public FastOut<?> setValue(String fieldName, Object fieldValue) {
         try {
             Field declaredField = this.getClass().getDeclaredField(fieldName);
             declaredField.setAccessible(true);
@@ -46,8 +46,11 @@ public abstract class FastOut<T> {
     }
 
     public String toContentType(FastAction action) {
+        return toContentType(action, true);
+    }
+    public String toContentType(FastAction action,boolean checkAccept) {
         //通过参数强制设置contentType
-        if (action.isParamNotEmpty(FastAction.PARAM_ACCPET)) {
+        if (action.isParamNotEmpty(FastAction.PARAM_ACCPET) && checkAccept) {
             this.contentType = action.getParam(FastAction.PARAM_ACCPET);
         }
         if (FastStringUtils.isEmpty(contentType)) {
@@ -63,7 +66,6 @@ public abstract class FastOut<T> {
         }
         return stringBuilder.toString();
     }
-
 
 
     public String getContentType() {
@@ -122,6 +124,70 @@ public abstract class FastOut<T> {
         this.description = description;
         return (T) this;
     }
+
+    protected void write(FastHttpServletResponse response, String content) throws IOException {
+        try (OutputStreamWriter streamWriter = new OutputStreamWriter(response.getOutputStream(), charset)) {
+            streamWriter.write(content);
+            streamWriter.flush();
+        } catch (ClientAbortException ignored) {
+            //这个异常是由于客户端断开连接，可以忽略
+        }
+    }
+
+    protected void write(FastHttpServletResponse response, InputStream inputStream, int inputSize) throws IOException {
+
+        //此处禁止做编码处理，源输入流返回
+        try (OutputStream streamWriter = response.getOutputStream()) {
+            byte[] buffer = new byte[inputSize];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                streamWriter.write(buffer, 0, len);
+            }
+            streamWriter.flush();
+        } catch (ClientAbortException ignored) {
+            //这个异常是由于客户端断开连接，可以忽略
+        } finally {
+            FastFileUtils.closeQuietly(inputStream);
+        }
+    }
+
+    protected void write(FastHttpServletResponse response, InputStream inputStream, int inputSize, long start, long end) {
+        //此处禁止做编码处理，源输入流返回
+        try (OutputStream streamWriter = response.getOutputStream()) {
+            if (inputStream.skip(start) != start) {
+                throw new RuntimeException("InputStream skip error");
+            }
+
+            byte[] buffer = new byte[inputSize];
+            long position = start;
+            for (int len; position <= end && (len = inputStream.read(buffer)) != -1; ) {
+                if (position + len <= end) {
+                    streamWriter.write(buffer, 0, len);
+                    position += len;
+                } else {
+                    for (int i = 0; i < len && position <= end; i++) {
+                        streamWriter.write(buffer[i]);
+                        position++;
+                    }
+                }
+            }
+            streamWriter.flush();
+        } catch (ClientAbortException ignored) {
+            //这个异常是由于客户端断开连接，可以忽略
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            FastFileUtils.closeQuietly(inputStream);
+        }
+    }
+
+    protected PrintWriter getWriter(FastHttpServletResponse response) throws IOException {
+        return new PrintWriter(new OutputStreamWriter(response.getOutputStream(), charset));
+    }
+
+
+
+
 
     public enum Type {
         TEXT,

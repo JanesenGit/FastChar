@@ -7,7 +7,11 @@ import com.fastchar.interfaces.IFastCache;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastSerializeUtils;
 import com.fastchar.utils.FastStringUtils;
-import redis.clients.jedis.*;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
+import redis.clients.jedis.util.Pool;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -23,35 +27,41 @@ public class FastRedisNormalProvider implements IFastCache {
         return !FastChar.getConfigs().getRedisConfig().isCluster();
     }
 
-    private JedisPoolAbstract jedisPool;
+    private volatile Pool<Jedis> jedisPool;
 
-    private synchronized Jedis getJedis() {
+    private Jedis getJedis() {
         if (jedisPool == null) {
-            FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
-            if (redisConfig.getServers().size() == 0) {
-                throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR1));
-            }
-            if (redisConfig.getServers().size() > 1) {
-                if (FastStringUtils.isEmpty(redisConfig.getMasterName())) {
-                    throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR2));
+            synchronized (FastRedisNormalProvider.class) {
+                if (jedisPool == null) {
+                    FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
+                    if (redisConfig.getServers().size() == 0) {
+                        throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR1));
+                    }
+                    if (redisConfig.getServers().size() > 1) {
+                        if (FastStringUtils.isEmpty(redisConfig.getMasterName())) {
+                            throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR2));
+                        }
+                        jedisPool = new JedisSentinelPool(redisConfig.getMasterName(),
+                                redisConfig.toSentinels(),
+                                redisConfig.getJedisPoolConfig(),
+                                redisConfig.getTimeout(),
+                                redisConfig.getSoTimeout(),
+                                redisConfig.getUsername(),
+                                redisConfig.getPassword(),
+                                redisConfig.getDatabase());
+                    } else {
+                        HostAndPort server = redisConfig.getServer(0);
+                        jedisPool = new JedisPool(
+                                redisConfig.getJedisPoolConfig(),
+                                server.getHost(),
+                                server.getPort(),
+                                redisConfig.getTimeout(),
+                                redisConfig.getSoTimeout(),
+                                redisConfig.getUsername(),
+                                redisConfig.getPassword(),
+                                redisConfig.getDatabase(), null);
+                    }
                 }
-                jedisPool = new JedisSentinelPool(redisConfig.getMasterName(),
-                        redisConfig.toSentinels(),
-                        redisConfig.getJedisPoolConfig(),
-                        redisConfig.getTimeout(),
-                        redisConfig.getSoTimeout(),
-                        redisConfig.getPassword(),
-                        redisConfig.getDatabase());
-            } else {
-                HostAndPort server = redisConfig.getServer(0);
-                jedisPool = new JedisPool(
-                        redisConfig.getJedisPoolConfig(),
-                        server.getHost(),
-                        server.getPort(),
-                        redisConfig.getTimeout(),
-                        redisConfig.getSoTimeout(),
-                        redisConfig.getPassword(),
-                        redisConfig.getDatabase(), null);
             }
         }
         return jedisPool.getResource();
@@ -70,6 +80,7 @@ public class FastRedisNormalProvider implements IFastCache {
         try (Jedis jedis = getJedis()) {
             return jedis.get(wrapKey(tag, key)) != null;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -83,10 +94,12 @@ public class FastRedisNormalProvider implements IFastCache {
         try (Jedis jedis = getJedis()) {
             Set<String> keys = jedis.keys(pattern);
             for (String key : keys) {
-                tags.add(key.split("#")[0]);
+                tags.add(FastStringUtils.splitByWholeSeparator(key,"#")[0]);
             }
-            return tags;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return tags;
     }
 
     @Override
@@ -100,6 +113,8 @@ public class FastRedisNormalProvider implements IFastCache {
             } else {
                 jedis.set(wrapKey(tag, key).getBytes(), FastSerializeUtils.serialize(data));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -115,7 +130,10 @@ public class FastRedisNormalProvider implements IFastCache {
                 return null;
             }
             return (T) deserialize;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return null;
     }
 
     @Override
@@ -128,6 +146,8 @@ public class FastRedisNormalProvider implements IFastCache {
             if (keys.size() > 0) {
                 jedis.del(keys.toArray(new String[]{}));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -138,6 +158,8 @@ public class FastRedisNormalProvider implements IFastCache {
         }
         try (Jedis jedis = getJedis()) {
             jedis.del(wrapKey(tag, key));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

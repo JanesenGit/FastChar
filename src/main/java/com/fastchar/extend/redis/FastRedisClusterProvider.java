@@ -7,7 +7,7 @@ import com.fastchar.interfaces.IFastCache;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastSerializeUtils;
 import com.fastchar.utils.FastStringUtils;
-import redis.clients.jedis.*;
+import redis.clients.jedis.JedisCluster;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -23,20 +23,27 @@ public class FastRedisClusterProvider implements IFastCache {
         return FastChar.getConfigs().getRedisConfig().isCluster();
     }
 
-    private JedisCluster jedisCluster;
+    private volatile JedisCluster jedisCluster;
 
-    private synchronized JedisCluster getJedis() {
+    private  JedisCluster getJedis() {
         if (jedisCluster == null) {
-            FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
-            if (redisConfig.getServers().size() == 0) {
-                throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR1));
+            synchronized (FastRedisClusterProvider.class) {
+                if (jedisCluster == null) {
+                    FastRedisConfig redisConfig = FastChar.getConfigs().getRedisConfig();
+                    if (redisConfig.getServers().size() == 0) {
+                        throw new FastCacheException(FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR1));
+                    }
+
+                    jedisCluster = new JedisCluster(redisConfig.getServers(),
+                            redisConfig.getTimeout(),
+                            redisConfig.getSoTimeout(),
+                            redisConfig.getMaxAttempts(),
+                            redisConfig.getUsername(),
+                            redisConfig.getPassword(),
+                            redisConfig.getClientName(),
+                            redisConfig.getJedisClusterPoolConfig());
+                }
             }
-            jedisCluster = new JedisCluster(redisConfig.getServers(),
-                    redisConfig.getTimeout(),
-                    redisConfig.getSoTimeout(),
-                    redisConfig.getMaxAttempts(),
-                    redisConfig.getPassword(),
-                    redisConfig.getJedisPoolConfig());
         }
         return jedisCluster;
     }
@@ -65,7 +72,7 @@ public class FastRedisClusterProvider implements IFastCache {
         try (JedisCluster jedis = getJedis()) {
             Set<String> keys = jedis.keys(pattern);
             for (String key : keys) {
-                tags.add(key.split("#")[0]);
+                tags.add(FastStringUtils.splitByWholeSeparator(key,"#")[0]);
             }
             return tags;
         }
