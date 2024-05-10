@@ -16,15 +16,22 @@ import java.util.Set;
 @AFastObserver
 @AFastClassFind("net.sf.ehcache.Cache")
 public class FastEhCache2Provider implements IFastCache {
-    private static final Object LOCKER = new Object();
 
     private volatile CacheManager cacheManager;
+    private String configCode;
+
+    public FastEhCache2Provider(String configCode) {
+        this.configCode = configCode;
+    }
+
+    public FastEhCache2Provider() {
+    }
 
     private CacheManager getCacheManager() {
         if (cacheManager == null) {
-            synchronized (FastEhCache2Provider.class) {
+            synchronized (this) {
                 if (cacheManager == null) {
-                    FastEhCache2Config ehCacheConfig = FastChar.getConfigs().getEhCache2Config();
+                    FastEhCache2Config ehCacheConfig = FastChar.getConfig(configCode, FastEhCache2Config.class);
                     if (ehCacheConfig != null) {
                         if (ehCacheConfig.getConfiguration() != null) {
                             cacheManager = CacheManager.create(ehCacheConfig.getConfiguration());
@@ -49,7 +56,7 @@ public class FastEhCache2Provider implements IFastCache {
     private Cache getCache(String tag) {
         Cache cache = getCacheManager().getCache(tag);
         if (cache == null) {
-            synchronized (LOCKER) {
+            synchronized (this) {
                 getCacheManager().addCacheIfAbsent(tag);
                 return getCacheManager().getCache(tag);
             }

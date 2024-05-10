@@ -1,6 +1,7 @@
 package com.fastchar.core;
 
 import com.fastchar.enums.FastObservableEvent;
+import com.fastchar.enums.FastServletType;
 import com.fastchar.utils.FastFileUtils;
 
 import java.io.File;
@@ -21,6 +22,24 @@ import java.util.jar.JarFile;
 @SuppressWarnings("UnusedReturnValue")
 public final class FastModules {
 
+    private void loadCore() throws Exception {
+        FastScanner scanner = FastChar.getScanner();
+        scanner.registerOverrider();
+        scanner.registerWeb();
+
+        FastEngine.instance().getWebs().onRegisterWeb(FastEngine.instance());
+
+        FastEngine.instance().getWebs().onInitWeb(FastEngine.instance());
+
+        scanner.notifyAcceptor();
+        FastChar.getObservable().notifyObservers(FastObservableEvent.onScannerFinish.name());
+        if (FastChar.getServletType() != FastServletType.None) {
+            FastEngine.instance().getWebs().onRunWeb(FastEngine.instance());
+        }
+
+        FastEngine.instance().getWebs().onFinishWeb(FastEngine.instance());
+    }
+
     /**
      * 加载系统模块
      *
@@ -32,14 +51,7 @@ public final class FastModules {
         try {
             FastChar.getScanner().resolveJar(false, jarFiles);
             FastChar.getScanner().scannerJar();
-            FastChar.getScanner().registerOverrider();
-            FastChar.getScanner().registerWeb();
-            FastEngine.instance().getWebs().initWeb(FastEngine.instance());
-            FastChar.getScanner().notifyAccepter();
-            FastChar.getObservable().notifyObservers(FastObservableEvent.onScannerFinish.name());
-            if (!FastChar.isMain()) {
-                FastEngine.instance().getWebs().runWeb(FastEngine.instance());
-            }
+            loadCore();
         } finally {
             FastEngine.instance().flush();
         }
@@ -57,14 +69,7 @@ public final class FastModules {
     public FastModules loadModule(String... paths) throws Exception {
         try {
             FastChar.getScanner().resolvePath(paths);
-            FastChar.getScanner().registerOverrider();
-            FastChar.getScanner().registerWeb();
-            FastEngine.instance().getWebs().initWeb(FastEngine.instance());
-            FastChar.getScanner().notifyAccepter();
-            FastChar.getObservable().notifyObservers(FastObservableEvent.onScannerFinish.name());
-            if (!FastChar.isMain()) {
-                FastEngine.instance().getWebs().runWeb(FastEngine.instance());
-            }
+            loadCore();
         } finally {
             FastEngine.instance().flush();
         }
@@ -84,9 +89,7 @@ public final class FastModules {
             for (File jarFile : jarFiles) {
                 FastScanner.ScannerJar scannerJar = new FastScanner.ScannerJar(jarFile);
                 if (FastChar.getScanner().getJarLoaders().containsKey(scannerJar.getJarCode())) {
-                    FastClassLoader fastClassLoader = FastChar.getScanner().getJarLoaders().get(scannerJar.getJarCode());
-                    fastClassLoader.close();
-                    FastChar.getScanner().getJarLoaders().remove(scannerJar.getJarCode());
+                    FastChar.getScanner().getJarLoaders().remove(scannerJar.getJarCode()).close();
                 }
             }
         } finally {
@@ -115,16 +118,11 @@ public final class FastModules {
                     if (jarEntryName.endsWith(".class")) {
                         continue;
                     }
-
                     boolean isWebSource = false;
                     for (String web : FastScanner.WEB) {
                         if (jarEntryName.startsWith(web)) {
                             isWebSource = true;
-                            if (jarEntryName.startsWith("WebRoot")) {
-                                jarEntryName = jarEntryName.substring("WebRoot".length());
-                            } else if (jarEntryName.startsWith("web")) {
-                                jarEntryName = jarEntryName.substring("web".length());
-                            }
+                            jarEntryName = jarEntryName.substring(web.length());
                             FastFileUtils.forceDelete(new File(FastChar.getPath().getWebRootPath(), jarEntryName));
                             break;
                         }
@@ -150,9 +148,7 @@ public final class FastModules {
         try {
             for (String path : paths) {
                 if (FastChar.getScanner().getPathLoaders().containsKey(path)) {
-                    FastClassLoader fastClassLoader = FastChar.getScanner().getPathLoaders().get(path);
-                    fastClassLoader.close();
-                    FastChar.getScanner().getPathLoaders().remove(path);
+                    FastChar.getScanner().getPathLoaders().remove(path).close();
                 }
             }
         } finally {

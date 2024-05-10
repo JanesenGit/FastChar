@@ -3,6 +3,8 @@ package com.fastchar.extend.freemarker;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastTemplate;
+import com.fastchar.servlet.FastServletContext;
+import com.fastchar.servlet.FastServletHelper;
 import com.fastchar.utils.FastStringUtils;
 import freemarker.cache.StringTemplateLoader;
 import freemarker.template.*;
@@ -16,7 +18,12 @@ import java.util.Map;
 public class FastFreemarkerEngine extends Configuration  implements IFastTemplate {
 
     public FastFreemarkerEngine() {
-        setServletContextForTemplateLoading(FastChar.getServletContext(), "/");
+        if (FastServletHelper.isJavaxServlet() || FastServletHelper.isJakartaServlet()) {
+            FastServletContext servletContext = FastChar.getServletContext();
+            if (servletContext != null) {
+                setServletContextForTemplateLoading(servletContext.getTarget(), "/");
+            }
+        }
         setDefault(this);
     }
 
@@ -47,7 +54,7 @@ public class FastFreemarkerEngine extends Configuration  implements IFastTemplat
             if (params == null || FastStringUtils.isEmpty(template)) {
                 return null;
             }
-            Configuration cfg = new Configuration(VERSION_2_3_28);
+            Configuration cfg = new Configuration(DEFAULT_INCOMPATIBLE_IMPROVEMENTS);
             params.putAll(FastChar.getTemplates().getFinalContext());
             StringTemplateLoader stringLoader = new StringTemplateLoader();
             String templateName = FastChar.getSecurity().MD5_Encrypt(template);
@@ -61,7 +68,7 @@ public class FastFreemarkerEngine extends Configuration  implements IFastTemplat
             writer.close();
             return data;
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return null;
     }
@@ -80,7 +87,7 @@ public class FastFreemarkerEngine extends Configuration  implements IFastTemplat
             writer.close();
             return data;
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return null;
     }

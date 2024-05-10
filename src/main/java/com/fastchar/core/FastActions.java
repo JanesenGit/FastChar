@@ -31,6 +31,19 @@ public final class FastActions {
         return this;
     }
 
+
+    public FastActions deleteCache(String tag) {
+        FastChar.getCache().delete(tag);
+        return this;
+    }
+
+    public FastActions deleteCache(String tag,String key) {
+        FastChar.getCache().delete(tag, key);
+        return this;
+    }
+
+
+
     public Class<? extends FastOut<?>> getDefaultOut() {
         return defaultOut;
     }

@@ -16,6 +16,8 @@
  */
 package com.fastchar.extend.commons.lang3.time;
 
+import com.fastchar.core.FastChar;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
@@ -568,8 +570,8 @@ public class FastDatePrinter implements DatePrinter, Serializable {
             for (final Rule rule : mRules) {
                 rule.appendTo(buf, calendar);
             }
-        } catch (final IOException ioe) {
-            ioe.printStackTrace();
+        } catch (final IOException e) {
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return buf;
     }

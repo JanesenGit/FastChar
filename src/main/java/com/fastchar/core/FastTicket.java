@@ -1,5 +1,6 @@
 package com.fastchar.core;
 
+import com.fastchar.enums.FastServletType;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastSerializeUtils;
 import com.fastchar.utils.FastStringUtils;
@@ -21,12 +22,22 @@ public final class FastTicket {
     }
 
 
+    private File getTicketFile() {
+        File file = new File(FastChar.getPath().getClassRootPath(), ".fastchar" + File.separator + ticketFileName);
+        if (FastChar.getConstant().isWebServer()) {
+            file = new File(FastChar.getPath().getWebRootPath(), ".fastchar" + File.separator + ticketFileName);
+        }
+        return file;
+    }
+
     public void saveTicket() {
         try {
-            File file = new File(FastChar.getPath().getWebInfoPath(), ticketFileName);
-            FastFileUtils.writeByteArrayToFile(file, FastSerializeUtils.serialize(ticketMap));
+            if (FastChar.getConstant().getServletType() == FastServletType.None) {
+                return;
+            }
+            FastFileUtils.writeByteArrayToFile(getTicketFile(), FastSerializeUtils.serialize(ticketMap));
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }finally {
             ticketMap.clear();
         }
@@ -34,7 +45,11 @@ public final class FastTicket {
 
     public void restoreTicket() {
         try {
-            File file = new File(FastChar.getPath().getWebInfoPath(), ticketFileName);
+            if (FastChar.getConstant().getServletType() == FastServletType.None) {
+                return;
+            }
+            File file = getTicketFile();
+
             if (file.exists()) {
                 //noinspection unchecked
                 Map<String, String> restoreTicketMap = (Map<String, String>) FastSerializeUtils.deserialize(FastFileUtils.readFileToByteArray(file));
@@ -43,7 +58,7 @@ public final class FastTicket {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         } finally {
             restoredTicket = true;
         }

@@ -65,6 +65,9 @@ public class FastHttpServletResponseWrapper extends FastHttpServletResponse {
     @Override
     public void setHeader(String name, String value) {
         super.setHeader(name, value);
+        if (cacheInfo.isExcludeHead(name)) {
+            return;
+        }
         for (FastResponseCacheHeader fastResponseHeader : cacheInfo.getHeader()) {
             if (fastResponseHeader.getName().equals(name)) {
                 fastResponseHeader.setValue(value);
@@ -80,6 +83,9 @@ public class FastHttpServletResponseWrapper extends FastHttpServletResponse {
     @Override
     public void addHeader(String name, String value) {
         super.addHeader(name, value);
+        if (cacheInfo.isExcludeHead(name)) {
+            return;
+        }
         FastResponseCacheHeader fastResponseHeader = new FastResponseCacheHeader();
         fastResponseHeader.setName(name);
         fastResponseHeader.setValue(value);
@@ -89,6 +95,9 @@ public class FastHttpServletResponseWrapper extends FastHttpServletResponse {
     @Override
     public void setIntHeader(String name, int value) {
         super.setIntHeader(name, value);
+        if (cacheInfo.isExcludeHead(name)) {
+            return;
+        }
         for (FastResponseCacheHeader fastResponseHeader : cacheInfo.getIntHeader()) {
             if (fastResponseHeader.getName().equals(name)) {
                 fastResponseHeader.setValue(value);
@@ -104,6 +113,9 @@ public class FastHttpServletResponseWrapper extends FastHttpServletResponse {
     @Override
     public void addIntHeader(String name, int value) {
         super.addIntHeader(name, value);
+        if (cacheInfo.isExcludeHead(name)) {
+            return;
+        }
         FastResponseCacheHeader fastResponseHeader = new FastResponseCacheHeader();
         fastResponseHeader.setName(name);
         fastResponseHeader.setValue(value);

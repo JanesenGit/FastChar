@@ -138,7 +138,7 @@ public abstract class FastSql {
                 values.add(columnValue);
             }
         }
-        if (values.size() == 0) {
+        if (values.isEmpty()) {
             return null;
         }
 
@@ -186,7 +186,7 @@ public abstract class FastSql {
                 values.add(getColumnValue(entity, columnInfo));
             }
         }
-        if (values.size() == 0) {
+        if (values.isEmpty()) {
             return null;
         }
         StringBuilder sqlBuilder = new StringBuilder("update " + entity.getTableName()
@@ -239,6 +239,12 @@ public abstract class FastSql {
         return sqlInfo;
     }
 
+
+    public FastSqlInfo buildSelectSqlByChecks(FastEntity<?> entity, String... checks) {
+        return buildCheckSql("select * from " + entity.getTableName(), entity, new ArrayList<>(), checks);
+
+    }
+
     public abstract String buildPageSql(String selectSql, int page, int pageSize);
 
     public FastSqlInfo buildCountSql(FastEntity<?> entity, String... checks) {
@@ -255,7 +261,7 @@ public abstract class FastSql {
         return "select count(1) as " + alias + " from (" + selectSql + ") as temp ";
     }
 
-    protected FastSqlInfo buildCheckSql(String baseSql, FastEntity<?> entity, List<Object> values, String... checks) {
+    public FastSqlInfo buildCheckSql(String baseSql, FastEntity<?> entity, List<Object> values, String... checks) {
         StringBuilder sqlBuilder = new StringBuilder(baseSql + " where 1=1 ");
 
         if (values == null) {

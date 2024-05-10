@@ -1,5 +1,6 @@
 package com.fastchar.object;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastHandler;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastClassUtils;
@@ -18,8 +19,8 @@ import java.util.regex.Pattern;
  */
 public class FastObjectSetHandler {
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
-    private final Object target;
-    private final Object property;
+    private transient final Object target;
+    private transient final Object property;
 
     public FastObjectSetHandler(Object target, Object property) {
         this.target = target;
@@ -95,7 +96,7 @@ public class FastObjectSetHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }
@@ -122,7 +123,7 @@ public class FastObjectSetHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }
@@ -150,7 +151,7 @@ public class FastObjectSetHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }

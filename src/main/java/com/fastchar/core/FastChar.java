@@ -4,10 +4,15 @@ import com.fastchar.database.FastDB;
 import com.fastchar.database.FastDatabaseTransaction;
 import com.fastchar.database.FastDatabaseXml;
 import com.fastchar.database.FastDatabases;
+import com.fastchar.enums.FastServletType;
+import com.fastchar.extend.cglib.FastEnhancer;
+import com.fastchar.extend.yml.FastYaml;
 import com.fastchar.interfaces.*;
 import com.fastchar.servlet.FastServletContext;
 
 import java.io.File;
+import java.util.Map;
+import java.util.jar.Manifest;
 
 /**
  * FastChar全局工具类，涵盖了所有FastChar提供功能
@@ -23,17 +28,17 @@ public final class FastChar {
     }
 
     /**
-     * 启动测试环境，一般在main方法中使用
+     * 启动本地测试环境【注意此方法启动并未启动网络访问】，一般在main方法中使用
      */
     public static boolean startTest() {
         try {
             FastEngine instance = FastEngine.instance();
             if (instance.getConstant().isWebStarted()) {
-                FastChar.getLog().info(FastChar.class, "The current web server is running! ");
+                FastChar.getLogger().info(FastChar.class, "The current web server is running! ");
                 return true;
             }
             if (TEST_STARTED) {
-                FastChar.getLog().info(FastChar.class, "Test environment started!  ");
+                FastChar.getLogger().info(FastChar.class, "Test environment started!  ");
                 return true;
             }
             instance.getConstant().setSyncDatabaseXml(false);
@@ -41,10 +46,11 @@ public final class FastChar {
             instance.init(null);
             instance.run();
             TEST_STARTED = true;
-            FastChar.getLog().info(FastChar.class, "Test environment started successfully！");
+            instance.finish();
+            FastChar.getLogger().info(FastChar.class, "Test environment started successfully！");
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastChar.class, e);
         }
         return false;
     }
@@ -74,14 +80,13 @@ public final class FastChar {
         return FastEngine.instance().getTemplates();
     }
 
-    public static IFastFileRename getFileRename() {
-        return getOverrides().singleInstance(IFastFileRename.class);
+    public static IFastFileRename getFileRename(Object... constructorArgs) {
+        return getOverrides().singleInstance(IFastFileRename.class,constructorArgs);
     }
 
     public static IFastSecurity getSecurity() {
         return FastEngine.instance().getSecurity();
     }
-
 
     public static FastScanner getScanner() {
         return FastEngine.instance().getScanner();
@@ -123,56 +128,69 @@ public final class FastChar {
         return FastEngine.instance().getOverrides();
     }
 
-    public static IFastLocal getLocal() {
-        return FastChar.getOverrides().singleInstance(IFastLocal.class);
-    }
-
-    public static FastLog getLog() {
-        return FastEngine.instance().getLog();
+    public static FastValidators getValidators() {
+        return FastEngine.instance().getValidators();
     }
 
     public static FastLogger getLogger() {
         return FastEngine.instance().getLogger();
     }
 
+
     public static String wrapperUrl(String url) {
         return FastEngine.instance().wrapperUrl(url);
-    }
-
-    public static IFastJson getJson() {
-        return FastChar.getOverrides().singleInstance(IFastJson.class);
-    }
-
-    public static FastConfigs getConfigs() {
-        return FastEngine.instance().getConfigs();
-    }
-
-    public static FastDatabases getDatabases() {
-        return FastEngine.instance().getDatabases();
     }
 
     public static FastDatabaseXml getDatabaseXml() {
         return FastEngine.instance().getDatabaseXml();
     }
 
-    public static IFastCache getCache() {
-        return FastChar.getOverrides().singleInstance(IFastCache.class);
+    public static FastDatabases getDatabases() {
+        return FastEngine.instance().getDatabases();
     }
 
-    public static IFastCache safeGetCache() {
-        return FastChar.getOverrides().singleInstance(false, IFastCache.class);
+    public static FastProperties getProperties() {
+        return FastEngine.instance().getProperties();
     }
 
-    public static IFastMemoryCache getMemoryCache() {
-        return FastChar.getOverrides().singleInstance(IFastMemoryCache.class);
+
+    public static FastProperties getProperties(String fileName) {
+        return FastEngine.instance().getProperties(fileName);
     }
 
-    public static IFastMemoryCache safeGetMemoryCache() {
-        return FastChar.getOverrides().singleInstance(false, IFastMemoryCache.class);
+    public static FastProperties getProperties(File properties) {
+        return FastEngine.instance().getProperties(properties);
     }
 
-    public static FastValidators getValidators() {
-        return FastEngine.instance().getValidators();
+    public static FastProperties getProperties(FastResource properties) {
+        return FastEngine.instance().getProperties(properties);
+    }
+
+
+    public static FastYaml getYaml() {
+        return FastEngine.instance().getYaml();
+    }
+
+    public static FastYaml getYaml(String fileName) {
+        return FastEngine.instance().getYaml(fileName);
+    }
+
+    public static FastYaml getYaml(File properties) {
+        return FastEngine.instance().getYaml(properties);
+    }
+
+
+
+    public static <T> FastEnhancer<T> getEnhancer(Class<T> targetClass) {
+        return FastEnhancer.get(targetClass);
+    }
+
+    public static <T> FastEnhancer<T> safeGetEnhancer(Class<T> targetClass) {
+        return FastEnhancer.getBySafe(targetClass);
+    }
+
+    public static FastFindClass getFindClass() {
+        return FastEngine.instance().getFindClass();
     }
 
 
@@ -184,32 +202,64 @@ public final class FastChar {
         return FastEngine.instance().getConfig(onlyCode, targetClass);
     }
 
-    public static FastProperties getProperties() {
-        return FastEngine.instance().getProperties();
+
+    public static IFastLocal getLocal() {
+        return FastChar.getOverrides().singleInstance(IFastLocal.class);
+    }
+    public static IFastLocal getLocal(Object... constructorArgs) {
+        return FastChar.getOverrides().singleInstance(IFastLocal.class, constructorArgs);
     }
 
-    public static FastProperties getProperties(String fileName) {
-        return FastEngine.instance().getProperties(fileName);
+    public static IFastJson getJson() {
+        return FastChar.getOverrides().singleInstance(IFastJson.class);
     }
 
-    public static FastProperties getProperties(File properties) {
-        return FastEngine.instance().getProperties(properties);
+    public static IFastJson getJson(Object... constructorArgs) {
+        return FastChar.getOverrides().singleInstance(IFastJson.class, constructorArgs);
     }
 
-
-    public static FastFindClass getFindClass() {
-        return FastEngine.instance().getFindClass();
+    public static IFastCache getCache() {
+        return FastChar.getOverrides().singleInstance(IFastCache.class);
+    }
+    public static IFastCache getCache(Object... constructorArgs) {
+        return FastChar.getOverrides().singleInstance(IFastCache.class,constructorArgs);
     }
 
-    public static boolean isMain() {
-        return FastEngine.instance().isMain();
+    public static IFastCache safeGetCache() {
+        return FastChar.getOverrides().singleInstance(false, IFastCache.class);
+    }
+    public static IFastCache safeGetCache(Object... constructorArgs) {
+        return FastChar.getOverrides().singleInstance(false, IFastCache.class, constructorArgs);
     }
 
+    public static IFastMemoryCache getMemoryCache() {
+        return FastChar.getOverrides().singleInstance(IFastMemoryCache.class);
+    }
+
+    public static IFastMemoryCache getMemoryCache(Object... constructorArgs) {
+        return FastChar.getOverrides().singleInstance(IFastMemoryCache.class, constructorArgs);
+    }
+
+    public static IFastMemoryCache safeGetMemoryCache() {
+        return FastChar.getOverrides().singleInstance(false, IFastMemoryCache.class);
+    }
+
+    public static IFastMemoryCache safeGetMemoryCache(Object... constructorArgs) {
+        return FastChar.getOverrides().singleInstance(false, IFastMemoryCache.class, constructorArgs);
+    }
+
+    /**
+     * 获取当前servlet的类型 一般用于判断tomcat版本
+     * @return FastServletType
+     */
+    public static FastServletType getServletType() {
+        return getConstant().getServletType();
+    }
 
     /**
      * 判断当前线程是否开启了数据库事务
      *
-     * @return 布尔值
+     * @return boolean
      */
     public static boolean isThreadTransaction() {
         return FastDatabaseTransaction.isThreadTransaction();
@@ -244,5 +294,59 @@ public final class FastChar {
         return FastDatabaseTransaction.getThreadTransaction();
     }
 
+    /**
+     * 获取web资源管理器
+     * @return FastWebResources
+     */
+    public static FastWebResources getWebResources() {
+        return FastEngine.instance().getWebResources();
+    }
+
+
+    /**
+     * 获取jar资源管理器
+     * @return FastWebResources
+     */
+    public static FastJarResources getJarResources() {
+        return FastEngine.instance().getJarResources();
+    }
+
+    /**
+     * 打印FastChar框架初始的核心信息
+     */
+    public void logFastCharInfo() {
+        FastEngine.instance().logFastCharInfo();
+    }
+
+
+    public static FastJsonWrap getJsonWrap(String json) {
+        return FastJsonWrap.newInstance(json);
+    }
+
+    public static FastMapWrap getMapWrap(Map<?, ?> map) {
+        return FastMapWrap.newInstance(map);
+    }
+
+
+    public static IFastMessagePubSub getPubSub(Object... constructorArgs) {
+        return FastChar.getOverrides().newInstance(IFastMessagePubSub.class, constructorArgs);
+    }
+
+    public static IFastMessageQueue getMQ(Object... constructorArgs) {
+        return FastChar.getOverrides().newInstance(IFastMessageQueue.class, constructorArgs);
+    }
+
+
+    public static IFastLocker getLocker(Object... constructorArgs) {
+        return FastChar.getOverrides().singleInstance(IFastLocker.class, constructorArgs);
+    }
+
+
+    /**
+     * 获取jar包是主项目的Manifest配置
+     */
+    public Manifest getProjectManifest() {
+        return FastEngine.instance().getProjectManifest();
+    }
 
 }

@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public class FastObjectExecute {
     private static final Pattern ATTR_PATTERN = Pattern.compile("\\$\\{(.*)}");
     private static final Pattern EXTRACT_PATTERN = Pattern.compile("(.*)\\[(\\d+)]");
-    private final Object value;
+    private transient final Object value;
 
     public FastObjectExecute(Object value) {
         this.value = value;
@@ -52,7 +52,7 @@ public class FastObjectExecute {
 
     public List<Object> extractAttr(String attr) {
         List<Object> attrList = new ArrayList<>(16);
-        String[] inAttrs = FastStringUtils.splitByWholeSeparator(attr,".");
+        String[] inAttrs = FastStringUtils.splitByWholeSeparator(FastStringUtils.strip(attr), ".");
         for (String inAttr : inAttrs) {
             if (FastStringUtils.isEmpty(inAttr)) {
                 continue;

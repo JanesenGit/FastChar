@@ -3,7 +3,6 @@ package com.fastchar.extend.ehcache;
 import com.fastchar.interfaces.IFastConfig;
 import org.ehcache.config.Configuration;
 
-import java.io.InputStream;
 import java.net.URL;
 
 public class FastEhCache3Config implements IFastConfig {

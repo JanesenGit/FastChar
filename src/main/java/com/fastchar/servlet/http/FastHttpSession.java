@@ -5,6 +5,7 @@ import com.fastchar.servlet.FastServletContext;
 import com.fastchar.servlet.FastServletHelper;
 
 import java.util.Enumeration;
+import java.util.Iterator;
 
 public class FastHttpSession {
 
@@ -23,6 +24,10 @@ public class FastHttpSession {
     }
 
     public long getCreationTime() {
+        if (target instanceof FastHttpShareSession) {
+            return ((FastHttpShareSession) target).getCreationTime();
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return ((javax.servlet.http.HttpSession) target).getCreationTime();
         }
@@ -33,6 +38,10 @@ public class FastHttpSession {
     }
 
     public String getId() {
+        if (target instanceof FastHttpShareSession) {
+            return ((FastHttpShareSession) target).getId();
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return ((javax.servlet.http.HttpSession) target).getId();
         }
@@ -43,6 +52,10 @@ public class FastHttpSession {
     }
 
     public long getLastAccessedTime() {
+        if (target instanceof FastHttpShareSession) {
+            return ((FastHttpShareSession) target).getLastAccessedTime();
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return ((javax.servlet.http.HttpSession) target).getLastAccessedTime();
         }
@@ -53,6 +66,10 @@ public class FastHttpSession {
     }
 
     public FastServletContext getServletContext() {
+        if (target instanceof FastHttpShareSession) {
+            return ((FastHttpShareSession) target).getServletContext();
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return new FastServletContext(((javax.servlet.http.HttpSession) target).getServletContext());
         }
@@ -64,6 +81,13 @@ public class FastHttpSession {
     }
 
     public void setMaxInactiveInterval(int interval) {
+        if (target instanceof FastHttpShareSession) {
+            FastHttpShareSession httpShareSession = (FastHttpShareSession) target;
+            httpShareSession.setMaxInactiveInterval(interval);
+            httpShareSession.store();
+            return;
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             ((javax.servlet.http.HttpSession) target).setMaxInactiveInterval(interval);
         }
@@ -73,6 +97,10 @@ public class FastHttpSession {
     }
 
     public int getMaxInactiveInterval() {
+        if (target instanceof FastHttpShareSession) {
+            return ((FastHttpShareSession) target).getMaxInactiveInterval();
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return ((javax.servlet.http.HttpSession) target).getMaxInactiveInterval();
         }
@@ -83,6 +111,11 @@ public class FastHttpSession {
     }
 
     public Object getAttribute(String name) {
+
+        if (target instanceof FastHttpShareSession) {
+            return ((FastHttpShareSession) target).getAttribute().get(name);
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return ((javax.servlet.http.HttpSession) target).getAttribute(name);
         }
@@ -93,6 +126,22 @@ public class FastHttpSession {
     }
 
     public Enumeration<String> getAttributeNames() {
+        if (target instanceof FastHttpShareSession) {
+            final Iterator<String> iterator = ((FastHttpShareSession) target).getAttribute().keySet().iterator();
+            return new Enumeration<String>() {
+                @Override
+                public boolean hasMoreElements() {
+                    return iterator.hasNext();
+                }
+
+                @Override
+                public String nextElement() {
+                    return iterator.next();
+                }
+            };
+        }
+
+
         if (FastServletHelper.isJavaxServlet()) {
             return ((javax.servlet.http.HttpSession) target).getAttributeNames();
         }
@@ -103,6 +152,13 @@ public class FastHttpSession {
     }
 
     public void setAttribute(String name, Object value) {
+        if (target instanceof FastHttpShareSession) {
+            FastHttpShareSession httpShareSession = (FastHttpShareSession) target;
+            httpShareSession.getAttribute().put(name, value);
+            httpShareSession.store();
+            return;
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             ((javax.servlet.http.HttpSession) target).setAttribute(name, value);
         }
@@ -112,6 +168,12 @@ public class FastHttpSession {
     }
 
     public void removeAttribute(String name) {
+        if (target instanceof FastHttpShareSession) {
+            FastHttpShareSession httpShareSession = (FastHttpShareSession) target;
+            httpShareSession.getAttribute().remove(name);
+            httpShareSession.store();
+            return;
+        }
         if (FastServletHelper.isJavaxServlet()) {
             ((javax.servlet.http.HttpSession) target).removeAttribute(name);
         }

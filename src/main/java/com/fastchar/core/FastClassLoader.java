@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLStreamHandlerFactory;
-import java.util.Arrays;
+import java.security.ProtectionDomain;
 
 /**
  * 类加载器
@@ -15,6 +15,10 @@ public final class FastClassLoader extends URLClassLoader {
 
     private boolean closed;
     private String desc;
+
+    public FastClassLoader(ClassLoader parent) {
+        super(new URL[0], parent);
+    }
 
     public FastClassLoader(URL[] urls, ClassLoader parent) {
         super(urls, parent);
@@ -55,6 +59,19 @@ public final class FastClassLoader extends URLClassLoader {
         }
     }
 
+
+    public Class<?> loadClass(String name,
+                              byte[] b, int off, int len,
+                              ProtectionDomain protectionDomain) {
+        return super.defineClass(name, b, off, len, protectionDomain);
+    }
+
+    public Class<?> loadClass(String name, java.nio.ByteBuffer b,
+                                         ProtectionDomain protectionDomain) {
+        return super.defineClass(name, b, protectionDomain);
+    }
+
+
     /**
      * 判断Class是否重新加载了
      *
@@ -83,10 +100,13 @@ public final class FastClassLoader extends URLClassLoader {
             }
             return invoke.hashCode() != targetClass.hashCode();
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastClassLoader.class, e);
         }
         return false;
     }
+
+
+
 
     public boolean isClosed() {
         return closed;

@@ -4,8 +4,6 @@ import com.fastchar.asm.FastParameter;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastHandler;
 
-import java.lang.reflect.Type;
-
 /**
  * 参数转换器接口
  */

@@ -5,8 +5,11 @@ import com.fastchar.exception.FastFileException;
 import com.fastchar.exception.FastReturnException;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.out.*;
-import com.fastchar.servlet.*;
-import com.fastchar.servlet.http.*;
+import com.fastchar.servlet.FastServletContext;
+import com.fastchar.servlet.http.FastCookie;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
+import com.fastchar.servlet.http.FastHttpSession;
 import com.fastchar.servlet.http.wrapper.FastHttpServletRequestWrapper;
 import com.fastchar.utils.*;
 import org.w3c.dom.Document;
@@ -22,7 +25,7 @@ import java.lang.reflect.Type;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.Lock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,7 +50,7 @@ public abstract class FastAction {
     volatile FastUrl fastUrl;
     volatile FastRoute fastRoute;
     volatile FastOut fastOut;
-    FastCheck<FastAction> fastCheck = new FastCheck<FastAction>(this);
+    FastChecker<FastAction> fastChecker = new FastChecker<FastAction>(this);
 
     private volatile boolean log = true;
     private volatile boolean logResponse = false;
@@ -57,7 +60,7 @@ public abstract class FastAction {
         fastRoute = null;
         fastOut = null;
         params = null;
-        fastCheck = null;
+        fastChecker = null;
     }
 
     /**
@@ -66,8 +69,8 @@ public abstract class FastAction {
      * @param key 唯一key
      * @return ReentrantLock
      */
-    protected ReentrantLock getLock(String key) {
-        return FastLockUtils.getLock(key);
+    protected Lock getLock(String key) {
+        return FastChar.getLocker().getLock(key);
     }
 
     /**
@@ -76,7 +79,7 @@ public abstract class FastAction {
      * @param key 唯一key
      */
     protected void removeLock(String key) {
-        FastLockUtils.removeLock(key);
+        FastChar.getLocker().removeLock(key);
     }
 
     /**
@@ -98,7 +101,7 @@ public abstract class FastAction {
 
 
     private boolean validParam(String paramName, Object value) {
-        Object validate = fastCheck.validate(paramName, value);
+        Object validate = fastChecker.validate(paramName, value);
         if (validate != null) {
             responseParamError(paramName, validate.toString());
             return false;
@@ -118,10 +121,14 @@ public abstract class FastAction {
 
     /**
      * 获得项目的主路径地址，例如：http://localhost:8080/fastchar_test/
+     * 如果在 FastConstant 配置了ProjectHost值 则返回配置的 ProjectHost
      *
      * @return 项目主路径
      */
     public String getProjectHost() {
+        if (FastStringUtils.isNotEmpty(FastChar.getConstant().getProjectHost())) {
+            return FastStringUtils.stripEnd(FastChar.getConstant().getProjectHost(), "/") + "/";
+        }
         if (request != null) {
             try {
                 URL url = new URL(getRequest().getRequestURL().toString());
@@ -133,7 +140,7 @@ public abstract class FastAction {
                 }
                 return FastStringUtils.strip(projectHost, "/") + "/";
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         }
         return null;
@@ -255,7 +262,6 @@ public abstract class FastAction {
         for (FastRequestParam param : params) {
             strings.add(param.getName());
         }
-        strings.addAll(fastCheck.getParamNames());
         return strings;
     }
 
@@ -301,7 +307,7 @@ public abstract class FastAction {
      */
     public String getParam(String paramName, boolean notNull) {
         if (notNull) {
-            check(0, "@null:" + FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1));
+            check(0, "@null", FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1));
         }
         for (FastRequestParam param : params) {
             if (param.getName().equals(paramName)) {
@@ -641,7 +647,7 @@ public abstract class FastAction {
      * @return List&lt;String&gt;
      */
     public List<String> getParamToList(String prefix, boolean notNull) {
-        fastCheck.setHold(true);
+        fastChecker.setHold(true);
         List<String> list = new ArrayList<>();
         Set<String> paramNames = getParamNames();
         for (String paramName : paramNames) {
@@ -657,7 +663,7 @@ public abstract class FastAction {
                 }
             }
         }
-        fastCheck.rollback();
+        fastChecker.rollback();
         if (list.size() == 0 && notNull) {
             responseParamError(prefix, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, prefix));
         }
@@ -1217,7 +1223,7 @@ public abstract class FastAction {
      * @return Map&lt;String, Object&gt;
      */
     public Map<String, Object> getParamToMap() {
-        fastCheck.setHold(true);
+        fastChecker.setHold(true);
         Map<String, Object> mapParam = new HashMap<>(16);
         Set<String> paramNames = getParamNames();
         for (String paramName : paramNames) {
@@ -1231,7 +1237,7 @@ public abstract class FastAction {
                 mapParam.put(paramName, parameterValues[0]);
             }
         }
-        fastCheck.rollback();
+        fastChecker.rollback();
         return mapParam;
     }
 
@@ -1253,7 +1259,7 @@ public abstract class FastAction {
      * @return Map&lt;String, Object&gt;
      */
     public Map<String, Object> getParamToMap(String prefix, boolean notNull) {
-        fastCheck.setHold(true);
+        fastChecker.setHold(true);
         Map<String, Object> mapParam = new HashMap<>(16);
 
         //2020-3-13 新增
@@ -1275,7 +1281,7 @@ public abstract class FastAction {
                 }
             }
         }
-        fastCheck.rollback();
+        fastChecker.rollback();
         if (notNull && mapParam.size() == 0) {
             responseParamError(prefix, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, prefix));
         }
@@ -1301,7 +1307,7 @@ public abstract class FastAction {
      * @return List&lt;Map&lt;String, Object&gt;&gt;
      */
     public List<Map<String, Object>> getParamToMapList(String prefix, boolean notNull) {
-        fastCheck.setHold(true);
+        fastChecker.setHold(true);
         List<Map<String, Object>> mapList = new ArrayList<>();
         Set<String> mapNames = new LinkedHashSet<>();
         Set<String> paramNames = getParamNames();
@@ -1321,7 +1327,7 @@ public abstract class FastAction {
         if (notNull && mapList.size() == 0) {
             responseParamError(prefix, FastChar.getLocal().getInfo(FastCharLocal.PARAM_ERROR1, prefix));
         }
-        fastCheck.rollback();
+        fastChecker.rollback();
         return mapList;
     }
 
@@ -1607,7 +1613,7 @@ public abstract class FastAction {
         }
         //where.attr  where[0].attr
         if (paramName.indexOf(".") > 0) {
-            String[] split = FastStringUtils.splitByWholeSeparator(paramName,".");
+            String[] split = FastStringUtils.splitByWholeSeparator(paramName, ".");
             return split[split.length - 1];
         }
         return paramName;
@@ -1620,7 +1626,7 @@ public abstract class FastAction {
             return matcher.group(1);
         }
         //where.attr  where[0].attr    前缀：where   where[0]
-        return FastStringUtils.splitByWholeSeparator(paramName,".")[0];
+        return FastStringUtils.splitByWholeSeparator(paramName, ".")[0];
     }
 
     /**
@@ -1664,7 +1670,7 @@ public abstract class FastAction {
      * @param out 响应对象
      */
     public void response(FastOut out) {
-        fastCheck.rollback();
+        fastChecker.rollback();
         this.fastOut = out;
         this.fastRoute.response();
         throw new FastReturnException();
@@ -1845,6 +1851,19 @@ public abstract class FastAction {
         response(FastChar.getOverrides().newInstance(FastOutHtml.class).setData(html).setStatus(this.status));
     }
 
+    /**
+     * 响应文件
+     *
+     * @param file 文件
+     */
+    public void responseResource(FastResource resource) {
+        response(FastChar.getOverrides().newInstance(FastOutFile.class)
+                .setData(resource)
+                .setFileName(resource.getName())
+                .setDisposition(false)
+                .setStatus(this.status));
+    }
+
 
     /**
      * 响应文件
@@ -2015,40 +2034,6 @@ public abstract class FastAction {
     public void responseStream(InputStream stream, String contentType) {
         response(FastChar.getOverrides().newInstance(FastOutStream.class).setData(stream).setContentType(contentType).setStatus(this.status));
     }
-
-    /**
-     * 响应图片验证码
-     */
-    public void responseCaptcha() {
-        response(FastChar.getOverrides().newInstance(FastOutCaptcha.class).setStatus(this.status));
-    }
-
-    /**
-     * 响应图片验证码
-     */
-    public void responseCaptcha(boolean simple) {
-        response(FastChar.getOverrides().newInstance(FastOutCaptcha.class).setSimpleCaptcha(simple).setStatus(this.status));
-    }
-
-
-    /**
-     * 判断验证码是否正确
-     *
-     * @param code 图片验证码
-     * @return boolean
-     */
-    public boolean validateCaptcha(String code) {
-        return FastChar.getOverrides().newInstance(FastOutCaptcha.class).validateCaptcha(this, code);
-    }
-
-
-    /**
-     * 重置验证码
-     */
-    public void resetCaptcha() {
-        FastChar.getOverrides().newInstance(FastOutCaptcha.class).resetCaptcha(this);
-    }
-
 
     /**
      * 重定向请求
@@ -2553,6 +2538,38 @@ public abstract class FastAction {
     }
 
     /**
+     * 获取url携带的get参数
+     *
+     * @return
+     */
+    public String getQueryString() {
+        return fastUrl.getQueryString(request.getQueryString());
+    }
+
+    /**
+     * 获取请求进入的路径对象，与 getRequestUrl 不同的是包含了url的get参数
+     *
+     * @return
+     */
+    public String getRequestFullUrl() {
+        String requestUrl = getRequestUrl();
+        String queryString = getQueryString();
+        if (FastStringUtils.isNotEmpty(queryString)) {
+            requestUrl += "?" + queryString;
+        }
+        return requestUrl;
+    }
+
+    /**
+     * 获取请求进入的路径对象，与getRequest().getRequestURL() 等同
+     *
+     * @return
+     */
+    public String getRequestUrl() {
+        return getProjectHost() + FastStringUtils.stripStart(fastUrl.toRequestUrl(), "/");
+    }
+
+    /**
      * 获取路径参数，例如实际路径为：/user  请求路径为：/user/1/abc 那么路径参数为：[1,abc]
      *
      * @return List&lt;String&gt;
@@ -2714,21 +2731,23 @@ public abstract class FastAction {
      * 添加参数验证，会触发IFastValidator验证码器，只对getParam*相关方法有效
      *
      * @param validator 验证标识
+     * @param arguments 传入验证器里的参数集合
      * @return 当前对象
      */
-    public FastAction check(String validator) {
-        return fastCheck.check(validator);
+    public FastAction check(String validator,Object...arguments) {
+        return fastChecker.check(validator,arguments);
     }
 
     /**
      * 添加参数验证，会触发IFastValidator验证码器，只对getParam*相关方法有效
      *
-     * @param validator 验证标识
      * @param index     插入指定位置
+     * @param validator 验证标识
+     * @param arguments 传入验证器里的参数集合
      * @return 当前对象
      */
-    public FastAction check(int index, String validator) {
-        return fastCheck.check(index, validator);
+    public FastAction check(int index, String validator,Object...arguments) {
+        return fastChecker.check(index, validator, arguments);
     }
 
 
@@ -2740,5 +2759,31 @@ public abstract class FastAction {
     public FastMapWrap getAttribute() {
         return attribute;
     }
+
+
+    /**
+     * 删除指定tag的缓存数据
+     *
+     * @param tag 缓存标签
+     * @return 当前对象
+     */
+    public FastAction deleteCache(String tag) {
+        FastChar.getCache().delete(tag);
+        return this;
+    }
+
+
+    /**
+     * 删除指定tag和key的缓存数据
+     *
+     * @param tag 缓存标签
+     * @param key 缓存的key
+     * @return 当前对象
+     */
+    public FastAction deleteCache(String tag, String key) {
+        FastChar.getCache().delete(tag, key);
+        return this;
+    }
+
 
 }

@@ -1,15 +1,20 @@
 package com.fastchar.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE,ElementType.METHOD})
+@interface AFastHttpMethodRepeatable {
+    AFastHttpMethod[] value();
+}
+
 
 /**
  * FastAction注解，可指定路由的Http方法
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE,ElementType.METHOD})
+@Repeatable(AFastHttpMethodRepeatable.class)
 public @interface AFastHttpMethod {
     String[] value() default "";
 }

@@ -51,13 +51,13 @@ public class FastResultSet {
                             Object value = getValue(i);
                             fastRecord.put(key, value);
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            FastChar.getLogger().error(this.getClass(), e);
                         }
                     }
                     return fastRecord;
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         }
         return null;
@@ -81,13 +81,13 @@ public class FastResultSet {
                             Object value = getValue(i);
                             fastRecord.put(key, value);
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            FastChar.getLogger().error(this.getClass(), e);
                         }
                     }
                     return fastRecord;
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         }
         return null;
@@ -120,14 +120,14 @@ public class FastResultSet {
                             }
                             fastRecord.put(key, value);
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            FastChar.getLogger().error(this.getClass(), e);
                         }
                     }
                     list.add(fastRecord);
                 }
                 return list;
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         }
         return null;
@@ -151,13 +151,13 @@ public class FastResultSet {
                             Object value = getValue(i);
                             map.put(key, value);
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            FastChar.getLogger().error(this.getClass(), e);
                         }
                     }
                 }
                 return map;
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         }
         return null;

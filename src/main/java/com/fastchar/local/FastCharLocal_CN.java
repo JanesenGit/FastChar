@@ -46,7 +46,11 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String Scanner_Error6 = "移除被释放的扫描接收器类 {0} ";
     private final String Scanner_Error7 = "加载新的{0}成功!";
     private final String Scanner_Error8 = "加载并更新{0}中……";
-    
+    private final String Scanner_Error9 = "解析class共 {0} 文件中……";
+    private final String Scanner_Error10 = "解析class共 {0} 成功！";
+    private final String Scanner_Error11 = "加载并更新{0}成功！";
+
+
 
     //数据库相关错误
     private final String Db_Error1 = "数据库名称{0}已存在！";
@@ -115,8 +119,9 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
     //redis相关错误
     private final String Redis_Error1 = "Redis的服务器地址不可为空！";
-    private final String Redis_Error2 = "主Redis名称[masterName]不可为空！";
-    private final String Redis_Error3 = "已启用Redis高级缓存！";
+    private final String Redis_Error2 = "已启用Redis高级缓存！ ";
+
+    private final String Redis_Error3 = "已启用{0} - Redis客户端框架！";
 
 
     //数据源相关消息
@@ -125,6 +130,14 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
     private final String DataSource_Info3 = "未获取到{0}数据源！";
     private final String DataSource_Info4 = "已启用{0}数据源，此数据源仅用于测试，不可在正式项目中使用！！";
 
+    private final String DataSource_Info5 = "初始化数据库 {0} 中……";
+
+    private final String DataSource_Info6 = "初始化数据库 {0} 成功！";
+
+    private final String DataSource_Info7 = "解析数据库文件 {0} 中……";
+    private final String DataSource_Info8 = "解析数据库文件 {0} 成功！";
+
+
 
     //cglib相关错误
     private final String CGLib_Error1 = "被代理的类不可以为空！";
@@ -132,7 +145,7 @@ public class FastCharLocal_CN extends FastCharBaseLocal {
 
 
     //velocity的错误
-    private final String Velocity_Error1 = "文件不存在于WebRoot目录下！{0}";
+    private final String Velocity_Error1 = "文件不存在于web资源目录下！{0}";
 
     //ticket的错误
     private final String Ticket_Error1 = "必读！此文件为FastChar配置文件！请勿删除！！！";

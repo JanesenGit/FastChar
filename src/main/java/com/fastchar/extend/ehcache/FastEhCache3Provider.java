@@ -22,15 +22,22 @@ import java.util.Set;
 @AFastObserver
 @AFastClassFind("org.ehcache.Cache")
 public class FastEhCache3Provider implements IFastCache {
-    private static final Object LOCKER = new Object();
-
     private volatile CacheManager cacheManager;
+
+    private String configCode;
+
+    public FastEhCache3Provider(String configCode) {
+        this.configCode = configCode;
+    }
+
+    public FastEhCache3Provider() {
+    }
 
     private synchronized CacheManager getCacheManager() {
        if(cacheManager==null){
-           synchronized (FastEhCache3Provider.class) {
+           synchronized (this) {
                if (cacheManager == null) {
-                   FastEhCache3Config ehCacheConfig = FastChar.getConfigs().getEhCache3Config();
+                   FastEhCache3Config ehCacheConfig = FastChar.getConfig(configCode, FastEhCache3Config.class);
                    if (ehCacheConfig != null) {
                        if (ehCacheConfig.getConfiguration() != null) {
                            cacheManager = CacheManagerBuilder.newCacheManager(ehCacheConfig.getConfiguration());
@@ -54,7 +61,7 @@ public class FastEhCache3Provider implements IFastCache {
     private Cache<String,Object> getCache(String tag) {
         Cache<String,Object> cache = getCacheManager().getCache(tag, String.class, Object.class);
         if (cache == null) {
-            synchronized (LOCKER) {
+            synchronized (this) {
                 ResourcePoolsBuilder disk = ResourcePoolsBuilder.heap(10);
 
                 CacheConfigurationBuilder<String, Object> stringObjectCacheConfigurationBuilder

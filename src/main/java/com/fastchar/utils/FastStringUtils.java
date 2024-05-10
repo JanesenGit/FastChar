@@ -1,5 +1,7 @@
 package com.fastchar.utils;
 
+import com.fastchar.core.FastChar;
+
 import javax.print.PrintException;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -616,7 +618,7 @@ public class FastStringUtils {
 
 
     public static String firstString(List<?> list, String defaultValue) {
-        if (list.size() == 0) {
+        if (list.isEmpty()) {
             return defaultValue;
         }
         return defaultValue(list.get(0), defaultValue);
@@ -628,7 +630,6 @@ public class FastStringUtils {
      *
      * @param pattern 可使用通配符* 例如：/druid/*
      * @param target  目标路径
-     * @return
      */
     public static boolean matches(String pattern, String target) {
         if (isEmpty(pattern) || isEmpty(target)) {
@@ -681,7 +682,7 @@ public class FastStringUtils {
         try {
             return new String(content.getBytes("GBK"), StandardCharsets.ISO_8859_1).length();
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastStringUtils.class, e);
         }
         return content.length();
     }
@@ -3095,8 +3096,6 @@ public class FastStringUtils {
         }
         return true;
     }
-
-
 
 }
 

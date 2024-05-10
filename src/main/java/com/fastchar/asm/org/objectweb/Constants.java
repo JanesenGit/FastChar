@@ -191,7 +191,7 @@ final class Constants {
   }
 
   static boolean isWhitelisted(final String internalName) {
-    if (!internalName.startsWith("com/fastchar/asm/")) {
+    if (!internalName.startsWith("org/objectweb/asm/")) {
       return false;
     }
     String member = "(Annotation|Class|Field|Method|Module|RecordComponent|Signature)";

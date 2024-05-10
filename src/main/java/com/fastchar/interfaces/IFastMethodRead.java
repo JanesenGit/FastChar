@@ -1,6 +1,5 @@
 package com.fastchar.interfaces;
 
-import com.fastchar.asm.FastMethodRead;
 import com.fastchar.asm.FastParameter;
 
 import java.lang.reflect.Method;

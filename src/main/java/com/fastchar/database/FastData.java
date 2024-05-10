@@ -356,9 +356,11 @@ public class FastData<T extends FastEntity<?>> {
                     .setLog(sqlInfo.isLog())
                     .setListener(sqlInfo.isListener())
                     .selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
-            return fastEntity.getInt("ct");
+            if (fastEntity != null) {
+                return fastEntity.getInt("ct");
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return 0;
     }

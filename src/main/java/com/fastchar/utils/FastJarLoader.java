@@ -1,12 +1,11 @@
 package com.fastchar.utils;
+
+import com.fastchar.core.FastChar;
+
 import java.io.File;
 import java.lang.reflect.Method;
-import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.Map;
 
 public final class FastJarLoader {
 	private static URLClassLoader classloader = (URLClassLoader)Thread.currentThread().getContextClassLoader();
@@ -39,7 +38,7 @@ public final class FastJarLoader {
             add.setAccessible(false);
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			FastChar.getLogger().error(FastJarLoader.class, e);
 		}
 	}
 

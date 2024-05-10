@@ -253,7 +253,7 @@ public class FastDruidConfig implements IFastConfig {
 
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
     }
 

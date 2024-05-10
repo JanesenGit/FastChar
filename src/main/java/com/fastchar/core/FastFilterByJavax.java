@@ -25,9 +25,9 @@ public final class FastFilterByJavax implements Filter {
         if (INIT_FAST_ENGINE) {
             return;
         }
-        FastEngine.instance().getConstant().servletType = FastServletType.JAVAX;
+        FastEngine.instance().getConstant().servletType = FastServletType.Javax;
         try {
-            FastEngine.instance().created(FastFilterByJavax.class,FastServletContext.newInstance(context), webClassName);
+            FastEngine.instance().createWebServer(FastFilterByJavax.class,FastServletContext.newInstance(context), webClassName);
         } catch (Throwable e) {
             String info = FastChar.getLocal().getInfo(FastCharLocal.FAST_CHAR_ERROR4, FastChar.getConstant().getProjectName());
             FastWebException fastWebException = new FastWebException(info, e);
@@ -61,9 +61,9 @@ public final class FastFilterByJavax implements Filter {
     public synchronized void destroy() {
         try {
             FastEngine.instance().destroy();
-            FastEngine.instance().getLog().info(FastFilterByJavax.class, FastEngine.instance().getLog().lightStyle(FastChar.getLocal().getInfo(FastCharLocal.FAST_CHAR_ERROR3, FastChar.getConstant().getProjectName())));
+            FastEngine.instance().getLogger().info(FastFilterByJavax.class, FastChar.getLocal().getInfo(FastCharLocal.FAST_CHAR_ERROR3, FastChar.getConstant().getProjectName()));
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
     }
 

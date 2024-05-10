@@ -9,7 +9,8 @@ import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.out.FastOut;
 import com.fastchar.out.FastOutForward;
-import com.fastchar.servlet.http.*;
+import com.fastchar.servlet.http.FastHttpServletRequest;
+import com.fastchar.servlet.http.FastHttpServletResponse;
 import com.fastchar.servlet.http.cache.FastResponseCacheConfig;
 import com.fastchar.servlet.http.cache.FastResponseCacheInfo;
 import com.fastchar.servlet.http.wrapper.FastHttpServletResponseWrapper;
@@ -50,7 +51,7 @@ public final class FastRoute {
     Set<String> httpMethods = new HashSet<>();
     Set<String> contentTypes = new HashSet<>();
 
-    transient FastAction fastAction;
+    transient volatile FastAction fastAction;
     private transient int doBeforeIndex = -1;
     private transient int doAfterIndex = -1;
 
@@ -114,10 +115,10 @@ public final class FastRoute {
         if (FastStringUtils.isEmpty(contentType)) {
             return true;
         }
-        String truthContentType = FastStringUtils.splitByWholeSeparator(contentType,";")[0].replace(" ", "");
+        String truthContentType = FastStringUtils.splitByWholeSeparator(contentType, ";")[0].replace(" ", "");
         boolean hasContentTypes = false;
         for (String contentTypeValue : this.contentTypes) {
-            contentTypeValue = FastStringUtils.splitByWholeSeparator(contentTypeValue,";")[0].replace(" ", "");
+            contentTypeValue = FastStringUtils.splitByWholeSeparator(contentTypeValue, ";")[0].replace(" ", "");
             if (FastStringUtils.isEmpty(contentTypeValue)) {
                 continue;
             }
@@ -144,45 +145,56 @@ public final class FastRoute {
             rootInterceptor.clear();
         }
         rootInterceptor = null;
+
         if (doBeforeInterceptor != null) {
             doBeforeInterceptor.clear();
         }
         doBeforeInterceptor = null;
+
         if (doAfterInterceptor != null) {
             doAfterInterceptor.clear();
         }
         doAfterInterceptor = null;
+
         if (stackTraceElements != null) {
             stackTraceElements.clear();
         }
         stackTraceElements = null;
+
         if (fastAction != null) {
             fastAction.release();
         }
         fastAction = null;
+
+        if (httpMethods != null) {
+            httpMethods.clear();
+        }
+        httpMethods = null;
+
+        if (contentTypes != null) {
+            contentTypes.clear();
+        }
+        contentTypes = null;
     }
 
     void sortInterceptors() {
-        Comparator<FastInterceptorInfo> comparator = new Comparator<FastInterceptorInfo>() {
-            @Override
-            public int compare(FastInterceptorInfo o1, FastInterceptorInfo o2) {
-                if (o1.priority > o2.priority) {
-                    return -1;
-                }
-                if (o1.priority < o2.priority) {
-                    return 1;
-                }
-                if (o1.index > o2.index) {
-                    return 1;
-                }
-                if (o1.index < o2.index) {
-                    return -1;
-                }
-                return 0;
+        Comparator<FastInterceptorInfo<?>> comparator = (o1, o2) -> {
+            if (o1.priority > o2.priority) {
+                return -1;
             }
+            if (o1.priority < o2.priority) {
+                return 1;
+            }
+            if (o1.index > o2.index) {
+                return 1;
+            }
+            if (o1.index < o2.index) {
+                return -1;
+            }
+            return 0;
         };
-        Collections.sort(doBeforeInterceptor, comparator);
-        Collections.sort(doAfterInterceptor, comparator);
+        doBeforeInterceptor.sort(comparator);
+        doAfterInterceptor.sort(comparator);
     }
 
     void clearInterceptors() {
@@ -194,28 +206,40 @@ public final class FastRoute {
 
     public void invoke() {
         try {
+            Thread.currentThread().setName("FastChar-FastRoute [ " + actionClass.getName() + " : " + method.getName() + " ] [ " + System.currentTimeMillis() + " ]");
+
             if (fastAction == null) {
-                fastAction = FastChar.getOverrides().newInstance(actionClass);
-                fastAction.request = request;
-                fastAction.response = response;
-                fastAction.servletContext = FastEngine.instance().getServletContext();
-                fastAction.fastUrl = fastUrl;
-                fastAction.fastRoute = this;
-                fastAction.forwarder = this.forwarder;
-                if (fastUrl.getParams() != null) {
-                    fastAction.params.addAll(fastUrl.getParams());
+                synchronized (this) {
+                    if (fastAction == null) {
+                        fastAction = FastChar.getOverrides().newInstance(actionClass);
+                        fastAction.request = request;
+                        fastAction.response = response;
+                        fastAction.servletContext = FastEngine.instance().getServletContext();
+                        fastAction.fastUrl = fastUrl;
+                        fastAction.fastRoute = this;
+                        fastAction.forwarder = this.forwarder;
+                        if (fastUrl.getParams() != null) {
+                            fastAction.params.addAll(fastUrl.getParams());
+                        }
+                        if (this.forwarder != null) {
+                            fastAction.params.addAll(forwarder.params);
+                        }
+                        FastChar.setThreadLocalAction(fastAction);
+                    }
                 }
-                if (this.forwarder != null) {
-                    fastAction.params.addAll(forwarder.params);
-                }
-                FastChar.setThreadLocalAction(fastAction);
             }
 
             if (responseCacheConfig != null && responseCacheConfig.isCache() && response instanceof FastHttpServletResponseWrapper) {
                 FastHttpServletResponseWrapper responseWrapper = (FastHttpServletResponseWrapper) response;
-                responseCacheConfig.setCacheTag(actionClass.getName());
-                responseCacheConfig.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() +
-                        request.getRequestURI() + FastRequestUtils.getRequestParamString(request)));
+                if (FastStringUtils.isEmpty(responseCacheConfig.getCacheTag())) {
+                    responseCacheConfig.setCacheTag(actionClass.getName());
+                }
+
+                if (FastStringUtils.isEmpty(responseCacheConfig.getCacheKey())) {
+                    responseCacheConfig.setCacheKey(FastChar.getSecurity().MD5_Encrypt(request.getMethod() +
+                            request.getRequestURI() + FastRequestUtils.getRequestParamString(request)));
+                }
+
                 responseWrapper.setCacheConfig(responseCacheConfig);
 
                 FastResponseCacheInfo cacheInfo = FastChar.getCache().get(responseCacheConfig.getCacheTag(), responseCacheConfig.getCacheKey());
@@ -352,7 +376,7 @@ public final class FastRoute {
     }
 
     private void responseException(Throwable throwable) {
-        throwable.printStackTrace();
+        FastChar.getLogger().error(fastAction != null ? fastAction.getClass() : getClass(), throwable);
         if (fastAction != null) {
             if (FastChar.getConstant().isDebug()) {
                 stackTraceElements.addAll(Arrays.asList(throwable.getStackTrace()));
@@ -367,8 +391,11 @@ public final class FastRoute {
             for (Annotation annotation : parameter.getAnnotations()) {
                 if (annotation.annotationType() == AFastCheck.class) {
                     AFastCheck aFastCheck = (AFastCheck) annotation;
-                    for (String s : aFastCheck.value()) {
-                        action.check(s);
+                    List<Object> arguments = new ArrayList<>();
+                    Collections.addAll(arguments, aFastCheck.arguments());
+                    Object[] argumentsArray = arguments.toArray();
+                    for (String validator : aFastCheck.value()) {
+                        action.check(validator, argumentsArray);
                     }
                 }
             }
@@ -412,11 +439,13 @@ public final class FastRoute {
             afterInvoked = true;
             afterInterceptorUseTotal = System.currentTimeMillis() - afterInterceptorTime;
             outBase.setOutTime(new Date());
-            fastAction.getResponse().setHeader("Powered-By", "FastChar " + FastConstant.FAST_CHAR_VERSION);
+            if (FastChar.getConstant().isMarkers()) {
+                fastAction.getResponse().setHeader("Powered-By", "FastChar " + FastConstant.FAST_CHAR_VERSION);
+            }
             outBase.response(fastAction);
             //转发请求 取消日志打印
             if (!FastOutForward.class.isAssignableFrom(outBase.getClass())) {
-                FastRequestLog.log(fastAction);
+                FastActionLogger.log(fastAction);
             }
         } catch (Throwable e) {
             Throwable throwable = e.getCause();
@@ -435,31 +464,6 @@ public final class FastRoute {
     }
 
 
-    public String getRoute() {
-        return route;
-    }
-
-
-    public Method getMethod() {
-        return method;
-    }
-
-
-    public Class<? extends FastAction> getActionClass() {
-        return actionClass;
-    }
-
-
-    public int getPriority() {
-        return priority;
-    }
-
-
-    public Date getInTime() {
-        return inTime;
-    }
-
-
     void addBeforeInterceptor(FastInterceptorInfo<IFastInterceptor> routeInterceptor) {
         if (isBeforeInterceptor(routeInterceptor.interceptor.getName())) {
             return;
@@ -473,7 +477,6 @@ public final class FastRoute {
         }
         doAfterInterceptor.add(routeInterceptor);
     }
-
 
     boolean isRootInterceptor(String className) {
         for (FastInterceptorInfo<IFastRootInterceptor> iFastRootInterceptorFastInterceptorInfo : rootInterceptor) {
@@ -503,5 +506,199 @@ public final class FastRoute {
     }
 
 
+    public Date getInTime() {
+        return inTime;
+    }
+
+    public FastRoute setInTime(Date inTime) {
+        this.inTime = inTime;
+        return this;
+    }
+
+    public long getAfterInterceptorTime() {
+        return afterInterceptorTime;
+    }
+
+    public FastRoute setAfterInterceptorTime(long afterInterceptorTime) {
+        this.afterInterceptorTime = afterInterceptorTime;
+        return this;
+    }
+
+    public long getBeforeInterceptorTime() {
+        return beforeInterceptorTime;
+    }
+
+    public FastRoute setBeforeInterceptorTime(long beforeInterceptorTime) {
+        this.beforeInterceptorTime = beforeInterceptorTime;
+        return this;
+    }
+
+    public int getDoAfterIndex() {
+        return doAfterIndex;
+    }
+
+    public FastRoute setDoAfterIndex(int doAfterIndex) {
+        this.doAfterIndex = doAfterIndex;
+        return this;
+    }
+
+    public int getDoBeforeIndex() {
+        return doBeforeIndex;
+    }
+
+    public FastRoute setDoBeforeIndex(int doBeforeIndex) {
+        this.doBeforeIndex = doBeforeIndex;
+        return this;
+    }
+
+    public FastAction getFastAction() {
+        return fastAction;
+    }
+
+    public FastRoute setFastAction(FastAction fastAction) {
+        this.fastAction = fastAction;
+        return this;
+    }
+
+    public List<StackTraceElement> getStackTraceElements() {
+        return stackTraceElements;
+    }
+
+    public FastRoute setStackTraceElements(List<StackTraceElement> stackTraceElements) {
+        this.stackTraceElements = stackTraceElements;
+        return this;
+    }
+
+    public FastHttpServletRequest getRequest() {
+        return request;
+    }
+
+    public FastRoute setRequest(FastHttpServletRequest request) {
+        this.request = request;
+        return this;
+    }
+
+    public FastHttpServletResponse getResponse() {
+        return response;
+    }
+
+    public FastRoute setResponse(FastHttpServletResponse response) {
+        this.response = response;
+        return this;
+    }
+
+    public FastUrl getFastUrl() {
+        return fastUrl;
+    }
+
+    public FastRoute setFastUrl(FastUrl fastUrl) {
+        this.fastUrl = fastUrl;
+        return this;
+    }
+
+    public FastAction getForwarder() {
+        return forwarder;
+    }
+
+    public FastRoute setForwarder(FastAction forwarder) {
+        this.forwarder = forwarder;
+        return this;
+    }
+
+    public boolean isActionLog() {
+        return actionLog;
+    }
+
+    public Method getMethod() {
+        return method;
+    }
+
+    public String getRoute() {
+        return route;
+    }
+
+    public boolean isBeforeInvoked() {
+        return beforeInvoked;
+    }
+
+    public boolean isResponseInvoked() {
+        return responseInvoked;
+    }
+
+    public boolean isAfterInvoked() {
+        return afterInvoked;
+    }
+
+    public boolean isInterceptorBefore() {
+        return interceptorBefore;
+    }
+
+    public boolean isInterceptorAfter() {
+        return interceptorAfter;
+    }
+
+    public boolean isHitCacheInfo() {
+        return hitCacheInfo;
+    }
+
+    public Set<String> getCrossAllowDomains() {
+        return crossAllowDomains;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public int getFirstMethodLineNumber() {
+        return firstMethodLineNumber;
+    }
+
+    public int getLastMethodLineNumber() {
+        return lastMethodLineNumber;
+    }
+
+    public long getBeforeInterceptorUseTotal() {
+        return beforeInterceptorUseTotal;
+    }
+
+    public long getAfterInterceptorUseTotal() {
+        return afterInterceptorUseTotal;
+    }
+
+    public Set<String> getContentTypes() {
+        return contentTypes;
+    }
+
+    public Set<String> getHttpMethods() {
+        return httpMethods;
+    }
+
+    public Class<? extends FastOut<?>> getReturnOut() {
+        return returnOut;
+    }
+
+    public List<FastParameter> getMethodParameter() {
+        return methodParameter;
+    }
+
+    public Class<? extends FastAction> getActionClass() {
+        return actionClass;
+    }
+
+    public FastResponseCacheConfig getResponseCacheConfig() {
+        return responseCacheConfig;
+    }
+
+    public List<FastInterceptorInfo<IFastRootInterceptor>> getRootInterceptor() {
+        return rootInterceptor;
+    }
+
+    public List<FastInterceptorInfo<IFastInterceptor>> getDoBeforeInterceptor() {
+        return doBeforeInterceptor;
+    }
+
+    public List<FastInterceptorInfo<IFastInterceptor>> getDoAfterInterceptor() {
+        return doAfterInterceptor;
+    }
 }
 

@@ -10,6 +10,7 @@ public final class FastUrl {
     private List<String> urlParams = new ArrayList<>(16);
     private List<FastRequestParam> params = new ArrayList<>(16);
     private int level;
+
     public String getMethodRoute() {
         return methodRoute;
     }
@@ -49,6 +50,30 @@ public final class FastUrl {
         this.params = params;
         return this;
     }
+
+    public String toRequestUrl() {
+        StringBuilder stringBuilder = new StringBuilder(methodRoute);
+        if (!urlParams.isEmpty()) {
+            stringBuilder.append("/").append(FastStringUtils.join(urlParams, "/"));
+        }
+        return stringBuilder.toString();
+    }
+
+    public String getQueryString(String queryString) {
+        List<String> urlQueryList = new ArrayList<>();
+        if (FastStringUtils.isNotEmpty(queryString)) {
+            urlQueryList.add(queryString);
+        }
+        for (FastRequestParam param : this.params) {
+            if (param.isQuery()) {
+                //是否来自url中携带的参数
+                urlQueryList.add(param.toQueryString());
+            }
+        }
+        return FastStringUtils.join(urlQueryList, "&");
+    }
+
+
 
     @Override
     public String toString() {

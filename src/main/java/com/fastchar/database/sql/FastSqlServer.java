@@ -58,7 +58,7 @@ public class FastSqlServer extends FastSql {
                 keyValue.put(key, columnValue);
             }
         }
-        if (values.size() == 0) {
+        if (values.isEmpty()) {
             return null;
         }
 

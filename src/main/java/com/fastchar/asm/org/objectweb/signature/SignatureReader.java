@@ -27,9 +27,6 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package com.fastchar.asm.org.objectweb.signature;
 
-import com.fastchar.asm.org.objectweb.ClassVisitor;
-import com.fastchar.asm.org.objectweb.MethodVisitor;
-
 /**
  * A parser for signature literals, as defined in the Java Virtual Machine Specification (JVMS), to
  * visit them with a SignatureVisitor.

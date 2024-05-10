@@ -4,6 +4,8 @@
 package com.fastchar.utils;
 
 
+import com.fastchar.core.FastChar;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -57,7 +59,7 @@ public class FastAESUtils {
             byte[] byte_AES = cipher.doFinal(byte_encode);
             return FastBase64Utils.encode(byte_AES);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastAESUtils.class, e);
         }
         return null;
     }
@@ -102,7 +104,7 @@ public class FastAESUtils {
             byte[] byte_decode = cipher.doFinal(byte_content);
             return new String(byte_decode, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastAESUtils.class, e);
         }
         return null;
     }

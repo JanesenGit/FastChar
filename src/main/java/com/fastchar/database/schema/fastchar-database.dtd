@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 数据库节点 -->
+<!ELEMENT database (table+) >
+<!-- 数据库名称
+     需要与配置的数据源名称一致或匹配，支持通配符"*"
+     .
+     .-->
+<!ATTLIST database name CDATA #REQUIRED>
+
+<!-- 是否启用
+     .
+     .-->
+<!ATTLIST database enable (true|false)>
+
+
+
+<!-- 表格节点 -->
+<!ELEMENT table (column+)>
+<!-- 表格名称 -->
+<!ATTLIST table name CDATA #REQUIRED>
+<!-- 表格备注 -->
+<!ATTLIST table comment CDATA #REQUIRED>
+
+<!-- 是否启用
+     .
+     .-->
+<!ATTLIST table enable (true|false)>
+
+<!-- 表格层级权限字段名称
+     需要与FastChar-ExtJs框架结合使用
+     .
+     .-->
+<!ATTLIST table layer CDATA>
+
+<!-- 表格字段节点 -->
+<!ELEMENT column EMPTY>
+
+<!-- 字段名称 -->
+<!ATTLIST column name CDATA #REQUIRED>
+
+<!-- 字段备注 -->
+<!ATTLIST column comment CDATA #REQUIRED>
+
+<!-- 字段类型
+     具体取值可参考对应类型的数据库表格字段类型取值
+     .
+     .-->
+<!ATTLIST column type CDATA #REQUIRED>
+
+<!-- 字段是否允许为空
+     .-->
+<!ATTLIST column nullable (true|false)>
+
+<!-- 字段长度
+     具体取值可参考对应类型的数据库表格字段类型取值
+     .
+     .-->
+<!ATTLIST column length CDATA>
+
+<!-- 字段编码，默认：utf8mb4
+     具体取值可参考对应类型的数据库表格字段类型取值
+     .
+     .-->
+<!ATTLIST column charset CDATA>
+
+
+<!-- 字段在前端Grid渲染的类型
+     需要与FastChar-ExtJs和FastChar-ExtJs-Auto框架结合使用
+     .
+     .-->
+<!ATTLIST column render (#PCDATA|Image|MP4|Content|Enum|File|HtmlContent|Json|Tree|Map|Color|TreeColumn|Href|Url) >
+
+<!-- 字段与其他表格字段关联
+     需要与FastChar-ExtJs框架结合使用
+     例如：fc_user@userId@userNickName
+     解释：字段与表格fc_user中的userId关联，并且以字段userNickName作为前端展示
+     .
+     .-->
+<!ATTLIST column link CDATA >
+
+<!-- 字段是否为主键-->
+<!ATTLIST column primary (true|false)>
+
+<!-- 字段是否自增长-->
+<!ATTLIST column autoincrement (true|false)>
+
+<!-- 是否为字段创建索引-->
+<!ATTLIST column index (true|false)>
+
+<!-- 字段的值是否唯一
+     可配置在多个字段中配置unique属性进行组合唯一判断
+     .
+     .-->
+<!ATTLIST column unique (true|false)>
+
+<!-- 字段绑定关系
+     需要与FastChar-ExtJs框架结合使用
+     .
+     .-->
+<!ATTLIST column bind (layer)>
+
+<!-- 是否为私有不公开到前端展示的字段
+     需要与FastChar-ExtJs框架结合使用
+     .
+     .-->
+<!ATTLIST column private (true|false)>
+
+<!-- 当字段为日期类型时，查询数据自动进行格式化
+     例如：yyyy-MM-dd
+     .
+     .-->
+<!ATTLIST column format CDATA>
+
+<!-- 是否为保存密码的字段
+     密码内容将自动使用md5进行加密保存
+     .
+     .-->
+<!ATTLIST column password (true|false)>
+
+
+<!-- 是否为加密字段内容
+     密码内容将自动使用md5进行加密保存
+     .
+     .-->
+<!ATTLIST column encrypt (true|false)>
+
+<!-- 是否启用
+     .
+     .-->
+<!ATTLIST column enable (true|false)>

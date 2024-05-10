@@ -5,6 +5,8 @@ public class FastRequestParam {
     private String value;
     private boolean doSet;
 
+    private boolean query;
+
     public String getName() {
         return name;
     }
@@ -30,5 +32,18 @@ public class FastRequestParam {
     public FastRequestParam setDoSet(boolean doSet) {
         this.doSet = doSet;
         return this;
+    }
+
+    public boolean isQuery() {
+        return query;
+    }
+
+    public FastRequestParam setQuery(boolean query) {
+        this.query = query;
+        return this;
+    }
+
+    public String toQueryString() {
+        return name + "=" + value;
     }
 }

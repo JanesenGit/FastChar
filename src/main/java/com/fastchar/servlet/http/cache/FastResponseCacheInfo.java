@@ -1,11 +1,11 @@
 package com.fastchar.servlet.http.cache;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.servlet.FastHttpHeaders;
 import com.fastchar.servlet.http.FastHttpServletRequest;
 import com.fastchar.servlet.http.FastHttpServletResponse;
 import com.fastchar.servlet.http.wrapper.FastHttpServletResponseWrapper;
 import com.fastchar.utils.FastNumberUtils;
-import org.apache.catalina.connector.ClientAbortException;
 
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -13,6 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FastResponseCacheInfo implements Serializable {
+
+    public static final String[] EXCLUDE_CACHE_HEAD = new String[]{
+            FastHttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
+            FastHttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS,
+            FastHttpHeaders.ACCESS_CONTROL_MAX_AGE,
+            FastHttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
+            FastHttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+    };
+
 
     private int status = 200;
     private String contentType;
@@ -22,11 +31,8 @@ public class FastResponseCacheInfo implements Serializable {
     private List<FastResponseCacheHeader> dateHeader = new ArrayList<>(16);
     private List<FastResponseCacheHeader> intHeader = new ArrayList<>(16);
     private List<FastResponseCacheHeader> header = new ArrayList<>(16);
-//    private final StringBuilder data = new StringBuilder();
 
     private final List<Integer> bytes = new ArrayList<>();
-
-//    private int cacheType;//0 字符串 1 字节
 
     private long timeout;
     private long timestamp;
@@ -57,22 +63,6 @@ public class FastResponseCacheInfo implements Serializable {
         this.characterEncoding = characterEncoding;
         return this;
     }
-
-
-//    public String getData() {
-//        return data.toString();
-//    }
-//
-//    public FastResponseCacheInfo setData(String data) {
-//        this.data.setLength(0);
-//        this.data.append(data);
-//        return this;
-//    }
-//
-//    public FastResponseCacheInfo addData(String data) {
-//        this.data.append(data);
-//        return this;
-//    }
 
     public int getContentLength() {
         return contentLength;
@@ -151,14 +141,16 @@ public class FastResponseCacheInfo implements Serializable {
         return bytes;
     }
 
-//    public int getCacheType() {
-//        return cacheType;
-//    }
-//
-//    public FastResponseCacheInfo setCacheType(int cacheType) {
-//        this.cacheType = cacheType;
-//        return this;
-//    }
+
+    public boolean isExcludeHead(String headName) {
+        for (String head : EXCLUDE_CACHE_HEAD) {
+            if (head.equalsIgnoreCase(headName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     public void response(FastHttpServletRequest request, FastHttpServletResponse response) {
         response.setStatus(this.status);
@@ -171,13 +163,22 @@ public class FastResponseCacheInfo implements Serializable {
             response.setBufferSize(this.bufferSize);
         }
         for (FastResponseCacheHeader fastResponseHeader : dateHeader) {
+            if (isExcludeHead(fastResponseHeader.getName())) {
+                continue;
+            }
             response.setDateHeader(fastResponseHeader.getName(), FastNumberUtils.formatToLong(fastResponseHeader.getValue()));
         }
 
         for (FastResponseCacheHeader fastResponseHeader : intHeader) {
+            if (isExcludeHead(fastResponseHeader.getName())) {
+                continue;
+            }
             response.setIntHeader(fastResponseHeader.getName(), FastNumberUtils.formatToInt(fastResponseHeader.getValue()));
         }
         for (FastResponseCacheHeader fastResponseHeader : header) {
+            if (isExcludeHead(fastResponseHeader.getName())) {
+                continue;
+            }
             response.setHeader(fastResponseHeader.getName(), String.valueOf(fastResponseHeader.getValue()));
         }
         response.addHeader("FastChar-Cached", "true");
@@ -189,17 +190,17 @@ public class FastResponseCacheInfo implements Serializable {
                     streamWriter.write(b);
                 }
                 streamWriter.flush();
-            } catch (ClientAbortException ignored) {
-                //这个异常是由于客户端断开连接，可以忽略
             } catch (Exception e) {
-                e.printStackTrace();
+                if (e.getClass().getSimpleName().equalsIgnoreCase("ClientAbortException")) {
+                    //这个异常是由于客户端断开连接，可以忽略
+                    return;
+                }
+                FastChar.getLogger().error(this.getClass(), e);
             }
             if (FastChar.getConstant().isDebug()) {
-                FastChar.getLog().info(this.getClass(), "Cached:" + request.getRequestURI());
+                FastChar.getLogger().info(this.getClass(), "Cached:" + request.getRequestURI());
             }
         }
-
-
     }
 
 

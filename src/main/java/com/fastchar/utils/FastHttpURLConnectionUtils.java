@@ -1,5 +1,7 @@
 package com.fastchar.utils;
 
+import com.fastchar.core.FastChar;
+
 import javax.net.ssl.*;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -56,7 +58,7 @@ public class FastHttpURLConnectionUtils {
             }
             return httpURLConnection.getInputStream();
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastHttpURLConnectionUtils.class, e);
         }
         return null;
     }

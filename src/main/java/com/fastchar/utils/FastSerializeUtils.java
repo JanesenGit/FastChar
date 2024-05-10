@@ -4,7 +4,7 @@ import java.io.*;
 
 public class FastSerializeUtils {
 
-    public static byte[] serialize(Object object){
+    public static byte[] serialize(Object object) {
         try {
             if (object == null) {
                 return null;
@@ -16,7 +16,8 @@ public class FastSerializeUtils {
             byteArrayOutputStream.close();
             objectOutputStream.close();
             return bytes;
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return null;
     }
 

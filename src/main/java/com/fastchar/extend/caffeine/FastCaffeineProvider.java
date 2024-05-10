@@ -1,11 +1,9 @@
 package com.fastchar.extend.caffeine;
 
 import com.fastchar.annotation.AFastClassFind;
+import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastMemoryCache;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Caffeine内存缓存 <a href="https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine">https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine</a>
@@ -15,15 +13,23 @@ import java.util.concurrent.TimeUnit;
  */
 @AFastClassFind("com.github.benmanes.caffeine.cache.Caffeine")
 public class FastCaffeineProvider implements IFastMemoryCache {
-    private static final Cache<String, Object> MANUAL_CACHE = Caffeine.newBuilder()
-            .expireAfterWrite(10, TimeUnit.MINUTES)
-            .maximumSize(10_000)
-            .build();
+    private volatile Cache<String, Object> manualCache;
+
+    public Cache<String, Object> getManualCache() {
+        if (manualCache == null) {
+            synchronized (this) {
+                if (manualCache == null) {
+                    manualCache = FastChar.getConfig(FastCaffeineConfig.class).getBuilder().build();
+                }
+            }
+        }
+        return manualCache;
+    }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> T get(String key) {
-        return (T) MANUAL_CACHE.getIfPresent(key);
+        return (T) getManualCache().getIfPresent(key);
     }
 
     @Override
@@ -38,11 +44,11 @@ public class FastCaffeineProvider implements IFastMemoryCache {
 
     @Override
     public void put(String key, Object value) {
-        MANUAL_CACHE.put(key, value);
+        getManualCache().put(key, value);
     }
 
     @Override
     public void remove(String key) {
-        MANUAL_CACHE.invalidate(key);
+        getManualCache().invalidate(key);
     }
 }

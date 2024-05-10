@@ -67,7 +67,8 @@ public class FastColumnInfo<T> extends LinkedHashMap<String, Object> {
     }
 
     public boolean isNotNull() {
-        return "notnull".equalsIgnoreCase(mapWrap.getString("nullable", "null").replace(" ", ""));
+        String nullable = mapWrap.getString("nullable", "null").replace(" ", "");
+        return "notnull".equalsIgnoreCase(nullable) || nullable.equalsIgnoreCase("false");
     }
 
     public boolean isEncrypt() {

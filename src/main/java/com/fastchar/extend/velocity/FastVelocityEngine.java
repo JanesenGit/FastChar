@@ -20,7 +20,6 @@ public class FastVelocityEngine extends VelocityEngine implements IFastTemplate 
 
     public FastVelocityEngine() {
         setProperty(Velocity.FILE_RESOURCE_LOADER_PATH, FastChar.getPath().getWebRootPath());
-        setProperty(Velocity.ENCODING_DEFAULT, FastChar.getConstant().getCharset());
         setProperty(Velocity.INPUT_ENCODING, FastChar.getConstant().getCharset());
         setProperty(Velocity.ENCODING_DEFAULT, FastChar.getConstant().getCharset());
         setProperty(Velocity.VM_LIBRARY_AUTORELOAD, false);
@@ -48,12 +47,12 @@ public class FastVelocityEngine extends VelocityEngine implements IFastTemplate 
             }
 
             StringWriter writer = new StringWriter();
-            evaluate(context, writer, "FastChar", template);
+            evaluate(context, writer, "FastChar-Velocity", template);
             String data = writer.toString();
             writer.close();
             return data;
         } catch (IOException e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return null;
     }

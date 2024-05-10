@@ -6,12 +6,12 @@ package com.fastchar.interfaces;
  */
 public interface IFastLogger {
 
-    void debug(Class<?> targetClass, String message, Throwable throwable);
+    boolean debug(Class<?> targetClass, String message, Throwable throwable);
 
-    void info(Class<?> targetClass, String message, Throwable throwable);
+    boolean info(Class<?> targetClass, String message, Throwable throwable);
 
-    void error(Class<?> targetClass, String message, Throwable throwable);
+    boolean error(Class<?> targetClass, String message, Throwable throwable);
 
-    void warn(Class<?> targetClass, String message, Throwable throwable);
+    boolean warn(Class<?> targetClass, String message, Throwable throwable);
 
 }

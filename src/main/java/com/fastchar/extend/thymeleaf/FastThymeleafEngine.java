@@ -46,7 +46,7 @@ public class FastThymeleafEngine extends TemplateEngine implements IFastTemplate
             writer.close();
             return data;
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return null;
     }
@@ -68,7 +68,7 @@ public class FastThymeleafEngine extends TemplateEngine implements IFastTemplate
             writer.close();
             return data;
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return null;
     }

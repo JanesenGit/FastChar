@@ -1,6 +1,7 @@
 package com.fastchar.core;
 
 
+import com.fastchar.enums.FastServerType;
 import com.fastchar.enums.FastServletType;
 
 import java.util.Arrays;
@@ -17,29 +18,33 @@ public class FastConstant {
     /**
      * FastChar框架的版本
      */
-    public static final String FAST_CHAR_VERSION = "2.0.0";
+    public static final String FAST_CHAR_VERSION = "2.2.0";
 
     /**
      * 数据库xml配置文件的前缀
      */
-    public static String FAST_DATA_BASE_FILE_PREFIX = "fast-database";
+    public static String FAST_DATA_BASE_FILE_PREFIX = "fastchar-database";
 
     /**
      * 默认数据xml配置文件的前缀
      */
-    public static String FAST_DATA_FILE_PREFIX = "fast-data";
+    public static String FAST_DATA_FILE_PREFIX = "fastchar-data";
 
     FastConstant() {
     }
 
-    FastServletType servletType;//启动项目的servlet类型
+    FastServletType servletType = FastServletType.None;//启动项目的servlet类型
+    FastServerType serverType = FastServerType.None;//启动项目的容器类型
     private boolean debug = true;//调试模式
-    
+    private boolean markers = true;//是否在响应头中追加Power-By标记头
+
+    private boolean proxyResource = false;//是否代理静态资源的获取和访问，如果配置为true，将跳过插件包的里解压功能。
+    private boolean embedServer = false;//是否是内嵌运行的server服务器
+    private String projectHost;//项目主地址
     private String projectName;//项目名称
     private long beginInitTime;//项目开始初始化时间戳
     private long endInitTime;//项目结束初始化时间戳
     private String charset = "utf-8";//编码格式
-    private boolean encryptDatabaseXml;//是否加密数据库的配置xml
     private String encryptPassword = "FAST_CHAR";//加密的密码
     private boolean syncDatabaseXml = true;//是否同步xml到数据库中
     private boolean testEnvironment;//是否测试环境，一般在main方法中使用
@@ -50,6 +55,7 @@ public class FastConstant {
     private boolean ansi = true; //是否支持控制ansi字体颜色设置
     private int maxResponseTime = 30;//最大响应时间 单位秒 如果超时这控制打印时会标红提醒
     private String dateFormat = "yyyy-MM-dd HH:mm:ss";//日期格式化统一，默认为 yyyy-MM-dd HH:mm:ss
+
 
     private boolean jdbcParseToTimestamp = true;//是否将jdbc查询的日期默认转为 Timestamp
 
@@ -63,7 +69,6 @@ public class FastConstant {
     private boolean logSql = true;//是否打印sql语句日志
     private boolean logExtract = false;//是否打印解压jar包的文件日志
     private boolean logExtractNewFile = false;//是否打印新版本的文件消息
-    private boolean logSameJar = false;//是否打印不同版本的jar包
     private boolean logActionResolver = false;//是否打印解析FastAction的类名
 
     private boolean systemOutPrint = true;//是否允许system.out输出
@@ -77,8 +82,11 @@ public class FastConstant {
     private String attachDirectory;//附件保存的路径  默认WebRoot/attachments
     private int attachMaxPostSize = 100 * 1024 * 1024;//附件最大上传大小，单位 字节(b) 默认(100M) 100*1024*1024
 
-    private String propertiesName = "config.properties";//默认配置的properties文件
+    private String propertiesName = "config.properties";//默认properties文件名
 
+    private String yamlName = "config.yml";//默认yml文件名
+
+    boolean webServer;//是否是web项目
     boolean webStarted;//web服务器是否已启动
     boolean webStopped;//web服务器是否已停止
 
@@ -87,30 +95,10 @@ public class FastConstant {
 
     private int sessionMaxInterval = 30 * 60;//session失效时间，单位秒 默认30分钟
 
-
     public FastServletType getServletType() {
         return servletType;
     }
 
-    /**
-     * 是否加密fast-database.xml相关的数据库配置文件
-     *
-     * @return 布尔值 默认：false
-     */
-    public boolean isEncryptDatabaseXml() {
-        return encryptDatabaseXml;
-    }
-
-    /**
-     * 配置是否自动加密fast-database.xml相关的数据库配置文件
-     *
-     * @param encryptDatabaseXml 是否加密
-     * @return 当前对象
-     */
-    public FastConstant setEncryptDatabaseXml(boolean encryptDatabaseXml) {
-        this.encryptDatabaseXml = encryptDatabaseXml;
-        return this;
-    }
 
     /**
      * 获得项目名称
@@ -121,6 +109,12 @@ public class FastConstant {
         return projectName;
     }
 
+    /**
+     * 设置项目名称
+     *
+     * @param projectName 项目名
+     * @return 当前对象
+     */
     FastConstant setProjectName(String projectName) {
         this.projectName = projectName;
         return this;
@@ -149,7 +143,7 @@ public class FastConstant {
     /**
      * 是否开启调试模式
      *
-     * @return 布尔值 默认：true
+     * @return boolean 默认：true
      */
     public boolean isDebug() {
         return debug;
@@ -289,7 +283,7 @@ public class FastConstant {
     /**
      * 是否用MD5加密附件名称
      *
-     * @return 布尔值 默认：false
+     * @return boolean 默认：false
      */
     public boolean isAttachNameMD5() {
         return attachNameMD5;
@@ -350,7 +344,7 @@ public class FastConstant {
     /**
      * 在系统解析路由地址时，是否打印路由信息
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogRoute() {
         return logRoute;
@@ -359,7 +353,7 @@ public class FastConstant {
     /**
      * 设置在系统解析路由地址时，是否打印路由信息
      *
-     * @param logRoute 布尔值
+     * @param logRoute boolean
      * @return 当前对象
      */
     public FastConstant setLogRoute(boolean logRoute) {
@@ -370,7 +364,7 @@ public class FastConstant {
     /**
      * 是否同步fast-database.xml数据库配置到数据库中
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isSyncDatabaseXml() {
         return syncDatabaseXml;
@@ -379,7 +373,7 @@ public class FastConstant {
     /**
      * 设置是否同步fast-database.xml数据库配置到数据库中
      *
-     * @param syncDatabaseXml 布尔值
+     * @param syncDatabaseXml boolean
      * @return 当前对象
      */
     public FastConstant setSyncDatabaseXml(boolean syncDatabaseXml) {
@@ -390,7 +384,7 @@ public class FastConstant {
     /**
      * 是否启用控制日志彩色打印
      *
-     * @return 布尔值，默认：true
+     * @return boolean，默认：true
      */
     public boolean isAnsi() {
         return ansi;
@@ -399,7 +393,7 @@ public class FastConstant {
     /**
      * 设置启用控制日志彩色打印
      *
-     * @param ansi 布尔值
+     * @param ansi boolean
      * @return 当前对象
      */
     public FastConstant setAnsi(boolean ansi) {
@@ -411,7 +405,7 @@ public class FastConstant {
     /**
      * 是否允许跨域请求
      *
-     * @return 布尔值，默认：false
+     * @return boolean，默认：false
      */
     public boolean isCrossDomain() {
         return crossDomain;
@@ -420,7 +414,7 @@ public class FastConstant {
     /**
      * 设置是否允许跨域请求
      *
-     * @param crossDomain 布尔值
+     * @param crossDomain boolean
      * @return 当前对象
      */
     public FastConstant setCrossDomain(boolean crossDomain) {
@@ -434,7 +428,7 @@ public class FastConstant {
     /**
      * 是否打印类覆盖器里日志
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogOverride() {
         return logOverride;
@@ -443,7 +437,7 @@ public class FastConstant {
     /**
      * 设置是否打印类覆盖器里日志
      *
-     * @param logOverride 布尔值
+     * @param logOverride boolean
      * @return 当前对象
      */
     public FastConstant setLogOverride(boolean logOverride) {
@@ -475,7 +469,7 @@ public class FastConstant {
     /**
      * 是否为测试环境，一般在main方法中使用
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isTestEnvironment() {
         return testEnvironment;
@@ -484,7 +478,7 @@ public class FastConstant {
     /**
      * 设置是否为测试环境
      *
-     * @param testEnvironment 布尔值
+     * @param testEnvironment boolean
      * @return 当前对象
      */
     public FastConstant setTestEnvironment(boolean testEnvironment) {
@@ -496,7 +490,7 @@ public class FastConstant {
     /**
      * 判断当前系统环境是否为linux系统
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLinux() {
         String os = System.getProperty("os.name");
@@ -506,7 +500,7 @@ public class FastConstant {
     /**
      * 是否保留附件的后缀名
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isAttachNameSuffix() {
         return attachNameSuffix;
@@ -515,7 +509,7 @@ public class FastConstant {
     /**
      * 设置是否保留附件的后缀名
      *
-     * @param attachNameSuffix 布尔值
+     * @param attachNameSuffix boolean
      * @return 当前对象
      */
     public FastConstant setAttachNameSuffix(boolean attachNameSuffix) {
@@ -540,7 +534,7 @@ public class FastConstant {
     /**
      * web服务是否已停止
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isWebStopped() {
         return webStopped;
@@ -549,7 +543,7 @@ public class FastConstant {
     /**
      * 是否打印请求的header日志
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogHeaders() {
         return logHeaders;
@@ -558,7 +552,7 @@ public class FastConstant {
     /**
      * 设置是否打印请求的header日志
      *
-     * @param logHeaders 布尔值
+     * @param logHeaders boolean
      * @return 当前对象
      */
     public FastConstant setLogHeaders(boolean logHeaders) {
@@ -569,7 +563,7 @@ public class FastConstant {
     /**
      * 是否打印拦截器的耗时时间
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogInterceptorUseTotal() {
         return logInterceptorUseTotal;
@@ -578,7 +572,7 @@ public class FastConstant {
     /**
      * 设置打印拦截器的耗时时间
      *
-     * @param logInterceptorUseTotal 布尔值
+     * @param logInterceptorUseTotal boolean
      * @return 当前对象
      */
     public FastConstant setLogInterceptorUseTotal(boolean logInterceptorUseTotal) {
@@ -630,7 +624,7 @@ public class FastConstant {
     /**
      * 是否只打印请求响应时间超过配置的maxUseTotalLog时间日志
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogFilterResponseTime() {
         return logFilterResponseTime;
@@ -639,7 +633,7 @@ public class FastConstant {
     /**
      * 设置是否只打印请求响应时间超过配置的maxResponseTime时间日志
      *
-     * @param logFilterResponseTime 布尔值
+     * @param logFilterResponseTime boolean
      * @return 当前对象
      */
     public FastConstant setLogFilterResponseTime(boolean logFilterResponseTime) {
@@ -650,7 +644,7 @@ public class FastConstant {
     /**
      * 是否打印sql语句
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogSql() {
         return logSql;
@@ -659,7 +653,7 @@ public class FastConstant {
     /**
      * 设置是否打印sql语句
      *
-     * @param logSql 布尔值
+     * @param logSql boolean
      * @return 当前对象
      */
     public FastConstant setLogSql(boolean logSql) {
@@ -690,7 +684,7 @@ public class FastConstant {
     /**
      * 是否打印解压jar包的文件日志
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogExtract() {
         return logExtract;
@@ -699,7 +693,7 @@ public class FastConstant {
     /**
      * 设置是否打印解压jar包的文件日志
      *
-     * @param logExtract 布尔值
+     * @param logExtract boolean
      * @return 当前对象
      */
     public FastConstant setLogExtract(boolean logExtract) {
@@ -710,7 +704,7 @@ public class FastConstant {
     /**
      * 是否打印远程请求的地址
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogRemoteAddress() {
         return logRemoteAddress;
@@ -719,7 +713,7 @@ public class FastConstant {
     /**
      * 设置是否打印远程请求接口的地址
      *
-     * @param logRemoteAddress 布尔值
+     * @param logRemoteAddress boolean
      * @return 当前对象
      */
     public FastConstant setLogRemoteAddress(boolean logRemoteAddress) {
@@ -730,7 +724,7 @@ public class FastConstant {
     /**
      * 是否允许系统使用System.out输出打印
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isSystemOutPrint() {
         return systemOutPrint;
@@ -739,7 +733,7 @@ public class FastConstant {
     /**
      * 配置是否允许系统使用System.out输出打印
      *
-     * @param systemOutPrint 布尔值
+     * @param systemOutPrint boolean
      * @return 当前对象
      */
     public FastConstant setSystemOutPrint(boolean systemOutPrint) {
@@ -750,36 +744,17 @@ public class FastConstant {
     /**
      * 获取项目的Web服务器是否已启动
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isWebStarted() {
         return webStarted;
     }
 
-    /**
-     * 是否打印不同版本的JAR包
-     *
-     * @return 布尔值
-     */
-    public boolean isLogSameJar() {
-        return logSameJar;
-    }
-
-    /**
-     * 设置是否打印不同版本的JAR包
-     *
-     * @param logSameJar 布尔值
-     * @return 当前对象
-     */
-    public FastConstant setLogSameJar(boolean logSameJar) {
-        this.logSameJar = logSameJar;
-        return this;
-    }
 
     /**
      * 是否打印解析FastAction的类名
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogActionResolver() {
         return logActionResolver;
@@ -788,7 +763,7 @@ public class FastConstant {
     /**
      * 配置是否打印解析FastAction的类名
      *
-     * @param logActionResolver 布尔值
+     * @param logActionResolver boolean
      * @return 当前对象
      */
     public FastConstant setLogActionResolver(boolean logActionResolver) {
@@ -800,7 +775,7 @@ public class FastConstant {
     /**
      * 是否使用URLDecoder解码上传文件的名称 默认：true
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isDecodeUploadFileName() {
         return decodeUploadFileName;
@@ -809,7 +784,7 @@ public class FastConstant {
     /**
      * 是否使用URLDecoder解码上传文件的名称
      *
-     * @param decodeUploadFileName 布尔值
+     * @param decodeUploadFileName boolean
      * @return 当前对象
      */
     public FastConstant setDecodeUploadFileName(boolean decodeUploadFileName) {
@@ -840,7 +815,7 @@ public class FastConstant {
     /**
      * 是否打印插件中新版本的文件消息
      *
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLogExtractNewFile() {
         return logExtractNewFile;
@@ -849,7 +824,7 @@ public class FastConstant {
     /**
      * 是否打印插件中新版本的文件消息
      *
-     * @param logExtractNewFile 布尔值
+     * @param logExtractNewFile boolean
      * @return 当前对象
      */
     public FastConstant setLogExtractNewFile(boolean logExtractNewFile) {
@@ -859,7 +834,7 @@ public class FastConstant {
 
     /**
      * 是否允许打印日志
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isLog() {
         return log;
@@ -867,7 +842,7 @@ public class FastConstant {
 
     /**
      * 设置是否打印日志
-     * @param log 布尔值
+     * @param log boolean
      * @return 当前对象
      */
     public FastConstant setLog(boolean log) {
@@ -878,7 +853,7 @@ public class FastConstant {
 
     /**
      * 是否将jdbc查询的日期数据默认转为 Timestamp，默认：true
-     * @return 布尔值
+     * @return boolean
      */
     public boolean isJdbcParseToTimestamp() {
         return jdbcParseToTimestamp;
@@ -886,7 +861,7 @@ public class FastConstant {
 
     /**
      * 设置是否将jdbc查询的日期数据默认转为 Timestamp
-     * @param jdbcParseToTimestamp 布尔值
+     * @param jdbcParseToTimestamp boolean
      * @return 当前对象
      */
     public FastConstant setJdbcParseToTimestamp(boolean jdbcParseToTimestamp) {
@@ -909,7 +884,7 @@ public class FastConstant {
      * @param beginInitTime 时间戳
      * @return 当前对象
      */
-    FastConstant setBeginInitTime(long beginInitTime) {
+    public FastConstant setBeginInitTime(long beginInitTime) {
         this.beginInitTime = beginInitTime;
         return this;
     }
@@ -923,13 +898,72 @@ public class FastConstant {
     }
 
     /**
-     * 设置项目开始初始化时间戳
+     * 设置项目初始化结束时间戳
      *
      * @param endInitTime 时间戳
      * @return 当前对象
      */
-    FastConstant setEndInitTime(long endInitTime) {
+    public FastConstant setEndInitTime(long endInitTime) {
         this.endInitTime = endInitTime;
+        return this;
+    }
+
+    public String getYamlName() {
+        return yamlName;
+    }
+
+    public FastConstant setYamlName(String yamlName) {
+        this.yamlName = yamlName;
+        return this;
+    }
+
+    public boolean isWebServer() {
+        return webServer;
+    }
+
+    public boolean isMarkers() {
+        return markers;
+    }
+
+    public FastConstant setMarkers(boolean markers) {
+        this.markers = markers;
+        return this;
+    }
+
+
+    public String getProjectHost() {
+        return projectHost;
+    }
+
+    public FastConstant setProjectHost(String projectHost) {
+        this.projectHost = projectHost;
+        return this;
+    }
+
+    /**
+     * 是否是内嵌运行的server服务器
+     * @return boolean
+     */
+    public boolean isEmbedServer() {
+        return embedServer;
+    }
+
+    public FastConstant setEmbedServer(boolean embedServer) {
+        this.embedServer = embedServer;
+        return this;
+    }
+
+    public FastServerType getServerType() {
+        return serverType;
+    }
+
+
+    public boolean isProxyResource() {
+        return proxyResource;
+    }
+
+    public FastConstant setProxyResource(boolean proxyResource) {
+        this.proxyResource = proxyResource;
         return this;
     }
 
@@ -938,7 +972,6 @@ public class FastConstant {
         return "FastConstant{" +
                 "projectName='" + projectName + '\'' +
                 ", encoding='" + charset + '\'' +
-                ", encryptDatabaseXml=" + encryptDatabaseXml +
                 ", encryptPassword='" + encryptPassword + '\'' +
                 ", syncDatabaseXml=" + syncDatabaseXml +
                 ", testEnvironment=" + testEnvironment +
@@ -958,7 +991,6 @@ public class FastConstant {
                 ", logSql=" + logSql +
                 ", logExtract=" + logExtract +
                 ", logExtractNewFile=" + logExtractNewFile +
-                ", logSameJar=" + logSameJar +
                 ", logActionResolver=" + logActionResolver +
                 ", systemOutPrint=" + systemOutPrint +
                 ", errorPage404='" + errorPage404 + '\'' +
@@ -969,6 +1001,7 @@ public class FastConstant {
                 ", attachDirectory='" + attachDirectory + '\'' +
                 ", attachMaxPostSize=" + attachMaxPostSize +
                 ", propertiesName='" + propertiesName + '\'' +
+                ", webServer=" + webServer +
                 ", webStarted=" + webStarted +
                 ", webStopped=" + webStopped +
                 ", decodeUploadFileName=" + decodeUploadFileName +
@@ -976,5 +1009,4 @@ public class FastConstant {
                 ", sessionMaxInterval=" + sessionMaxInterval +
                 '}';
     }
-
 }

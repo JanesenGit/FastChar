@@ -38,6 +38,22 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     private final FastDB fastDB = new FastDB().setLog(false).setIgnoreCase(true).setUseCache(false);
 
     @Override
+    public String getConnectionDriverClass(FastDatabaseInfo databaseInfo) throws Exception {
+        return "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+    }
+
+    @Override
+    public int getConnectionPort(FastDatabaseInfo databaseInfo) throws Exception {
+        return 1521;
+    }
+
+    @Override
+    public String getConnectionUrl(FastDatabaseInfo databaseInfo) throws Exception {
+        return "jdbc:sqlserver://" + databaseInfo.getHost() + ":" + databaseInfo.getPort() + ";databaseName=" + databaseInfo.getName();
+    }
+
+
+    @Override
     public void fetchDatabaseInfo(FastDatabaseInfo databaseInfo) throws Exception {
         Connection connection = fastDB.setDatabase(databaseInfo.getCode()).getConnection();
         if (connection == null) {
@@ -56,9 +72,12 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             List<FastEntity<?>> listResult = new FastResultSet(resultSet).setIgnoreCase(true).getListResult();
             for (FastEntity<?> fastEntity : listResult) {
                 String table_name = fastEntity.getString("table_name");
-                FastTableInfo<?>  tableInfo = FastTableInfo.newInstance();
+                FastTableInfo<?> tableInfo = FastTableInfo.newInstance();
                 tableInfo.setName(table_name);
+                // 备注取消从数据中同步
+                tableInfo.setComment(fastEntity.getString("remarks"));
                 tableInfo.setExist(true);
+                tableInfo.setFromXml(false);
 
                 //检索主键
                 ResultSet keyRs = dmd.getPrimaryKeys(null, null, tableInfo.getName());
@@ -92,7 +111,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                         boolean isAutoIncrement = data.isAutoIncrement(i);
                         String columnLabel = data.getColumnLabel(i);
 
-                        FastColumnInfo<?>  columnInfo = FastColumnInfo.newInstance();
+                        FastColumnInfo<?> columnInfo = FastColumnInfo.newInstance();
                         columnInfo.setName(columnName);
                         columnInfo.setType(type);
                         columnInfo.setAutoincrement(String.valueOf(isAutoIncrement));
@@ -188,12 +207,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             List<String> primaryKey = new ArrayList<>(5);
 
             List<FastColumnInfo<?>> columns = new ArrayList<>(tableInfo.getColumns());
-            Collections.sort(columns, new Comparator<FastColumnInfo<?>>() {
-                @Override
-                public int compare(FastColumnInfo<?> o1, FastColumnInfo<?> o2) {
-                    return Integer.compare(o1.getSortIndex(), o2.getSortIndex());
-                }
-            });
+            columns.sort(Comparator.comparingInt(FastColumnInfo::getSortIndex));
 
             for (FastColumnInfo<?> column : columns) {
                 columnSql.add(buildColumnSql(column));
@@ -201,7 +215,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                     primaryKey.add(column.getName());
                 }
             }
-            if (primaryKey.size() > 0) {
+            if (!primaryKey.isEmpty()) {
                 columnSql.add(" primary key (" + FastStringUtils.join(primaryKey, ",") + ")");
             }
             String sql = String.format(" if not exists (select * from sysobjects where name = '%s' ) create table  %s ( %s )  comment = '%s' ;", tableInfo.getName(), tableInfo.getName(), FastStringUtils.join(columnSql, ","), tableInfo.getComment());
@@ -230,7 +244,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             }
 
         } finally {
-            FastChar.getLog().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO1,
+            FastChar.getLogger().info(IFastDatabaseOperate.class, FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO1,
                     databaseInfo.getCode(), tableInfo.getName()));
         }
     }
@@ -265,7 +279,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                     }
                     tableColumns.put(realTableName, columns);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    FastChar.getLogger().error(this.getClass(), e);
                 }
             }
             if (databaseInfo.isIgnoreCase()) {
@@ -297,7 +311,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                     }
 
                     if (FastStringUtils.isNotEmpty(constraintName)) {
-                        if (keys.size() > 0) {
+                        if (!keys.isEmpty()) {
                             String sql2 = "alter table " + tableInfo.getName() + " drop constraint " + constraintName;
                             fastDB.setLog(true).setDatabase(databaseInfo.getCode()).run(sql2);
                         }
@@ -309,7 +323,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
 
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
-            FastChar.getLog().info(FastSqlServerDatabaseOperateProvider.class,
+            FastChar.getLogger().info(FastSqlServerDatabaseOperateProvider.class,
                     FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO2, databaseInfo.getCode(), tableInfo.getName(), columnInfo.getName()));
         }
     }
@@ -334,7 +348,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                     }
 
                     if (FastStringUtils.isNotEmpty(constraintName)) {
-                        if (keys.size() > 0) {
+                        if (!keys.isEmpty()) {
                             String sql2 = "alter table " + tableInfo.getName() + " drop constraint " + constraintName;
                             fastDB.setLog(true).setDatabase(databaseInfo.getCode()).run(sql2);
                         }
@@ -346,7 +360,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
 
             alterColumnIndex(databaseInfo, tableInfo.getName(), columnInfo);
         } finally {
-            FastChar.getLog().info(FastSqlServerDatabaseOperateProvider.class,
+            FastChar.getLogger().info(FastSqlServerDatabaseOperateProvider.class,
                     FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO3, databaseInfo.getCode(),
                             tableInfo.getName(), columnInfo.getName()));
         }
@@ -360,7 +374,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
             if (!checkColumnIndex(databaseInfo, indexName)) {
                 String createIndexSql = String.format("create %s index %s on %s(%s) ", convertIndex, indexName, tableName, columnName);
                 fastDB.setLog(true).setDatabase(databaseInfo.getCode()).run(createIndexSql);
-                FastChar.getLog().info(FastSqlServerDatabaseOperateProvider.class,
+                FastChar.getLogger().info(FastSqlServerDatabaseOperateProvider.class,
                         FastChar.getLocal().getInfo(FastCharLocal.DB_TABLE_INFO4, databaseInfo.getCode(), tableName, columnInfo.getName(), indexName));
             }
         }
@@ -375,7 +389,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                 return fastEntity.getInt("countIndex") > 0;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return false;
     }
@@ -389,7 +403,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
                     .setIgnoreCase(true)
                     .select(checkKeysSql);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return null;
     }
@@ -433,7 +447,7 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
 
         if (!columnInfo.isAutoincrement()) {
             stringBuilder.append(" ");
-            stringBuilder.append(FastStringUtils.defaultValue(columnInfo.getNullable(), " null "));
+            stringBuilder.append(getNullable(columnInfo));
         }
 
         if (FastStringUtils.isNotEmpty(columnInfo.getValue())) {
@@ -477,4 +491,10 @@ public class FastSqlServerDatabaseOperateProvider implements IFastDatabaseOperat
     }
 
 
+    private String getNullable(FastColumnInfo<?> columnInfo) {
+        if (columnInfo.isNotNull()) {
+            return " not null ";
+        }
+        return " null ";
+    }
 }

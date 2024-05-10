@@ -53,7 +53,7 @@ public class FastOutStreamCache extends OutputStream {
                         cacheInfo.setTimestamp(System.currentTimeMillis());
                         FastChar.getCache().set(cacheConfig.getCacheTag(), cacheConfig.getCacheKey(), cacheInfo);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        FastChar.getLogger().error(this.getClass(), e);
                     }
                 }
             }

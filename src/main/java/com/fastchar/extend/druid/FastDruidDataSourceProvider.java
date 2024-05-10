@@ -28,7 +28,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
     @Override
     public DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (dataSource == null) {
-            synchronized (FastDruidDataSourceProvider.class) {
+            synchronized (this) {
                 if (dataSource == null) {
                     dataSource = new DruidDataSource();
                     dataSource.setUrl(databaseInfo.toUrl());
@@ -41,7 +41,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
                     this.databaseInfo = databaseInfo;
 
                     try {
-                        FastDruidConfig druid = FastChar.getConfigs().getDruidConfig();
+                        FastDruidConfig druid = FastChar.getConfig(FastDruidConfig.class);
                         for (Field field : FastDruidConfig.class.getDeclaredFields()) {
                             field.setAccessible(true);
                             Object o = field.get(druid);
@@ -54,12 +54,12 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
                             }
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        FastChar.getLogger().error(this.getClass(), e);
                     }
 
                     String poolInfo = "Druid jdbc pool of " +databaseInfo.toSimpleInfo();
                     if (FastChar.getConstant().isDebug()) {
-                        FastChar.getLog().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
+                        FastChar.getLogger().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
                     }
                     FastChar.getValues().put("jdbcPool", "Druid jdbc pool");
                 }
@@ -88,7 +88,7 @@ public class FastDruidDataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Druid jdbc pool of " + databaseInfo.toSimpleInfo()));
+                    FastChar.getLogger().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Druid jdbc pool of " + databaseInfo.toSimpleInfo()));
                 }
             }
         } finally {

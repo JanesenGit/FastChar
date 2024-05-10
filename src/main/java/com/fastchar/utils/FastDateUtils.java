@@ -5,10 +5,8 @@ import com.fastchar.extend.commons.lang3.time.DateFormatUtils;
 import com.fastchar.extend.commons.lang3.time.DateUtils;
 import com.fastchar.local.FastCharLocal;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class FastDateUtils {
@@ -180,7 +178,7 @@ public class FastDateUtils {
         try {
             return Math.abs(first.getTime() - two.getTime()) / (60.0 * 60 * 1000 * 24);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastDateUtils.class, e);
         }
         return 0;
     }
@@ -189,7 +187,7 @@ public class FastDateUtils {
         try {
             return Math.abs(first.getTime() - two.getTime()) / (60.0 * 60 * 1000);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastDateUtils.class, e);
         }
         return 0;
     }
@@ -198,7 +196,7 @@ public class FastDateUtils {
         try {
             return Math.abs(first.getTime() - two.getTime()) / (60.0 * 1000);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastDateUtils.class, e);
         }
         return 0;
     }
@@ -207,7 +205,7 @@ public class FastDateUtils {
         try {
             return Math.abs(first.getTime() - two.getTime()) / 1000.0;
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastDateUtils.class, e);
         }
         return 0;
     }
@@ -221,7 +219,7 @@ public class FastDateUtils {
             twoCal.setTime(two);
             return Math.abs(firstCal.get(Calendar.YEAR) - twoCal.get(Calendar.YEAR));
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastDateUtils.class, e);
         }
         return 0;
     }
@@ -239,4 +237,40 @@ public class FastDateUtils {
         return null;
     }
 
+
+    /**
+     * 将总时间转换为中文描述，最高描述到：天，例如：2天3时45分09秒
+     *
+     * @param totalTime 总时间，单位：毫秒
+     * @return 文字描述
+     */
+    public static String toDescription(long totalTime) {
+        long seconds = 1000L, minuteUnit = 1000 * 60L, hourUnit = 1000 * 60 * 60L, dayUnit = 1000 * 60 * 60 * 24L;
+
+        StringBuilder stringBuilder = new StringBuilder();
+        if (totalTime < seconds) {
+            stringBuilder.append("00秒");
+            return stringBuilder.toString();
+        } else if (totalTime < minuteUnit) {
+            stringBuilder.append(String.format(Locale.CHINA, "%02d", (int) (totalTime / seconds))).append("秒");
+            return stringBuilder.toString();
+        }
+        if (totalTime < hourUnit) {
+            int minute = (int) (totalTime / minuteUnit);
+            stringBuilder.append(String.format(Locale.CHINA, "%02d", minute)).append("分");
+            stringBuilder.append(toDescription(totalTime - (int) (minute * minuteUnit)));
+            return stringBuilder.toString();
+        }
+        if (totalTime < dayUnit) {
+            int hour = (int) (totalTime / hourUnit);
+            stringBuilder.append(String.format(Locale.CHINA, "%02d", hour)).append("时");
+            stringBuilder.append(toDescription(totalTime - (int) (hour * hourUnit)));
+            return stringBuilder.toString();
+        }
+        int day = (int) (totalTime / dayUnit);
+        stringBuilder.append(String.format(Locale.CHINA, "%02d", day)).append("天");
+
+        stringBuilder.append(toDescription(new BigDecimal(totalTime).subtract(new BigDecimal(dayUnit).multiply(new BigDecimal(day))).intValue()));
+        return stringBuilder.toString();
+    }
 }

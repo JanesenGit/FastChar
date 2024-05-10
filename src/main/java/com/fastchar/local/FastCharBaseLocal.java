@@ -1,5 +1,6 @@
 package com.fastchar.local;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastLocal;
 import com.fastchar.utils.FastClassUtils;
 
@@ -16,7 +17,7 @@ public class FastCharBaseLocal implements IFastLocal {
                 return MessageFormat.format(String.valueOf(declaredField.get(this)), args);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return null;
     }

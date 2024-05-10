@@ -29,7 +29,7 @@ public class FastJsonWrap {
             try {
                 this.jsonObject = FastChar.getJson().fromJson(json, Object.class);
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
                 this.jsonObject = null;
             }
         }
@@ -44,96 +44,31 @@ public class FastJsonWrap {
         return this;
     }
 
-    /**
-     * 设置属性表达式的值
-     *
-     * @param value 值
-     * @return 当前对象
-     */
-    public FastJsonWrap setValue(Object value) {
-        return setValue(null, value);
+    private String convertAttr(String attr) {
+        attr = FastStringUtils.strip(attr);
+        if (attr.startsWith("${") && attr.endsWith("}")) {
+            return attr;
+        }
+        return "${" + attr + "}";
     }
 
     /**
-     * 设置属性表达式的值
+     * 获取属性修改操作的类
      *
-     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
-     * @param value      值
-     * @return 当前对象
+     * @return FastJsonAddHandler
      */
-    public FastJsonWrap setValue(String attr, Object value) {
-        getProperty(attr).setValue(value);
-        return this;
+    public FastJsonEditHandler getEditor() {
+        return new FastJsonEditHandler(getProperty(null));
     }
 
     /**
-     * 添加属性表达式的值
+     * 获取属性添加操作的类
      *
-     * @param value 值
-     * @return 当前对象
+     * @param attr 需要操作的属性
+     * @return FastJsonAddHandler
      */
-    public FastJsonWrap addValue(Object value) {
-        return addValue(null, value);
-    }
-
-    /**
-     * 添加属性表达式的值
-     *
-     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
-     * @param value      值
-     * @return 当前对象
-     */
-    public FastJsonWrap addValue(String attr, Object value) {
-        getProperty(attr).addValue(value);
-        return this;
-    }
-
-    /**
-     * 添加属性表达式的值
-     *
-     * @param index 索引位置
-     * @param value 值
-     * @return 当前对象
-     */
-    public FastJsonWrap addValue(int index, Object value) {
-        return addValue(null, index, value);
-    }
-
-    /**
-     * 添加属性表达式的值
-     *
-     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
-     * @param index      添加到指定索引位置
-     * @param value      值
-     * @return 当前对象
-     */
-    public FastJsonWrap addValue(String attr, int index, Object value) {
-        getProperty(attr).addValue(index, value);
-        return this;
-    }
-
-    /**
-     * 添加属性表达式的值
-     *
-     * @param key   键
-     * @param value 值
-     * @return 当前对象
-     */
-    public FastJsonWrap addKeyValue(String key, Object value) {
-        return addKeyValue(null, key, value);
-    }
-
-    /**
-     * 添加属性表达式的值
-     *
-     * @param attr 属性表达式，支持层级获取，例如：user.userId 或 user.userNames[0]
-     * @param key        键
-     * @param value      值
-     * @return 当前对象
-     */
-    public FastJsonWrap addKeyValue(String attr, String key, Object value) {
-        getProperty(attr).addKeyValue(key, value);
-        return this;
+    public FastJsonEditHandler getEditor(String attr) {
+        return new FastJsonEditHandler(getProperty(attr));
     }
 
     /**
@@ -147,7 +82,7 @@ public class FastJsonWrap {
             objectExecute = new FastObjectExecute(jsonObject);
         }
         if (FastStringUtils.isNotEmpty(attr)) {
-            return objectExecute.execute("${" + attr + "}");
+            return objectExecute.execute(convertAttr(attr));
         }
         return jsonObject;
     }
@@ -163,7 +98,7 @@ public class FastJsonWrap {
             objectExecute = new FastObjectExecute(jsonObject);
         }
         if (FastStringUtils.isNotEmpty(attr)) {
-            return objectExecute.executeProperty("${" + attr + "}");
+            return objectExecute.executeProperty(convertAttr(attr));
         }
         return objectExecute.executeProperty(null);
     }
@@ -424,7 +359,6 @@ public class FastJsonWrap {
         return FastNumberUtils.formatToDouble(get(attr), defaultValue, digit, roundingMode);
     }
 
-
     /**
      * 转为json字符串
      *
@@ -437,4 +371,37 @@ public class FastJsonWrap {
     public Object getJsonObject() {
         return this.jsonObject;
     }
+
+
+    public static class FastJsonEditHandler {
+        private final FastObjectProperty objectProperty;
+
+        public FastJsonEditHandler(FastObjectProperty objectProperty) {
+            this.objectProperty = objectProperty;
+        }
+
+        public FastJsonEditHandler addValue(Object value) {
+            return addValue(-1, value);
+        }
+
+        public FastJsonEditHandler addValue(int index, Object value) {
+            objectProperty.addValue(index, value);
+            return this;
+        }
+
+
+        public FastJsonEditHandler addValue(String attr, Object value) {
+            objectProperty.addKeyValue(attr, value);
+            return this;
+        }
+
+        public FastJsonEditHandler setValue(Object value) {
+            objectProperty.setValue(value);
+            return this;
+        }
+
+
+    }
+
 }
+

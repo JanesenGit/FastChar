@@ -113,7 +113,7 @@ public final class FastDatabases {
         if (FastStringUtils.isNotEmpty(lockDatabaseName)) {
             database = lockDatabaseName;
         }
-        if (databaseInfos.size() == 0) {
+        if (databaseInfos.isEmpty()) {
             throw new FastDatabaseInfoException(FastChar.getLocal().getInfo(FastCharLocal.DB_ERROR3));
         }
         if (FastStringUtils.isEmpty(database)) {
@@ -128,7 +128,7 @@ public final class FastDatabases {
     }
 
     public boolean hasDatabase() {
-        return databaseInfos.size() > 0;
+        return !databaseInfos.isEmpty();
     }
 
     public boolean existDataBase(String database) {
@@ -218,12 +218,16 @@ public final class FastDatabases {
      * @throws Exception 异常信息
      */
     public synchronized void flushDatabase() throws Exception {
+
         for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
+
+            FastChar.getLogger().info(FastDatabases.class, FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO5, databaseInfo.toSimpleInfo()));
+
             databaseInfo.validate();
 
             IFastDatabaseOperate databaseOperate = databaseInfo.getOperate();
             if (databaseOperate == null) {
-                FastChar.getLog().error(FastDatabases.class, FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO3, databaseInfo.toSimpleInfo()));
+                FastChar.getLogger().error(FastDatabases.class, FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO3, databaseInfo.toSimpleInfo()));
                 continue;
             }
 
@@ -280,10 +284,13 @@ public final class FastDatabases {
             if (databaseInfo.isFetchDatabaseInfo()) {
                 databaseOperate.fetchDatabaseInfo(databaseInfo);
             }
+
+            FastChar.getLogger().info(FastDatabases.class, FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO6, databaseInfo.toSimpleInfo()));
+
         }
         fastTicket.saveTicket();
 
-        if (FastChar.getDatabases().getAll().size() > 0) {
+        if (!FastChar.getDatabases().getAll().isEmpty()) {
             FastChar.getObservable().notifyObservers(FastObservableEvent.onDatabaseFinish.name());
         }
     }
@@ -348,7 +355,7 @@ public final class FastDatabases {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return true;
     }

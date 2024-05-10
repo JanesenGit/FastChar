@@ -84,19 +84,15 @@ public final class FastObservable {
     public List<Object> notifyObservers(String methodName, Object... params) throws Exception {
         Object[] arrLocal;
         synchronized (this) {
-            Collections.sort(obs, new Comparator<Object>() {
-                @Override
-                public int compare(Object o1, Object o2) {
-
-                    return 0;
-                }
-            });
+            Collections.sort(obs, (o1, o2) -> 0);
             arrLocal = obs.toArray();
         }
         List<Object> results = new ArrayList<>(16);
         for (Object o : arrLocal) {
             List<Method> declaredMethod = FastClassUtils.getDeclaredMethod(o.getClass(), methodName);
             for (Method method : declaredMethod) {
+
+
                 results.add(FastClassUtils.invokeMethod(o, method, params));
             }
         }
@@ -122,7 +118,7 @@ public final class FastObservable {
             if (FastClassUtils.isRelease(ob)) {
                 waitRemove.add(ob);
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastObservable.class,
+                    FastChar.getLogger().warn(FastObservable.class,
                             FastChar.getLocal().getInfo(FastCharLocal.OBSERVABLE_ERROR1, ob.getClass()));
                 }
             }

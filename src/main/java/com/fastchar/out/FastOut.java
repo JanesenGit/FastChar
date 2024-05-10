@@ -5,7 +5,6 @@ import com.fastchar.core.FastChar;
 import com.fastchar.servlet.http.FastHttpServletResponse;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
-import org.apache.catalina.connector.ClientAbortException;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -129,8 +128,12 @@ public abstract class FastOut<T> {
         try (OutputStreamWriter streamWriter = new OutputStreamWriter(response.getOutputStream(), charset)) {
             streamWriter.write(content);
             streamWriter.flush();
-        } catch (ClientAbortException ignored) {
-            //这个异常是由于客户端断开连接，可以忽略
+        } catch (Exception e) {
+            if (e.getClass().getSimpleName().equalsIgnoreCase("ClientAbortException")) {
+                //这个异常是由于客户端断开连接，可以忽略
+                return;
+            }
+            throw e;
         }
     }
 
@@ -144,8 +147,12 @@ public abstract class FastOut<T> {
                 streamWriter.write(buffer, 0, len);
             }
             streamWriter.flush();
-        } catch (ClientAbortException ignored) {
-            //这个异常是由于客户端断开连接，可以忽略
+        } catch (Exception e) {
+            if (e.getClass().getSimpleName().equalsIgnoreCase("ClientAbortException")) {
+                //这个异常是由于客户端断开连接，可以忽略
+                return;
+            }
+            throw e;
         } finally {
             FastFileUtils.closeQuietly(inputStream);
         }
@@ -172,10 +179,12 @@ public abstract class FastOut<T> {
                 }
             }
             streamWriter.flush();
-        } catch (ClientAbortException ignored) {
-            //这个异常是由于客户端断开连接，可以忽略
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            if (e.getClass().getSimpleName().equalsIgnoreCase("ClientAbortException")) {
+                //这个异常是由于客户端断开连接，可以忽略
+                return;
+            }
+            FastChar.getLogger().error(this.getClass(), e);
         } finally {
             FastFileUtils.closeQuietly(inputStream);
         }
@@ -184,9 +193,6 @@ public abstract class FastOut<T> {
     protected PrintWriter getWriter(FastHttpServletResponse response) throws IOException {
         return new PrintWriter(new OutputStreamWriter(response.getOutputStream(), charset));
     }
-
-
-
 
 
     public enum Type {

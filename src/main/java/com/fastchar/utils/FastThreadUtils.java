@@ -3,6 +3,8 @@ package com.fastchar.utils;
 import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastMemoryCache;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -12,6 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FastThreadUtils {
     private static final ConcurrentHashMap<String, ThreadLocal<?>> threadLocalMap = new ConcurrentHashMap<>(16);
+
+    private static int getNanosOfMilli(final Duration duration) {
+        return duration.getNano() % 1_000_000;
+    }
 
     /**
      * 获取指定key的线程
@@ -31,6 +37,18 @@ public class FastThreadUtils {
         threadLocal = new ThreadLocal<>();
         ThreadLocal<T> lastThreadLocal = (ThreadLocal<T>) threadLocalMap.putIfAbsent(key, threadLocal);
         return lastThreadLocal != null ? lastThreadLocal : threadLocal;
+    }
+
+
+    @SuppressWarnings("BusyWait")
+    public static void sleep(final Duration duration) throws InterruptedException {
+        // Using this method avoids depending on the vagaries of the precision and accuracy of system timers and schedulers.
+        final Instant finishInstant = Instant.now().plus(duration);
+        Duration remainingDuration = duration;
+        do {
+            Thread.sleep(remainingDuration.toMillis(), getNanosOfMilli(remainingDuration));
+            remainingDuration = Duration.between(Instant.now(), finishInstant);
+        } while (!remainingDuration.isNegative());
     }
 
 

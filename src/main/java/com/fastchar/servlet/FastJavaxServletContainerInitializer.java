@@ -9,10 +9,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+
 public final class FastJavaxServletContainerInitializer implements ServletContainerInitializer {
     @Override
     public void onStartup(Set<Class<?>> c, ServletContext ctx) throws ServletException {
         FastFilterByJavax.initFastEngine(ctx, null);
+
 
         List<IFastServletContainerInitializer> iFastServletContainerInitializers = FastChar.getOverrides().newInstances(false, IFastServletContainerInitializer.class);
         for (IFastServletContainerInitializer iFastServletContainerInitializer : iFastServletContainerInitializers) {

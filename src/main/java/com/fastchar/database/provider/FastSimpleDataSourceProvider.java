@@ -35,7 +35,7 @@ public class FastSimpleDataSourceProvider implements IFastDataSource {
                 String poolInfo = "FastChar jdbc pool of " + databaseInfo.toSimpleInfo();
                 if (FastChar.getConstant().isDebug()) {
                     String info = FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo);
-                    FastChar.getLog().info(info);
+                    FastChar.getLogger().info(info);
                 }
                 FastChar.getValues().put("jdbcPool", "FastChar jdbc pool");
             }
@@ -64,7 +64,7 @@ public class FastSimpleDataSourceProvider implements IFastDataSource {
             if (datasource != null) {
                 datasource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "FastChar jdbc pool of " + databaseInfo.toSimpleInfo()));
+                    FastChar.getLogger().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "FastChar jdbc pool of " + databaseInfo.toSimpleInfo()));
                 }
             }
         } finally {

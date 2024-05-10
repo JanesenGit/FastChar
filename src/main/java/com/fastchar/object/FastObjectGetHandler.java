@@ -1,5 +1,6 @@
 package com.fastchar.object;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastHandler;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastClassUtils;
@@ -21,8 +22,8 @@ import java.util.regex.Pattern;
 public class FastObjectGetHandler {
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
-    private final Object target;
-    private final Object property;
+    private transient final Object target;
+    private transient final Object property;
 
     public FastObjectGetHandler(Object target, Object property) {
         this.target = target;
@@ -59,9 +60,14 @@ public class FastObjectGetHandler {
         boolean isCheckSize = propertyStr.equalsIgnoreCase("length")
                 || propertyStr.equalsIgnoreCase("size")
                 || propertyStr.equalsIgnoreCase("count");
-        if (FastArrayUtils.isArray(target)) {
-            if (isCheckSize) {
+        if (isCheckSize) {
+            if (FastArrayUtils.isArray(target)) {
                 return Array.getLength(target);
+            }
+
+            FastHandler handler = invokeAttrMethod("size");
+            if (handler.getCode() == 0) {
+                return handler.get("value");
             }
         }
 
@@ -80,12 +86,6 @@ public class FastObjectGetHandler {
             return handler.get("value");
         }
 
-        if (isCheckSize) {
-            handler = invokeAttrMethod("size");
-            if (handler.getCode() == 0) {
-                return handler.get("value");
-            }
-        }
         return null;
     }
 
@@ -113,7 +113,7 @@ public class FastObjectGetHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }
@@ -138,7 +138,7 @@ public class FastObjectGetHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }
@@ -163,7 +163,7 @@ public class FastObjectGetHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }

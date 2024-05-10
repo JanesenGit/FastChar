@@ -1,18 +1,18 @@
 package com.fastchar.servlet.http;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.enums.FastServerType;
 import com.fastchar.servlet.FastDispatcherType;
+import com.fastchar.servlet.FastHttpHeaders;
 import com.fastchar.servlet.FastServletContext;
 import com.fastchar.servlet.FastServletHelper;
+import com.fastchar.servlet.http.tomcat.FastHttpServletRequestMultipartConfig;
 import com.fastchar.utils.FastClassUtils;
-import org.apache.catalina.Wrapper;
-import org.apache.catalina.connector.Request;
-import org.apache.catalina.connector.RequestFacade;
+import com.fastchar.utils.FastStringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.*;
 
@@ -258,7 +258,21 @@ public class FastHttpServletRequest {
     }
 
 
+    private FastHttpSession getSessionFromHeader() {
+        String sessionId = getHeader(FastHttpHeaders.SESSION_ID);
+        if (FastStringUtils.isNotEmpty(sessionId)) {
+            return FastHttpSession.newInstance(FastHttpShareSessionFactory.getSession(sessionId));
+        }
+        return null;
+    }
+
     public FastHttpSession getSession(boolean create) {
+
+        FastHttpSession sessionFromHeader = getSessionFromHeader();
+        if (sessionFromHeader != null) {
+            return sessionFromHeader;
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return FastHttpSession.newInstance(((javax.servlet.http.HttpServletRequest) target).getSession(create));
         }
@@ -270,6 +284,11 @@ public class FastHttpServletRequest {
     }
 
     public FastHttpSession getSession() {
+        FastHttpSession sessionFromHeader = getSessionFromHeader();
+        if (sessionFromHeader != null) {
+            return sessionFromHeader;
+        }
+
         if (FastServletHelper.isJavaxServlet()) {
             return FastHttpSession.newInstance(((javax.servlet.http.HttpServletRequest) target).getSession());
         }
@@ -281,6 +300,10 @@ public class FastHttpServletRequest {
     }
 
     public String changeSessionId() {
+        if (FastServletHelper.isJavaxServlet()) {
+            return ((javax.servlet.http.HttpServletRequest) target).changeSessionId();
+        }
+
         if (FastServletHelper.isJakartaServlet()) {
             return ((jakarta.servlet.http.HttpServletRequest) target).changeSessionId();
         }
@@ -689,25 +712,8 @@ public class FastHttpServletRequest {
                     request = requestWrapper.getRequest();
                 }
             }
-            if (request instanceof RequestFacade) {
-                try {
-                    RequestFacade requestFacade = (RequestFacade) request;
-                    Field requestField = RequestFacade.class.getDeclaredField("request");
-                    requestField.setAccessible(true);
-                    Request realRequest = (Request) requestField.get(requestFacade);
-                    Wrapper wrapper = realRequest.getWrapper();
-
-                    Field multipartConfigElementField = FastClassUtils.getDeclaredField(wrapper.getClass(), "multipartConfigElement");
-                    if (multipartConfigElementField != null) {
-                        multipartConfigElementField.setAccessible(true);
-                        javax.servlet.MultipartConfigElement configElement = new javax.servlet.MultipartConfigElement("", FastChar.getConstant().getAttachMaxPostSize(), -1L, 0);
-                        multipartConfigElementField.set(wrapper, configElement);
-                        multipartConfigElementField.setAccessible(false);
-                    }
-                    requestField.setAccessible(false);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            if (FastChar.getConstant().getServerType() == FastServerType.Tomcat) {
+                new FastHttpServletRequestMultipartConfig(request).multipartConfig();
             }
         }
 
@@ -720,25 +726,8 @@ public class FastHttpServletRequest {
                     request = requestWrapper.getRequest();
                 }
             }
-            if (request instanceof RequestFacade) {
-                try {
-                    RequestFacade requestFacade = (RequestFacade) request;
-                    Field requestField = RequestFacade.class.getDeclaredField("request");
-                    requestField.setAccessible(true);
-                    Request realRequest = (Request) requestField.get(requestFacade);
-                    Wrapper wrapper = realRequest.getWrapper();
-
-                    Field multipartConfigElementField = FastClassUtils.getDeclaredField(wrapper.getClass(), "multipartConfigElement");
-                    if (multipartConfigElementField != null) {
-                        multipartConfigElementField.setAccessible(true);
-                        jakarta.servlet.MultipartConfigElement configElement = new jakarta.servlet.MultipartConfigElement("", FastChar.getConstant().getAttachMaxPostSize(), -1L, 0);
-                        multipartConfigElementField.set(wrapper, configElement);
-                        multipartConfigElementField.setAccessible(false);
-                    }
-                    requestField.setAccessible(false);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            if (FastChar.getConstant().getServerType() == FastServerType.Tomcat) {
+                new FastHttpServletRequestMultipartConfig(request).multipartConfig();
             }
         }
     }

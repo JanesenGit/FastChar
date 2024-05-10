@@ -1,6 +1,7 @@
 package com.fastchar.database;
 
 import com.alibaba.druid.util.StringUtils;
+import com.fastchar.core.FastChar;
 import com.fastchar.utils.FastStringUtils;
 
 import javax.sql.DataSource;
@@ -99,7 +100,7 @@ public class FastSimpleDataSource implements DataSource {
             throw new SQLException("Validation Query Failed.");
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            throw new ExceptionInInitializerError();
+            throw new ExceptionInInitializerError(e);
         }
     }
 
@@ -112,8 +113,8 @@ public class FastSimpleDataSource implements DataSource {
                 stmt.execute(validationQuery);
                 stmt.close();
                 return true;
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            } catch (Exception e) {
+                FastChar.getLogger().error(this.getClass(), e);
             }
             return false;
         }

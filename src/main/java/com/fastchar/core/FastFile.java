@@ -202,7 +202,7 @@ public class FastFile<T> {
                 try {
                     this.uploadFileName = URLDecoder.decode(this.uploadFileName, FastChar.getConstant().getDecodeUploadFileNameEncoding());
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    FastChar.getLogger().error(this.getClass(), e);
                 }
             }
         }
@@ -408,8 +408,7 @@ public class FastFile<T> {
         if (getFile() == null) {
             return null;
         }
-        String replace = getFile().getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "")
-                .replace(File.separator, "/");
+        String replace = getFile().getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "").replace(File.separator, "/");
         return FastStringUtils.strip(replace, "/");
     }
 

@@ -1,5 +1,6 @@
 package com.fastchar.database;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.utils.FastIOUtils;
 
@@ -114,7 +115,7 @@ public class FastScriptRunner {
             this.executeStatement(command);
             this.commitConnection();
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
     }
 
@@ -132,7 +133,7 @@ public class FastScriptRunner {
             this.commitConnection();
             this.checkForMissingLineTerminator(command);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
     }
 
@@ -228,7 +229,7 @@ public class FastScriptRunner {
             } catch (SQLWarning var14) {
                 throw var14;
             } catch (SQLException e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         } finally {
             try {
@@ -289,7 +290,7 @@ public class FastScriptRunner {
                 }
                 rs.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
 
         }

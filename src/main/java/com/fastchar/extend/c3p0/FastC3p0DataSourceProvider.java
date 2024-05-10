@@ -22,7 +22,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
     @Override
     public  DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (dataSource == null) {
-            synchronized (FastC3p0DataSourceProvider.class) {
+            synchronized (this) {
                 if (dataSource == null) {
                     try {
                         dataSource = new ComboPooledDataSource();
@@ -31,7 +31,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
                         dataSource.setUser(databaseInfo.getUser());
                         dataSource.setPassword(databaseInfo.getPassword());
 
-                        FastC3p0Config c3p0Config = FastChar.getConfigs().getC3p0Config();
+                        FastC3p0Config c3p0Config = FastChar.getConfig(FastC3p0Config.class);
                         if (databaseInfo.isValidate()) {
                             dataSource.setPreferredTestQuery(buildValidationQuery(databaseInfo.toUrl()));
                         }
@@ -53,11 +53,11 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
 
                         String poolInfo = "C3P0 jdbc pool of " + databaseInfo.toSimpleInfo();
                         if (FastChar.getConstant().isDebug()) {
-                            FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
+                            FastChar.getLogger().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
                         }
                         FastChar.getValues().put("jdbcPool", "C3P0 jdbc pool");
                     } catch (PropertyVetoException e) {
-                        e.printStackTrace();
+                        FastChar.getLogger().error(this.getClass(), e);
                     }
                 }
             }
@@ -83,7 +83,7 @@ public class FastC3p0DataSourceProvider implements IFastDataSource {
             if (dataSource != null) {
                 dataSource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "C3P0 jdbc pool of " + databaseInfo.toSimpleInfo()));
+                    FastChar.getLogger().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "C3P0 jdbc pool of " + databaseInfo.toSimpleInfo()));
                 }
             }
         } finally {

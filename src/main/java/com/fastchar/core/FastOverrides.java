@@ -1,6 +1,6 @@
 package com.fastchar.core;
 
-import com.fastchar.accepter.*;
+import com.fastchar.acceptor.*;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.annotation.AFastObserver;
 import com.fastchar.annotation.AFastOverrideError;
@@ -18,26 +18,33 @@ import com.fastchar.database.sql.FastSqlServer;
 import com.fastchar.exception.FastFindClassException;
 import com.fastchar.exception.FastOverrideException;
 import com.fastchar.extend.c3p0.FastC3p0DataSourceProvider;
+import com.fastchar.extend.cache.FastMemoryCacheProvider;
 import com.fastchar.extend.caffeine.FastCaffeineProvider;
 import com.fastchar.extend.druid.FastDruidDataSourceProvider;
 import com.fastchar.extend.ehcache.FastEhCache2Provider;
 import com.fastchar.extend.ehcache.FastEhCache3Provider;
 import com.fastchar.extend.fastjson.FastJsonProvider;
+import com.fastchar.extend.fastjson2.FastJson2Provider;
 import com.fastchar.extend.gson.FastGsonProvider;
 import com.fastchar.extend.jdbc.FastJdbcDataSourceProvider;
-import com.fastchar.extend.redis.FastRedisClusterProvider;
-import com.fastchar.extend.redis.FastRedisNormalProvider;
+import com.fastchar.extend.lock.FastLockProvider;
+import com.fastchar.extend.rabbitmq.FastRabbitMQProvider;
+import com.fastchar.extend.redis.jedis.FastJedisClusterProvider;
+import com.fastchar.extend.redis.jedis.FastJedisNormalProvider;
+import com.fastchar.extend.redis.lettuce.FastLettuceClusterProvider;
+import com.fastchar.extend.redis.lettuce.FastLettuceNormalProvider;
+import com.fastchar.extend.redis.redisson.FastRedissonClusterProvider;
+import com.fastchar.extend.redis.redisson.FastRedissonNormalProvider;
+import com.fastchar.extend.rocketmq.FastRocketMQProvider;
+import com.fastchar.extend.security.FastSecurityProvider;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.local.FastCharLocal_CN;
-import com.fastchar.provider.FastMemoryCacheProvider;
-import com.fastchar.provider.FastSecurityProvider;
 import com.fastchar.servlet.FastFileRenameProvider;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 import com.fastchar.validators.FastNullValidator;
-import com.fastchar.validators.FastRegularValidator;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -70,6 +77,7 @@ public final class FastOverrides {
         add(FastSecurityProvider.class);
         add(FastColumnSecurity.class);
         add(FastFileRenameProvider.class);
+        add(FastLockProvider.class);
 
         add(FastSimpleDataSourceProvider.class);
         add(FastJdbcDataSourceProvider.class);
@@ -82,11 +90,19 @@ public final class FastOverrides {
 
         add(FastGsonProvider.class);
         add(FastJsonProvider.class);
+        add(FastJson2Provider.class);
 
-        add(FastEhCache3Provider.class);
+        add(FastRocketMQProvider.class);
+        add(FastRabbitMQProvider.class);
+
         add(FastEhCache2Provider.class);
-        add(FastRedisNormalProvider.class);
-        add(FastRedisClusterProvider.class);
+        add(FastEhCache3Provider.class);
+        add(FastJedisNormalProvider.class);
+        add(FastJedisClusterProvider.class);
+        add(FastLettuceNormalProvider.class);
+        add(FastLettuceClusterProvider.class);
+        add(FastRedissonNormalProvider.class);
+        add(FastRedissonClusterProvider.class);
 
         add(FastMemoryCacheProvider.class);
         add(FastCaffeineProvider.class);
@@ -103,13 +119,14 @@ public final class FastOverrides {
         add(FastNormalParamConverter.class);
 
         add(FastNullValidator.class);
-        add(FastRegularValidator.class);
 
-        add(FastOverrideScannerAccepter.class);
-        add(FastDatabaseXmlScannerAccepter.class);
-        add(FastWebXmlScannerAccepter.class);
-        add(FastEntityScannerAccepter.class);
-        add(FastActionScannerAccepter.class);
+        add(FastOverrideScannerAcceptor.class);
+        add(FastDatabaseXmlScannerAcceptor.class);
+        add(FastWebXmlScannerAcceptor.class);
+        add(FastEntityScannerAcceptor.class);
+        add(FastActionScannerAcceptor.class);
+        add(FastJarResourceAcceptor.class);
+
     }
 
     private ClassInfo getClassInfo(Class<?> targetClass) {
@@ -347,6 +364,7 @@ public final class FastOverrides {
         T presentLockValue = (T) instanceMap.putIfAbsent(onlyCode, t);
         T finalValue = presentLockValue == null ? t : presentLockValue;
 
+
         if (finalValue.getClass().isAnnotationPresent(AFastObserver.class)) {
             FastChar.getObservable().addObserver(finalValue);
         }
@@ -431,8 +449,8 @@ public final class FastOverrides {
             }
             instances.add(finalValue);
         }
-        String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
-        if (instances.size() == 0 && check) {
+        if (instances.isEmpty() && check) {
+            String errorInfo = "Could not initialize class " + targetClass.getName() + toPlainParams(constructorParams);
             throw new FastOverrideException(errorInfo);
         }
         return instances;
@@ -485,7 +503,7 @@ public final class FastOverrides {
             }
             instances.add(instance);
         }
-        if (instances.size() == 0 && check) {
+        if (instances.isEmpty() && check) {
             throw new FastOverrideException(errorInfo);
         }
         return instances;
@@ -562,7 +580,7 @@ public final class FastOverrides {
 
         if (!targetClass.getName().equals(superClass)) {
             if (FastChar.getConstant().isLogOverride()) {
-                FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR2, superClass, targetClass.getName()));
+                FastChar.getLogger().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR2, superClass, targetClass.getName()));
             }
         }
         return instance;
@@ -570,7 +588,7 @@ public final class FastOverrides {
 
 
     private String checkClassAnnotation(Class<?> targetClass, Object... constructorParams) {
-        String errorInfo = "Could not initialize class " + targetClass.getName() + ":" + Arrays.toString(constructorParams);
+        String errorInfo = "Could not initialize class " + targetClass.getName() + toPlainParams(constructorParams);
         if (targetClass.isAnnotationPresent(AFastOverrideError.class)) {
             AFastOverrideError overrideError = targetClass.getAnnotation(AFastOverrideError.class);
             errorInfo = overrideError.value();
@@ -638,8 +656,8 @@ public final class FastOverrides {
                         continue;
                     }
                     List<Object> params = new ArrayList<>(5);
-                    int paaramLength = overrideMethod.getParameterTypes().length;
-                    for (int i = 0; i < paaramLength; i++) {
+                    int paramLength = overrideMethod.getParameterTypes().length;
+                    for (int i = 0; i < paramLength; i++) {
                         if (i < constructorParams.length) {
                             params.add(constructorParams[i]);
                         } else {
@@ -682,7 +700,7 @@ public final class FastOverrides {
             Class<?> aClass = classInfo.targetClass;
             if (targetClass.isAssignableFrom(aClass) && targetClass != aClass) {
                 List<Method> overrideMethods = classInfo.getOverrideMethods();
-                if (overrideMethods.size() > 0) {
+                if (!overrideMethods.isEmpty()) {
                     Method method = overrideMethods.get(0);
                     List<Object> params = new ArrayList<>(5);
                     int length = method.getParameterTypes().length;
@@ -705,7 +723,7 @@ public final class FastOverrides {
                 list.add((Class<T>) aClass);
             }
         }
-        if (list.size() == 0) {
+        if (list.isEmpty()) {
             list.add(targetClass);
         }
         return list;
@@ -713,15 +731,24 @@ public final class FastOverrides {
 
     private void sortClasses() {
         for (Map.Entry<Object, List<ClassInfo>> stringListEntry : mapClasses.entrySet()) {
-            Collections.sort(stringListEntry.getValue(), new Comparator<ClassInfo>() {
-                @Override
-                public int compare(ClassInfo o1, ClassInfo o2) {
-                    //FastOverrides 原则：后进先出
-                    //此处由于FastOverrides 遍历classes 所以优先级由高到底排序，不可更改！
-                    return Integer.compare(o2.priority, o1.priority);
-                }
+            stringListEntry.getValue().sort((o1, o2) -> {
+                //FastOverrides 原则：后进先出
+                //此处由于FastOverrides 遍历classes 所以优先级由高到底排序，不可更改！
+                return Integer.compare(o2.priority, o1.priority);
             });
         }
+    }
+
+    private String toPlainParams(Object... values) {
+        List<String> infos = new ArrayList<>();
+        for (Object value : values) {
+            if (value != null) {
+                infos.add(value.getClass().getName() + ":" + value);
+            } else {
+                infos.add("null");
+            }
+        }
+        return "(" + FastStringUtils.join(infos, ",") + ")";
     }
 
 
@@ -732,7 +759,7 @@ public final class FastOverrides {
                 waitRemove.add(aClass);
 
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastOverrides.class,
+                    FastChar.getLogger().warn(FastOverrides.class,
                             FastChar.getLocal().getInfo(FastCharLocal.OVERRIDE_ERROR3, aClass.targetClass));
                 }
             }

@@ -1,14 +1,12 @@
 package com.fastchar.utils;
 
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
+import com.fastchar.core.FastChar;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 
-@SuppressWarnings("Since15")
 public class FastBase64Utils {
     private static final boolean hasUtilBase64;
 
@@ -18,7 +16,7 @@ public class FastBase64Utils {
     }
 
     public static String encode(String content) {
-        return encode(content.getBytes());
+        return encode(content.getBytes(StandardCharsets.UTF_8));
     }
 
 
@@ -26,45 +24,36 @@ public class FastBase64Utils {
         if (hasUtilBase64) {
             return java.util.Base64.getMimeEncoder().encodeToString(content);
         } else {
-            return new BASE64Encoder().encode(content);
+            return new sun.misc.BASE64Encoder().encode(content);
         }
     }
 
 
     public static byte[] encodeToBytes(String content) {
-        return encodeToBytes(content.getBytes());
+        return encodeToBytes(content.getBytes(StandardCharsets.UTF_8));
     }
 
     public static byte[] encodeToBytes(byte[] content) {
         if (hasUtilBase64) {
             return java.util.Base64.getMimeEncoder().encode(content);
         } else {
-            return new BASE64Encoder().encode(content).getBytes();
+            return new sun.misc.BASE64Encoder().encode(content).getBytes();
         }
     }
 
 
     public static String decode(String content){
-        return decode(content.getBytes());
+        return decode(content.getBytes(StandardCharsets.UTF_8));
     }
 
     public static String decode(byte[] content){
-        byte[] decode = new byte[0];
-        if (hasUtilBase64) {
-            decode = java.util.Base64.getMimeDecoder().decode(content);
-        } else {
-            try {
-                decode = new BASE64Decoder().decodeBuffer(new ByteArrayInputStream(content));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        byte[] decode = decodeToBytes(content);
         return new String(decode, StandardCharsets.UTF_8);
     }
 
 
     public static byte[] decodeToBytes(String content){
-        return decodeToBytes(content.getBytes());
+        return decodeToBytes(content.getBytes(StandardCharsets.UTF_8));
     }
 
     public static byte[] decodeToBytes(byte[] content){
@@ -73,9 +62,9 @@ public class FastBase64Utils {
             decode = java.util.Base64.getMimeDecoder().decode(content);
         } else {
             try {
-                decode = new BASE64Decoder().decodeBuffer(new ByteArrayInputStream(content));
+                decode = new sun.misc.BASE64Decoder().decodeBuffer(new ByteArrayInputStream(content));
             } catch (IOException e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(FastBase64Utils.class, e);
             }
         }
         return decode;

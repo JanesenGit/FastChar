@@ -1,6 +1,8 @@
 package com.fastchar.utils;
 
 
+import com.fastchar.core.FastChar;
+
 import javax.activation.MimetypesFileTypeMap;
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -24,6 +26,7 @@ public class FastFileUtils {
     static {
         try {
             MIME_TYPE_MAP = new HashMap<>(16);
+            //从最新tomcat版本（config/web.xml）里获取mime-type配置值
             URL resource = FastFileUtils.class.getResource("/mime-type.txt");
             if (resource != null) {
                 try (InputStream input = resource.openStream()) {
@@ -39,7 +42,7 @@ public class FastFileUtils {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastFileUtils.class, e);
         }
     }
 
@@ -240,15 +243,15 @@ public class FastFileUtils {
 
     public static List<String> readLines(File file, Charset encoding) throws IOException {
         FileInputStream in = null;
-        List var3;
+        List<String> lines;
         try {
             in = openInputStream(file);
-            var3 = readLines(in, FastCharsetsUtils.toCharset(encoding));
+            lines = readLines(in, FastCharsetsUtils.toCharset(encoding));
         } finally {
             closeQuietly(in);
         }
 
-        return var3;
+        return lines;
     }
 
     public static List<String> readLines(InputStream input, Charset encoding) throws IOException {
@@ -257,14 +260,17 @@ public class FastFileUtils {
     }
 
     public static List<String> readLines(Reader input) throws IOException {
-        BufferedReader reader = toBufferedReader(input);
-        List<String> list = new ArrayList<>(5);
+        try {
+            BufferedReader reader = toBufferedReader(input);
+            List<String> list = new ArrayList<>(5);
 
-        for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-            list.add(line);
+            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                list.add(line);
+            }
+            return list;
+        } finally {
+            closeQuietly(input);
         }
-
-        return list;
     }
 
     public static String readFileToString(File file, String encoding) throws IOException {
@@ -290,9 +296,13 @@ public class FastFileUtils {
     }
 
     public static String toString(InputStream input, Charset encoding) throws IOException {
-        FastStringBuilderWriter sw = new FastStringBuilderWriter();
-        FastIOUtils.copy((InputStream) input, (Writer) sw, (Charset) encoding);
-        return sw.toString();
+        try {
+            FastStringBuilderWriter sw = new FastStringBuilderWriter();
+            FastIOUtils.copy(input,  sw,encoding);
+            return sw.toString();
+        } finally {
+            closeQuietly(input);
+        }
     }
 
     public static FileOutputStream openOutputStream(File file) throws IOException {
@@ -827,7 +837,7 @@ public class FastFileUtils {
             return targetFile;
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            FastChar.getLogger().error(FastFileUtils.class, e);
         }
         return null;
     }
@@ -847,7 +857,7 @@ public class FastFileUtils {
             FileInputStream fis = new FileInputStream(file);
             out.putNextEntry(new ZipEntry(dir));
             int j = 0;
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[4096];
             while ((j = fis.read(buffer)) > 0) {
                 out.write(buffer, 0, j);
             }
@@ -867,7 +877,7 @@ public class FastFileUtils {
         String extension = fileName.substring(fileName.lastIndexOf(".") + 1);
         if (fileName.equals(extension)) {
             for (Map.Entry<String, String> stringStringEntry : MIME_TYPE_MAP.entrySet()) {
-                if (fileName.startsWith(stringStringEntry.getKey() + "-")) {
+                if (fileName.startsWith(stringStringEntry.getKey() + "-") || fileName.equalsIgnoreCase(stringStringEntry.getKey())) {
                     return stringStringEntry.getKey();
                 }
             }
@@ -916,7 +926,7 @@ public class FastFileUtils {
             }
             return guessType;
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastFileUtils.class, e);
         }
         return defaultType;
     }
@@ -956,16 +966,32 @@ public class FastFileUtils {
         if (file == null || !file.exists()) {
             return "0B";
         }
-        if (file.length() < 1024) {
-            return file.length() + "B";
+        return getFileSize(file.length());
+    }
+
+    public static String getFileSize(long fileLength) {
+        if (fileLength < 1024) {
+            return fileLength + "B";
         }
-        long size = (long) Math.ceil(file.length() / 1024.0);
+        long size = (long) Math.ceil(fileLength / 1024.0);
         if (size < 1024) {
             return size + "KB";
-        } else {
+        } else if (size < 1024 * 1024) {
             double endSize = size / 1024.0;
-            return FastNumberUtils.formatToDouble(endSize, 1) + "MB";
+            return FastNumberUtils.formatToDouble(endSize, 2) + "MB";
+        }else{
+            double endSize = size / (1024.0 * 1024);
+            return FastNumberUtils.formatToDouble(endSize, 2) + "G";
         }
+    }
+
+
+    public static boolean isHttpUrl(String source) {
+        if (FastStringUtils.isEmpty(source)) {
+            return false;
+        }
+        String lowerCase = source.toLowerCase();
+        return lowerCase.startsWith("http://") || lowerCase.startsWith("https://");
     }
 
 }

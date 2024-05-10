@@ -10,10 +10,7 @@ import com.fastchar.database.sql.FastSql;
 import com.fastchar.interfaces.IFastCache;
 import com.fastchar.interfaces.IFastSqlListener;
 import com.fastchar.interfaces.IFastSqlOperateListener;
-import com.fastchar.utils.FastArrayUtils;
-import com.fastchar.utils.FastDateUtils;
-import com.fastchar.utils.FastNumberUtils;
-import com.fastchar.utils.FastStringUtils;
+import com.fastchar.utils.*;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -31,6 +28,7 @@ public class FastDB {
 
     /**
      * 是否开启了事务
+     *
      * @return 布尔值
      */
     public boolean isTransaction() {
@@ -223,7 +221,7 @@ public class FastDB {
                 FastHandler handler = new FastHandler();
                 handler.setCode(-1);
                 handler.put("database", getDatabase());
-                FastPage<FastEntity<?>> result = iFastSqlOperateListener.select(handler, page,pageSize,sqlStr, params);
+                FastPage<FastEntity<?>> result = iFastSqlOperateListener.select(handler, page, pageSize, sqlStr, params);
                 if (handler.getCode() == 0) {//拦截执行
                     return result;
                 }
@@ -278,7 +276,7 @@ public class FastDB {
                 FastHandler handler = new FastHandler();
                 handler.setCode(-1);
                 handler.put("database", getDatabase());
-                FastEntity<?> result = iFastSqlOperateListener.selectFirst(handler,sqlStr, params);
+                FastEntity<?> result = iFastSqlOperateListener.selectFirst(handler, sqlStr, params);
                 if (handler.getCode() == 0) {//拦截执行
                     return result;
                 }
@@ -342,7 +340,7 @@ public class FastDB {
                     fetchSize = resultSet.getRow();
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
             close(connection, preparedStatement, resultSet);
             log(sqlStr, params, fetchSize);
@@ -364,7 +362,7 @@ public class FastDB {
                 FastHandler handler = new FastHandler();
                 handler.setCode(-1);
                 handler.put("database", getDatabase());
-                FastEntity<?> result = iFastSqlOperateListener.selectLast(handler,sqlStr, params);
+                FastEntity<?> result = iFastSqlOperateListener.selectLast(handler, sqlStr, params);
                 if (handler.getCode() == 0) {//拦截执行
                     return result;
                 }
@@ -426,7 +424,7 @@ public class FastDB {
                     fetchSize = resultSet.getRow();
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
             close(connection, preparedStatement, resultSet);
             log(sqlStr, params, fetchSize);
@@ -465,7 +463,7 @@ public class FastDB {
                 FastHandler handler = new FastHandler();
                 handler.setCode(-1);
                 handler.put("database", getDatabase());
-                int result = iFastSqlOperateListener.update(handler,sqlStr, params);
+                int result = iFastSqlOperateListener.update(handler, sqlStr, params);
                 if (handler.getCode() == 0) {//拦截执行
                     return result;
                 }
@@ -522,7 +520,7 @@ public class FastDB {
                 FastHandler handler = new FastHandler();
                 handler.setCode(-1);
                 handler.put("database", getDatabase());
-                int result = iFastSqlOperateListener.insert(handler,sqlStr, params);
+                int result = iFastSqlOperateListener.insert(handler, sqlStr, params);
                 if (handler.getCode() == 0) {//拦截执行
                     return result;
                 }
@@ -584,7 +582,7 @@ public class FastDB {
                 FastHandler handler = new FastHandler();
                 handler.setCode(-1);
                 handler.put("database", getDatabase());
-                boolean result = iFastSqlOperateListener.run(handler,sqlStr);
+                boolean result = iFastSqlOperateListener.run(handler, sqlStr);
                 if (handler.getCode() == 0) {//拦截执行
                     return result;
                 }
@@ -633,7 +631,7 @@ public class FastDB {
                 FastHandler handler = new FastHandler();
                 handler.setCode(-1);
                 handler.put("database", getDatabase());
-                int[] result = iFastSqlOperateListener.batch(handler,sqlList,batchSize);
+                int[] result = iFastSqlOperateListener.batch(handler, sqlList, batchSize);
                 if (handler.getCode() == 0) {//拦截执行
                     return result;
                 }
@@ -715,16 +713,7 @@ public class FastDB {
         inTime = System.currentTimeMillis();
         if (isUseCache()) {
             List<String> allTables = getDatabaseInfo().getAllTables(sqlStr);
-            for (String table : allTables) {
-                if (CACHE_TABLE.contains(table)) {
-                    IFastCache iFastCacheProvider = FastChar.getCache();
-                    Set<String> tags = iFastCacheProvider.getTags("*" + buildCacheTag(table) + "*");
-                    for (String tag : tags) {
-                        iFastCacheProvider.delete(tag);
-                    }
-                    CACHE_TABLE.remove(table);
-                }
-            }
+            clearCache(allTables.toArray(new String[]{}));
         }
 
         Connection connection = null;
@@ -777,8 +766,6 @@ public class FastDB {
         }
     }
 
-
-
     /**
      * 批量添加FastEntity实体集合，注意：如果数据量超过百万级别，建议自主拼接静态SQL语句，避免多余逻辑照成耗时过长
      *
@@ -803,7 +790,7 @@ public class FastDB {
      * @throws Exception 异常信息
      */
     public int[] batchSaveEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
-        if (entities == null || entities.size() == 0) {
+        if (entities == null || entities.isEmpty()) {
             return new int[0];
         }
         if (staticSql) {
@@ -867,7 +854,7 @@ public class FastDB {
      * @throws Exception 异常信息
      */
     public int[] batchUpdateEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
-        if (entities == null || entities.size() == 0) {
+        if (entities == null || entities.isEmpty()) {
             return new int[0];
         }
         if (staticSql) {
@@ -931,7 +918,7 @@ public class FastDB {
      * @throws Exception 异常信息
      */
     public int[] batchDeleteEntity(boolean staticSql, List<? extends FastEntity<?>> entities, int batchSize, String... checks) throws Exception {
-        if (entities == null || entities.size() == 0) {
+        if (entities == null || entities.isEmpty()) {
             return new int[0];
         }
         if (staticSql) {
@@ -980,7 +967,7 @@ public class FastDB {
      * @throws Exception 异常信息
      */
     public int[] batchUpdate(List<FastSqlInfo> sqlInfos, int batchSize) throws Exception {
-        if (sqlInfos == null || sqlInfos.size() == 0) {
+        if (sqlInfos == null || sqlInfos.isEmpty()) {
             return new int[0];
         }
         firstBuildTime = System.currentTimeMillis();
@@ -1164,21 +1151,15 @@ public class FastDB {
                 }
                 print.append("\n").append(formatString(stringStringEntry.getKey(), maxKeyLength)).append(text);
             }
-            System.out.println(color(print.toString()));
+            FastChar.getLogger().debug(this.getClass(), print.toString());
         }
     }
 
     private void cacheLog(String sqlStr) {
         if (isLog() && FastChar.getConstant().isDebug()) {
-            System.out.println(color("Cached ：" + sqlStr));
+            FastChar.getLogger().debug("Cached ：" + sqlStr);
         }
     }
-
-
-    private static String color(String content) {
-        return FastChar.getLog().colorStyle(13, content);
-    }
-
 
     private static String formatString(String target, int targetLength) {
         StringBuilder targetBuilder = new StringBuilder(target);

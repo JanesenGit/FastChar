@@ -18,6 +18,20 @@ public @interface AFastCache {
      */
     boolean enable() default true;
 
+
+    /**
+     * 缓存的标签
+     * @return String
+     */
+    String tag() default "";
+
+
+    /**
+     * 缓存的key
+     * @return String
+     */
+    String key() default "";
+
     /**
      * 是否检测IFastChar缓存插件是否已启用 默认：false
      * @return 布尔值

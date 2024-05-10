@@ -1,21 +1,18 @@
 package com.fastchar.extend.redis;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.extend.redis.jedis.FastJedisConfig;
+import com.fastchar.extend.redis.lettuce.FastLettuceConfig;
+import com.fastchar.extend.redis.redisson.FastRedissonConfig;
 import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.local.FastCharLocal;
-import redis.clients.jedis.ConnectionPoolConfig;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisPoolConfig;
 
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class FastRedisConfig implements IFastConfig {
-    private final Set<HostAndPort> servers = new LinkedHashSet<>();
-    private String masterName;
-
+    private final Set<FastRedisHostAndPort> servers = new LinkedHashSet<>();
     private String username;
     private String password;
     private boolean cluster = false;
@@ -25,19 +22,47 @@ public class FastRedisConfig implements IFastConfig {
     private int maxAttempts = 5;
 
     private String clientName;
-    private JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
 
-    private ConnectionPoolConfig jedisClusterPoolConfig = new ConnectionPoolConfig();
+    private volatile FastJedisConfig jedisConfig;
 
-    public FastRedisConfig() {
-        jedisPoolConfig.setSoftMinEvictableIdleTime(Duration.ofMillis(60000));
-        jedisPoolConfig.setMinEvictableIdleTime(Duration.ofMillis(60000));
-        jedisPoolConfig.setTestWhileIdle(true);
+    private volatile FastLettuceConfig lettuceConfig;
 
-        jedisClusterPoolConfig.setSoftMinEvictableIdleTime(Duration.ofMillis(60000));
-        jedisClusterPoolConfig.setMinEvictableIdleTime(Duration.ofMillis(60000));
-        jedisClusterPoolConfig.setTestWhileIdle(true);
+    private volatile FastRedissonConfig redissonConfig;
+
+
+    public FastJedisConfig jedisConfig() {
+        if (jedisConfig == null) {
+            synchronized (FastRedisConfig.class) {
+                if (jedisConfig == null) {
+                    jedisConfig = new FastJedisConfig();
+                }
+            }
+        }
+        return jedisConfig;
     }
+
+    public FastLettuceConfig lettuceConfig() {
+        if (lettuceConfig == null) {
+            synchronized (FastLettuceConfig.class) {
+                if (lettuceConfig == null) {
+                    lettuceConfig = new FastLettuceConfig();
+                }
+            }
+        }
+        return lettuceConfig;
+    }
+
+    public FastRedissonConfig redissonConfig() {
+        if (redissonConfig == null) {
+            synchronized (FastRedissonConfig.class) {
+                if (redissonConfig == null) {
+                    redissonConfig = new FastRedissonConfig();
+                }
+            }
+        }
+        return redissonConfig;
+    }
+
 
     public String getPassword() {
         return password;
@@ -49,48 +74,28 @@ public class FastRedisConfig implements IFastConfig {
     }
 
     public FastRedisConfig addServer(String host, int port) {
-        servers.add(new HostAndPort(host, port));
-        if (FastChar.getConstant().isDebug()) {
-            FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR3, "Druid") + host + ":" + port);
-        }
+        servers.add(new FastRedisHostAndPort(host, port));
+        FastChar.getLogger().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.REDIS_ERROR2) + host + ":" + port);
         return this;
     }
 
-    public JedisPoolConfig getJedisPoolConfig() {
-        return jedisPoolConfig;
-    }
-
-    public FastRedisConfig setJedisPoolConfig(JedisPoolConfig jedisPoolConfig) {
-        this.jedisPoolConfig = jedisPoolConfig;
-        return this;
-    }
-
-    public ConnectionPoolConfig getJedisClusterPoolConfig() {
-        return jedisClusterPoolConfig;
-    }
-
-    public FastRedisConfig setJedisClusterPoolConfig(ConnectionPoolConfig jedisClusterPoolConfig) {
-        this.jedisClusterPoolConfig = jedisClusterPoolConfig;
-        return this;
-    }
-
-    public Set<HostAndPort> getServers() {
+    public Set<FastRedisHostAndPort> getServers() {
         return servers;
     }
 
     public Set<String> toSentinels() {
         Set<String> sentinels = new HashSet<>();
-        for (HostAndPort server : servers) {
+        for (FastRedisHostAndPort server : servers) {
             sentinels.add(server.toString());
         }
         return sentinels;
     }
 
-    public HostAndPort getServer(int index) {
-        if (servers.size() == 0) {
+    public FastRedisHostAndPort getServer(int index) {
+        if (servers.isEmpty()) {
             return null;
         }
-        return servers.toArray(new HostAndPort[]{})[index];
+        return servers.toArray(new FastRedisHostAndPort[]{})[index];
     }
 
     public boolean isCluster() {
@@ -139,15 +144,6 @@ public class FastRedisConfig implements IFastConfig {
     }
 
 
-    public String getMasterName() {
-        return masterName;
-    }
-
-    public FastRedisConfig setMasterName(String masterName) {
-        this.masterName = masterName;
-        return this;
-    }
-
     public String getUsername() {
         return username;
     }
@@ -165,4 +161,6 @@ public class FastRedisConfig implements IFastConfig {
         this.clientName = clientName;
         return this;
     }
+
+
 }

@@ -73,10 +73,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         fromOperate = null;
     }
 
-    private transient String database;
-    private transient FastData<E> fastData = null;
-    private transient List<String> modified;
-    private transient FastMapWrap mapWrap = null;
+    private transient volatile String database;
+    private transient volatile FastData<E> fastData = null;
+    private transient volatile List<String> modified = null;
+    private transient volatile FastMapWrap mapWrap = null;
     private transient boolean doSetDefaultValue = false;
 
     private transient String fromOperate;
@@ -94,14 +94,22 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public FastData<E> getFastData() {
         if (fastData == null) {
-            fastData = FastChar.getOverrides().newInstance(FastData.class, this);
+            synchronized(this) {
+                if (fastData == null) {
+                    fastData = FastChar.getOverrides().newInstance(FastData.class, this);
+                }
+            }
         }
         return fastData;
     }
 
     private FastMapWrap getMapWrap() {
         if (mapWrap == null) {
-            mapWrap = FastMapWrap.newInstance(this);
+            synchronized (this) {
+                if (mapWrap == null) {
+                    mapWrap = FastMapWrap.newInstance(this);
+                }
+            }
         }
         mapWrap.setIgnoreCase(isIgnoreCase());
         return mapWrap;
@@ -155,21 +163,25 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public String getDatabase() {
         if (FastStringUtils.isEmpty(database)) {
-            Package aPackage = getClass().getPackage();
-            if (aPackage != null) {
-                String lockDatabase = FastChar.getDatabases().getLockDatabase(aPackage.getName());
-                if (FastStringUtils.isNotEmpty(lockDatabase)) {
-                    database = lockDatabase;
-                    return database;
-                }
-            }
+            synchronized (this) {
+                if (FastStringUtils.isEmpty(database)) {
+                    Package aPackage = getClass().getPackage();
+                    if (aPackage != null) {
+                        String lockDatabase = FastChar.getDatabases().getLockDatabase(aPackage.getName());
+                        if (FastStringUtils.isNotEmpty(lockDatabase)) {
+                            database = lockDatabase;
+                            return database;
+                        }
+                    }
 //            此处取消根据table查找数据库
 //            List<FastDatabaseInfo> byTableName = FastChar.getDatabases().getByTableName(getTableName());
 //            if (byTableName.size() > 0) {
 //                database = byTableName.get(0).getCode();
 //                return database;
 //            }
-            database = FastChar.getDatabases().get().getCode();
+                    database = FastChar.getDatabases().get().getCode();
+                }
+            }
         }
         return database;
     }
@@ -437,6 +449,16 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
     /**
+     * 根据checks属性查询表格的第一条数据
+     *
+     * @return 当前类的新对象
+     */
+    public E selectFirst(String... checks) {
+        FastSqlInfo sqlInfo = this.toSelectSqlByChecks(checks);
+        return getFastData().selectFirstBySql(sqlInfo.getSql(), sqlInfo.toParams());
+    }
+
+    /**
      * 查询sql语句返回的最后一条数据
      *
      * @param sqlStr sql语句
@@ -537,6 +559,16 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
     /**
+     * 根据checks属性查询所有数据
+     *
+     * @return 返回数据集合
+     */
+    public List<E> select(String... checks) {
+        FastSqlInfo sqlInfo = this.toSelectSqlByChecks(checks);
+        return getFastData().selectBySql(sqlInfo.getSql(), sqlInfo.toParams());
+    }
+
+    /**
      * 查询所有数据分页数据
      *
      * @param page     页数
@@ -603,14 +635,6 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
 
-    /**
-     * 根据主键值删除数据
-     *
-     * @return 布尔值
-     */
-    public boolean delete() {
-        return getFastData().delete();
-    }
 
     /**
      * 根据传入的检测属性名删除数据
@@ -644,14 +668,6 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
     }
 
 
-    /**
-     * 保存数据到数据库中，如果存在自增长的主键，则在插入数据成功后会自动赋值到当前对象中
-     *
-     * @return 布尔值
-     */
-    public boolean save() {
-        return getFastData().save();
-    }
 
     /**
      * 保存到数据库中
@@ -740,15 +756,6 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         return getFastData().push(handler, checks);
     }
 
-    /**
-     * 更新数据
-     *
-     * @return 布尔值
-     */
-    public boolean update() {
-        return getFastData().update();
-    }
-
 
     /**
      * 更新到数据库中
@@ -790,7 +797,11 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public List<String> getModified() {
         if (modified == null) {
-            modified = new ArrayList<>(16);
+            synchronized (this) {
+                if (modified == null) {
+                    modified = new ArrayList<>(16);
+                }
+            }
         }
         return modified;
     }
@@ -1286,6 +1297,57 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
         return getModified().contains(attr);
     }
 
+    /**
+     * 是否修改了属性且属性值不为空
+     * @param attr 属性名称
+     * @return 布尔值
+     */
+    public boolean isModifiedAndNotEmpty(String attr) {
+        if (isEmpty(attr)) {
+            return false;
+        }
+        return getModified().contains(attr);
+    }
+
+
+
+    /**
+     * 判断是否真实的修改了属性（将按照字符串格式匹配），将与数据库中的数据匹配。【注意：将主键值查询，所以当前对象中必须存在主键值，否则按照isModified方法返回值为准】
+     *
+     * @param attr 属性名称
+     * @return 布尔值
+     */
+    public boolean isRealModified(String attr) {
+        if (isModified(attr)) {
+            E oldEntity = selectById();
+            if (oldEntity != null) {
+                return !oldEntity.getString(attr, "old").equals(getString(attr, "new"));
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 判断是否真实的修改了属性（将按照字符串格式匹配），将与数据库中的数据匹配
+     *
+     * @param attr   属性名称
+     * @param checks 查询历史数据的匹配属性条件，如果为空则按照isRealModified匹配
+     * @return 布尔值
+     */
+    public boolean isRealModified(String attr, String... checks) {
+        if (checks.length == 0) {
+            return isRealModified(attr);
+        }
+        if (isModified(attr)) {
+            E oldEntity = selectFirst(checks);
+            if (oldEntity != null) {
+                return !oldEntity.getString(attr, "old").equals(getString(attr, "new"));
+            }
+            return true;
+        }
+        return false;
+    }
 
     /**
      * 是否为空
@@ -1408,6 +1470,10 @@ public abstract class FastEntity<E extends FastEntity<?>> extends ConcurrentHash
      */
     public FastSqlInfo toSelectSql(Object... ids) {
         return getFastData().getFastSql().buildSelectSqlByIds(this, ids);
+    }
+
+    public FastSqlInfo toSelectSqlByChecks(String... checks) {
+        return getFastData().getFastSql().buildSelectSqlByChecks(this, checks);
     }
 
     /**

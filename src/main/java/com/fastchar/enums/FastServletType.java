@@ -4,16 +4,17 @@ package com.fastchar.enums;
  * 启动项目的 servlet类型
  */
 public enum FastServletType {
-    JAVAX("javax.servlet.*"),
-    JAKARTA("jakarta.servlet.*"),
+    None(""),
+    Javax("javax.servlet.ServletContainerInitializer"),
+    Jakarta("jakarta.servlet.ServletContainerInitializer"),
     ;
-    private final String details;
+    private final String targetClass;
 
-    FastServletType(String details) {
-        this.details = details;
+    FastServletType(String targetClass) {
+        this.targetClass = targetClass;
     }
 
-    public String getDetails() {
-        return details;
+    public String getTargetClass() {
+        return targetClass;
     }
 }

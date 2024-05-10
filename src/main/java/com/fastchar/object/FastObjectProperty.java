@@ -6,8 +6,8 @@ package com.fastchar.object;
  * @date 2021/8/31 11:22
  */
 public class FastObjectProperty {
-    private final Object property;
-    private final Object target;
+    private transient final Object property;
+    private transient final Object target;
 
     public FastObjectProperty(Object target, Object property) {
         this.property = property;

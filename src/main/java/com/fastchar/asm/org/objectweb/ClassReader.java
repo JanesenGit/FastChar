@@ -194,7 +194,7 @@ public class ClassReader {
     this.b = classFileBuffer;
     // Check the class' major_version. This field is after the magic and minor_version fields, which
     // use 4 and 2 bytes respectively.
-    if (checkClassVersion && readShort(classFileOffset + 6) > Opcodes.V18) {
+    if (checkClassVersion && readShort(classFileOffset + 6) > Opcodes.V21) {
       throw new IllegalArgumentException(
           "Unsupported class file major version " + readShort(classFileOffset + 6));
     }
@@ -308,12 +308,13 @@ public class ClassReader {
    * @return the content of the given input stream.
    * @throws IOException if a problem occurs during reading.
    */
+  @SuppressWarnings("PMD.UseTryWithResources")
   private static byte[] readStream(final InputStream inputStream, final boolean close)
       throws IOException {
     if (inputStream == null) {
       throw new IOException("Class not found");
     }
-    int bufferSize = calculateBufferSize(inputStream);
+    int bufferSize = computeBufferSize(inputStream);
     try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
       byte[] data = new byte[bufferSize];
       int bytesRead;
@@ -334,13 +335,12 @@ public class ClassReader {
     }
   }
 
-  private static int calculateBufferSize(final InputStream inputStream) throws IOException {
+  private static int computeBufferSize(final InputStream inputStream) throws IOException {
     int expectedLength = inputStream.available();
     /*
-     * Some implementations can return 0 while holding available data
-     * (e.g. new FileInputStream("/proc/a_file"))
-     * Also in some pathological cases a very small number might be returned,
-     * and in this case we use default size
+     * Some implementations can return 0 while holding available data (e.g. new
+     * FileInputStream("/proc/a_file")). Also in some pathological cases a very small number might
+     * be returned, and in this case we use a default size.
      */
     if (expectedLength < 256) {
       return INPUT_STREAM_DATA_CHUNK_SIZE;
@@ -375,7 +375,7 @@ public class ClassReader {
   }
 
   /**
-   * Returns the internal of name of the super class (see {@link Type#getInternalName()}). For
+   * Returns the internal name of the super class (see {@link Type#getInternalName()}). For
    * interfaces, the super class is {@link Object}.
    *
    * @return the internal name of the super class, or {@literal null} for {@link Object} class.
@@ -859,7 +859,7 @@ public class ClassReader {
       currentOffset += 2;
     }
 
-    // Read the  'provides_count' and 'provides' fields.
+    // Read the 'provides_count' and 'provides' fields.
     int providesCount = readUnsignedShort(currentOffset);
     currentOffset += 2;
     while (providesCount-- > 0) {
@@ -888,7 +888,7 @@ public class ClassReader {
    * @return the offset of the first byte following the record component.
    */
   private int readRecordComponent(
-          final ClassVisitor classVisitor, final Context context, final int recordComponentOffset) {
+      final ClassVisitor classVisitor, final Context context, final int recordComponentOffset) {
     char[] charBuffer = context.charBuffer;
 
     int currentOffset = recordComponentOffset;
@@ -1062,7 +1062,7 @@ public class ClassReader {
    * @return the offset of the first byte following the field_info structure.
    */
   private int readField(
-          final ClassVisitor classVisitor, final Context context, final int fieldInfoOffset) {
+      final ClassVisitor classVisitor, final Context context, final int fieldInfoOffset) {
     char[] charBuffer = context.charBuffer;
 
     // Read the access_flags, name_index and descriptor_index fields.
@@ -1246,7 +1246,7 @@ public class ClassReader {
    * @return the offset of the first byte following the method_info structure.
    */
   private int readMethod(
-          final ClassVisitor classVisitor, final Context context, final int methodInfoOffset) {
+      final ClassVisitor classVisitor, final Context context, final int methodInfoOffset) {
     char[] charBuffer = context.charBuffer;
 
     // Read the access_flags, name_index and descriptor_index fields.
@@ -1532,7 +1532,7 @@ public class ClassReader {
    *     its attribute_name_index and attribute_length fields.
    */
   private void readCode(
-          final MethodVisitor methodVisitor, final Context context, final int codeOffset) {
+      final MethodVisitor methodVisitor, final Context context, final int codeOffset) {
     int currentOffset = codeOffset;
 
     // Read the max_stack, max_locals and code_length fields.
@@ -2050,6 +2050,7 @@ public class ClassReader {
     currentOffset = bytecodeStartOffset;
     while (currentOffset < bytecodeEndOffset) {
       final int currentBytecodeOffset = currentOffset - bytecodeStartOffset;
+      readBytecodeInstructionOffset(currentBytecodeOffset);
 
       // Visit the label and the line number(s) for this bytecode offset, if any.
       Label currentLabel = labels[currentBytecodeOffset];
@@ -2663,6 +2664,20 @@ public class ClassReader {
 
     // Visit the max stack and max locals values.
     methodVisitor.visitMaxs(maxStack, maxLocals);
+  }
+
+  /**
+   * Handles the bytecode offset of the next instruction to be visited in {@link
+   * #accept(ClassVisitor,int)}. This method is called just before the instruction and before its
+   * associated label and stack map frame, if any. The default implementation of this method does
+   * nothing. Subclasses can override this method to store the argument in a mutable field, for
+   * instance, so that {@link MethodVisitor} instances can get the bytecode offset of each visited
+   * instruction (if so, the usual concurrency issues related to mutable data should be addressed).
+   *
+   * @param bytecodeOffset the bytecode offset of the next instruction to be visited.
+   */
+  protected void readBytecodeInstructionOffset(final int bytecodeOffset) {
+    // Do nothing by default.
   }
 
   /**

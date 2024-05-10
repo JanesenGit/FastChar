@@ -1,7 +1,6 @@
 package com.fastchar.interfaces;
 
 import com.fastchar.annotation.AFastPriority;
-import com.fastchar.core.FastConstant;
 
 import java.io.File;
 
@@ -9,7 +8,7 @@ import java.io.File;
  * 文件重命名接口
  */
 @AFastPriority
-public interface IFastFileRename {
+public interface IFastFileRename  {
     /**
      * 重命名文件，并返回新的文件名
      * @param target 目标文件

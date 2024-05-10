@@ -227,6 +227,25 @@ public final class FastCharLocal {
 
     /**
      * 描述模板：
+     * 解析所有class文件中……
+     */
+    public static final String SCANNER_ERROR9 = "Scanner_Error9";
+
+
+    /**
+     * 描述模板：
+     * 解析所有class成功！
+     */
+    public static final String SCANNER_ERROR10 = "Scanner_Error10";
+
+    /**
+     * 描述模板：
+     * 加载并更新{0}成功！
+     */
+    public static final String SCANNER_ERROR11 = "Scanner_Error11";
+
+    /**
+     * 描述模板：
      * 数据库{0}已存在！
      */
     public static final String DB_ERROR1 = "Db_Error1";
@@ -515,16 +534,17 @@ public final class FastCharLocal {
     public static final String REDIS_ERROR1 = "Redis_Error1";
 
 
+
     /**
      * 描述模板：
-     * 主Redis名称[masterName]不可为空！
+     * 已启用Redis高级缓存！
      */
     public static final String REDIS_ERROR2 = "Redis_Error2";
 
 
     /**
      * 描述模板：
-     * 已启用Redis高级缓存！
+     * 已启用{0} - Redis客户端框架！
      */
     public static final String REDIS_ERROR3 = "Redis_Error3";
 
@@ -548,6 +568,39 @@ public final class FastCharLocal {
      * 未获取到{0}数据源！
      */
     public static final String DATASOURCE_INFO3 = "DataSource_Info3";
+
+
+    /**
+     * 描述模板：
+     * 已启用{0}数据源，此数据源仅用于测试，不可在正式项目中使用！！
+     */
+    public static final String DATASOURCE_INFO4 = "DataSource_Info4";
+
+    /**
+     * 描述模板：
+     * 同步并验证数据库{0}中……
+     */
+    public static final String DATASOURCE_INFO5 = "DataSource_Info5";
+
+    /**
+     * 描述模板：
+     * 同步并验证数据库{0}成功！
+     */
+    public static final String DATASOURCE_INFO6 = "DataSource_Info6";
+
+    /**
+     * 描述模板：
+     * 解析数据库xml{0}中……
+     */
+    public static final String DATASOURCE_INFO7 = "DataSource_Info7";
+
+
+    /**
+     * 描述模板：
+     * 解析数据库xml{0}结束！
+     */
+    public static final String DATASOURCE_INFO8 = "DataSource_Info8";
+
 
 
     /**

@@ -1,11 +1,11 @@
 package com.fastchar.database;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastResource;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
-import com.fastchar.exception.FastFileException;
 import com.fastchar.interfaces.IFastDatabaseXmlListener;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastDateUtils;
@@ -13,24 +13,13 @@ import com.fastchar.utils.FastStringUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.AttributesImpl;
 import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.sax.SAXTransformerFactory;
-import javax.xml.transform.sax.TransformerHandler;
-import javax.xml.transform.stream.StreamResult;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * fast-database.xml处理工具
@@ -47,16 +36,26 @@ public final class FastDatabaseXml {
     private final SAXParserFactory factory = SAXParserFactory.newInstance();
     private SAXParser parser;
 
+    public FastDatabaseXml() {
+        try {
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            factory.setFeature("http://apache.org/xml/features/validation/schema", false);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * 解析fast-database.xml文件
      *
      * @param file fast-database.xml文件
      * @throws Exception 异常信息
      */
-    public void parseDatabaseXml(File file) throws Exception {
+    public synchronized void parseDatabaseXml(FastResource file) throws Exception {
         if (file == null) {
             return;
         }
+
         if (parser == null) {
             parser = factory.newSAXParser();
         }
@@ -72,7 +71,7 @@ public final class FastDatabaseXml {
         }
 
         DatabaseInfoHandler databaseInfoHandler = new DatabaseInfoHandler(file);
-        parser.parse(file, databaseInfoHandler);
+        parser.parse(file.getInputStream(), databaseInfoHandler);
         if (databaseInfoHandler.databaseInfo == null) {
             return;
         }
@@ -103,12 +102,9 @@ public final class FastDatabaseXml {
             FastChar.getDatabases().add(databaseInfoHandler.databaseInfo);
         }
 
-        if (FastChar.getConstant().isEncryptDatabaseXml()) {
-            encryptDatabaseXml(file);
-        }
     }
 
-    public void parseDataXml(File file) throws Exception {
+    public synchronized void parseDataXml(FastResource file) throws Exception {
         if (file == null) {
             return;
         }
@@ -116,107 +112,17 @@ public final class FastDatabaseXml {
             parser = factory.newSAXParser();
         }
         DataInfoHandler dataInfoHandler = new DataInfoHandler();
-        parser.parse(file, dataInfoHandler);
+        parser.parse(file.getInputStream(), dataInfoHandler);
     }
-
-
-    public void encryptDatabaseXml(File file) throws Exception {
-        DatabaseInfoHandler databaseInfoHandler = new DatabaseInfoHandler(file);
-        parser.parse(file, databaseInfoHandler);
-        writeDatabaseXml(file, databaseInfoHandler.databaseInfo);
-    }
-
-    public void writeDatabaseXml(File file, FastDatabaseInfo databaseInfo) throws Exception {
-        if (!file.getParentFile().exists()) {
-            if (file.getParentFile().mkdirs()) {
-                throw new FastFileException(file.getParent() + " create fail !");
-            }
-        }
-        SAXTransformerFactory factory = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
-        TransformerHandler handler = factory.newTransformerHandler();
-        Transformer info = handler.getTransformer();
-        // 是否自动添加额外的空白
-        info.setOutputProperty(OutputKeys.INDENT, "yes");
-        // 设置字符编码
-        info.setOutputProperty(OutputKeys.ENCODING, "utf-8");
-        info.setOutputProperty(OutputKeys.VERSION, "1.0");
-
-        StreamResult result = new StreamResult(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
-        handler.setResult(result);
-
-        handler.startDocument();
-        AttributesImpl impl = new AttributesImpl();
-        for (Map.Entry<String, Object> stringObjectEntry : databaseInfo.entrySet()) {
-            Object attrValue = stringObjectEntry.getValue();
-            if (attrValue instanceof String) {
-                String content = attrValue.toString();
-                if (FastStringUtils.isEmpty(content)) {
-                    continue;
-                }
-                if (FastChar.getConstant().isEncryptDatabaseXml()) {
-                    String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                    impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", "SECURITY@" + encrypt);
-                } else {
-                    impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", content);
-                }
-            }
-        }
-
-        handler.startElement("", "", databaseInfo.getTagName(), impl);
-        for (FastTableInfo<?> table : databaseInfo.getTables()) {
-            impl.clear();
-            for (Map.Entry<String, Object> stringObjectEntry : table.entrySet()) {
-                Object attrValue = stringObjectEntry.getValue();
-                if (attrValue instanceof String) {
-                    String content = attrValue.toString();
-                    if (FastStringUtils.isEmpty(content)) {
-                        continue;
-                    }
-                    if (FastChar.getConstant().isEncryptDatabaseXml()) {
-                        String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                        impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", encrypt);
-                    } else {
-                        impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", content);
-                    }
-                }
-            }
-            handler.startElement("", "", table.getTagName(), impl);
-            Collection<FastColumnInfo<?>> columns = table.getColumns();
-            for (FastColumnInfo<?> column : columns) {
-                impl.clear();
-                for (Map.Entry<String, Object> stringObjectEntry : column.entrySet()) {
-                    Object attrValue = stringObjectEntry.getValue();
-                    if (attrValue instanceof String) {
-                        String content = attrValue.toString();
-                        if (FastStringUtils.isEmpty(content)) {
-                            continue;
-                        }
-                        if (FastChar.getConstant().isEncryptDatabaseXml()) {
-                            String encrypt = FastChar.getSecurity().AES_Encrypt(FastChar.getConstant().getEncryptPassword(), content);
-                            impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", ATTRIBUTE_VALUE_SECURITY_PREFIX + encrypt);
-                        } else {
-                            impl.addAttribute("", "", String.valueOf(stringObjectEntry.getKey()), "", content);
-                        }
-                    }
-                }
-                handler.startElement("", "", column.getTagName(), impl);
-                handler.endElement("", "", column.getTagName());
-            }
-            handler.endElement("", "", table.getTagName());
-        }
-        handler.endElement("", "", databaseInfo.getTagName());
-        handler.endDocument();
-    }
-
 
     public static class DatabaseInfoHandler extends DefaultHandler {
-        private final File xmlFile;
+        private final FastResource xmlFile;
         private Locator locator;
         private FastDatabaseInfo databaseInfo;
         private FastTableInfo<?> tableInfo;
         private FastColumnInfo<?> columnInfo;
 
-        public DatabaseInfoHandler(File xmlFile) {
+        public DatabaseInfoHandler(FastResource xmlFile) {
             this.xmlFile = xmlFile;
         }
 
@@ -263,7 +169,7 @@ public final class FastDatabaseXml {
                         tableInfo.setData(dataFile.getAbsolutePath());
                     } else {
                         if (FastChar.getConstant().isDebug()) {
-                            FastChar.getLog().warn(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, dataFile.getAbsolutePath()));
+                            FastChar.getLogger().warn(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, dataFile.getAbsolutePath()));
                         }
                     }
                 }

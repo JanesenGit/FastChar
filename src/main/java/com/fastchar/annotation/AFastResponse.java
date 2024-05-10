@@ -16,7 +16,7 @@ public @interface AFastResponse {
 
     /**
      * 响应的类型
-     * @return
+     * @return FastOut.Type
      */
     FastOut.Type value();
 

@@ -1,5 +1,7 @@
 package com.fastchar.utils;
 
+import com.fastchar.core.FastChar;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +45,7 @@ public class FastEnumUtils {
             }
             return (T) Enum.valueOf(clazz, name);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastEnumUtils.class, e);
         }
         return (T) defaultValue;
     }

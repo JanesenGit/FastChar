@@ -1,9 +1,11 @@
 package com.fastchar.interfaces;
 
+import java.io.Serializable;
+
 /**
  * 本地信息接口
  */
-public interface IFastLocal {
+public interface IFastLocal extends Serializable {
 
     /**
      * 获取本地信息描述

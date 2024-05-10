@@ -1,5 +1,6 @@
 package com.fastchar.object;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastHandler;
 import com.fastchar.utils.FastArrayUtils;
 import com.fastchar.utils.FastClassUtils;
@@ -16,8 +17,8 @@ import java.util.*;
 @SuppressWarnings("UnusedReturnValue")
 public class FastObjectAddHandler {
 
-    private final Object target;
-    private final Object property;
+    private transient final Object target;
+    private transient final Object property;
 
     public FastObjectAddHandler(Object target, Object property) {
         this.target = target;
@@ -92,7 +93,7 @@ public class FastObjectAddHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }
@@ -119,7 +120,7 @@ public class FastObjectAddHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }
@@ -145,7 +146,7 @@ public class FastObjectAddHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return handler;
     }

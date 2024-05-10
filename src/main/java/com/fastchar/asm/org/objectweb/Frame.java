@@ -298,7 +298,7 @@ class Frame {
    * @return the abstract type value corresponding to the given internal name.
    */
   static int getAbstractTypeFromInternalName(
-          final SymbolTable symbolTable, final String internalName) {
+      final SymbolTable symbolTable, final String internalName) {
     return REFERENCE_KIND | symbolTable.addType(internalName);
   }
 
@@ -311,7 +311,7 @@ class Frame {
    * @return the abstract type corresponding to the given type descriptor.
    */
   private static int getAbstractTypeFromDescriptor(
-          final SymbolTable symbolTable, final String buffer, final int offset) {
+      final SymbolTable symbolTable, final String buffer, final int offset) {
     String internalName;
     switch (buffer.charAt(offset)) {
       case 'V':
@@ -367,11 +367,12 @@ class Frame {
             typeValue = REFERENCE_KIND | symbolTable.addType(internalName);
             break;
           default:
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException(
+                "Invalid descriptor fragment: " + buffer.substring(elementDescriptorOffset));
         }
         return ((elementDescriptorOffset - offset) << DIM_SHIFT) | typeValue;
       default:
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Invalid descriptor: " + buffer.substring(offset));
     }
   }
 
@@ -678,7 +679,7 @@ class Frame {
    * @param symbolTable the type table to use to lookup and store type {@link Symbol}.
    */
   void execute(
-          final int opcode, final int arg, final Symbol argSymbol, final SymbolTable symbolTable) {
+      final int opcode, final int arg, final Symbol argSymbol, final SymbolTable symbolTable) {
     // Abstract types popped from the stack or read from local variables.
     int abstractType1;
     int abstractType2;
@@ -1160,7 +1161,7 @@ class Frame {
    * @return {@literal true} if the input frame of 'frame' has been changed by this operation.
    */
   final boolean merge(
-          final SymbolTable symbolTable, final Frame dstFrame, final int catchTypeIndex) {
+      final SymbolTable symbolTable, final Frame dstFrame, final int catchTypeIndex) {
     boolean frameChanged = false;
 
     // Compute the concrete types of the local variables at the end of the basic block corresponding
@@ -1405,8 +1406,8 @@ class Frame {
    *     4.7.4</a>
    */
   static void putAbstractType(
-          final SymbolTable symbolTable, final int abstractType, final ByteVector output) {
-    int arrayDimensions = (abstractType & DIM_MASK) >> DIM_SHIFT;
+      final SymbolTable symbolTable, final int abstractType, final ByteVector output) {
+    int arrayDimensions = (abstractType & Frame.DIM_MASK) >> DIM_SHIFT;
     if (arrayDimensions == 0) {
       int typeValue = abstractType & VALUE_MASK;
       switch (abstractType & KIND_MASK) {
@@ -1437,28 +1438,28 @@ class Frame {
             .append(';');
       } else {
         switch (abstractType & VALUE_MASK) {
-          case ITEM_ASM_BOOLEAN:
+          case Frame.ITEM_ASM_BOOLEAN:
             typeDescriptor.append('Z');
             break;
-          case ITEM_ASM_BYTE:
+          case Frame.ITEM_ASM_BYTE:
             typeDescriptor.append('B');
             break;
-          case ITEM_ASM_CHAR:
+          case Frame.ITEM_ASM_CHAR:
             typeDescriptor.append('C');
             break;
-          case ITEM_ASM_SHORT:
+          case Frame.ITEM_ASM_SHORT:
             typeDescriptor.append('S');
             break;
-          case ITEM_INTEGER:
+          case Frame.ITEM_INTEGER:
             typeDescriptor.append('I');
             break;
-          case ITEM_FLOAT:
+          case Frame.ITEM_FLOAT:
             typeDescriptor.append('F');
             break;
-          case ITEM_LONG:
+          case Frame.ITEM_LONG:
             typeDescriptor.append('J');
             break;
-          case ITEM_DOUBLE:
+          case Frame.ITEM_DOUBLE:
             typeDescriptor.append('D');
             break;
           default:

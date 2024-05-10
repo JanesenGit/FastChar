@@ -228,8 +228,14 @@ public class FastTableInfo<T> extends LinkedHashMap<String, Object> {
     public FastTableInfo<?> merge(FastTableInfo<?> info, boolean onlyColumns) {
         if (!onlyColumns) {
             for (Map.Entry<String, Object> stringObjectEntry : info.entrySet()) {
-                if ("columns".equals(stringObjectEntry.getKey())) {
+                if ("columns".equalsIgnoreCase(stringObjectEntry.getKey())) {
                     continue;
+                }
+                if (!info.isFromXml() && this.isFromXml()) {
+                    //如果当前表格信息从xml中读取，备注信息以xml的为主
+                    if ("comment".equalsIgnoreCase(stringObjectEntry.getKey())) {
+                        continue;
+                    }
                 }
                 this.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
             }

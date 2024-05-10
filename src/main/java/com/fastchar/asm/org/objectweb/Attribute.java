@@ -240,7 +240,7 @@ public class Attribute {
    *     headers.
    */
   static int computeAttributesSize(
-          final SymbolTable symbolTable, final int accessFlags, final int signatureIndex) {
+      final SymbolTable symbolTable, final int accessFlags, final int signatureIndex) {
     int size = 0;
     // Before Java 1.5, synthetic fields are represented with a Synthetic attribute.
     if ((accessFlags & Opcodes.ACC_SYNTHETIC) != 0

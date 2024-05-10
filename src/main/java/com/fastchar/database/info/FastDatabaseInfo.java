@@ -14,7 +14,7 @@ import com.fastchar.utils.FastStringUtils;
 import javax.sql.DataSource;
 import java.util.*;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked"})
 public class FastDatabaseInfo extends LinkedHashMap<String, Object> {
 
     protected transient FastMapWrap mapWrap;
@@ -57,10 +57,9 @@ public class FastDatabaseInfo extends LinkedHashMap<String, Object> {
         return tableInfo;
     }
 
-    public boolean isTable(String name) {
+    public boolean existTable(String name) {
         return getTableInfo(name) != null;
     }
-
 
 
     public boolean isFromXml() {
@@ -127,14 +126,12 @@ public class FastDatabaseInfo extends LinkedHashMap<String, Object> {
     public String getPort() {
         String port = mapWrap.getString("port");
         if (FastStringUtils.isEmpty(port)) {
-            if (isMySql()) {
-                port = "3306";
-            } else if (isSqlServer()) {
-                port = "1433";
-            } else if (isOracle()) {
-                port = "1521";
+            try {
+                port = String.valueOf(getOperate().getConnectionPort(this));
+                setPort(port);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-            setPort(port);
         }
         return port;
     }
@@ -165,19 +162,12 @@ public class FastDatabaseInfo extends LinkedHashMap<String, Object> {
     public String getDriver() {
         String driver = mapWrap.getString("driver");
         if (FastStringUtils.isEmpty(driver)) {
-            if (isMySql()) {
-                driver = "com.mysql.jdbc.Driver";
-                if (FastChar.getFindClass().test("com.mysql.cj.jdbc.Driver")) {
-                    driver = "com.mysql.cj.jdbc.Driver";
-                }
+            try {
+                driver = getOperate().getConnectionDriverClass(this);
+                setDriver(driver);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-            if (isSqlServer()) {
-                driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-            }
-            if (isOracle()) {
-                driver = "oracle.jdbc.driver.OracleDriver";
-            }
-            setDriver(driver);
         }
         return driver;
     }
@@ -324,21 +314,12 @@ public class FastDatabaseInfo extends LinkedHashMap<String, Object> {
         if (FastStringUtils.isNotEmpty(url)) {
             return url;
         }
-        if (isMySql()) {
-            url = "jdbc:mysql://" + getHost() + ":" + getPort() + "/" + getName() +
-                    "?rewriteBatchedStatements=true" +
-                    "&useUnicode=true" +
-                    "&characterEncoding=utf-8" +
-                    "&allowPublicKeyRetrieval=true" +
-                    "&serverTimezone=GMT" +
-                    "&useSSL=false" +
-                    "&useInformationSchema=true";
-        } else if (isSqlServer()) {
-            url = "jdbc:sqlserver://" + getHost() + ":" + getPort() + ";databaseName=" + getName();
-        } else if (isOracle()) {
-            url = "jdbc:oracle:thin:@" + getHost() + ":" + getPort() + ":" + getName();
+        try {
+            url = getOperate().getConnectionUrl(this);
+            setUrl(url);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        setUrl(url);
         return url;
     }
 
@@ -480,9 +461,17 @@ public class FastDatabaseInfo extends LinkedHashMap<String, Object> {
         }
     }
 
-
     public String toSimpleInfo() {
-        return getClass().getSimpleName() + " { name = '" + getName() + "' ,host = '" + getHost() + "' , code = '" + getCode() + "' , type = '" + getType() + "' } ";
+        return getClass().getSimpleName()
+                + " { name = '" + getName()
+                + "' , host = '" + getHost()
+                + "' , user = '" + getUser()
+                + "' , password = '" + getPassword()
+                + "' , port = '" + getPort()
+                + "' , code = '" + getCode()
+                + "' , type = '" + getType()
+                + "' , driver = '" + getDriver()
+                + "' } ";
     }
 
 }

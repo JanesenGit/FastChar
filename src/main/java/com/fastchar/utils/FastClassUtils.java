@@ -1,5 +1,6 @@
 package com.fastchar.utils;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastClassLoader;
 import com.fastchar.exception.FastClassException;
 
@@ -8,34 +9,87 @@ import java.lang.reflect.*;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.jar.JarFile;
 
 @SuppressWarnings("unchecked")
 public class FastClassUtils {
+
+    /**
+     * Maps primitive {@code Class}es to their corresponding wrapper {@code Class}.
+     */
+    private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<>();
+    static {
+        primitiveWrapperMap.put(Boolean.TYPE, Boolean.class);
+        primitiveWrapperMap.put(Byte.TYPE, Byte.class);
+        primitiveWrapperMap.put(Character.TYPE, Character.class);
+        primitiveWrapperMap.put(Short.TYPE, Short.class);
+        primitiveWrapperMap.put(Integer.TYPE, Integer.class);
+        primitiveWrapperMap.put(Long.TYPE, Long.class);
+        primitiveWrapperMap.put(Double.TYPE, Double.class);
+        primitiveWrapperMap.put(Float.TYPE, Float.class);
+        primitiveWrapperMap.put(Void.TYPE, Void.TYPE);
+    }
+
+
     public static final Class<?>[] EMPTY_CLASS_ARRAY = new Class[0];
+
+    public static Class<?> primitiveToWrapper(final Class<?> cls) {
+        Class<?> convertedClass = cls;
+        if (cls != null && cls.isPrimitive()) {
+            convertedClass = primitiveWrapperMap.get(cls);
+        }
+        return convertedClass;
+    }
+
+
+    public static Class<?> loadClass(String className, boolean printException) {
+        return loadClass(getDefaultClassLoader(), className, printException);
+    }
+    public static Class<?> loadClass(ClassLoader loader, String className, boolean printException) {
+        try {
+            if (className == null || className.isEmpty()) {
+                return null;
+            }
+            return loader.loadClass(className);
+        } catch (Throwable e) {
+            if (printException) {
+                FastChar.getLogger().error(FastClassUtils.class, e);
+            } else if (e instanceof UnsupportedClassVersionError) {
+                FastChar.getLogger().error(FastClassUtils.class, new RuntimeException("The class [ " + className + " ] load failed ! ", e));
+            }
+        }
+        return findClass(loader, className, printException);
+    }
+
 
     public static Class<?> getClass(String className) {
         return getClass(className, true);
     }
 
     public static Class<?> getClass(String className, boolean printException) {
-        return getClass(FastClassUtils.class.getClassLoader(), className, printException);
+        return getClass(getDefaultClassLoader(), className, printException);
+    }
+
+    public static Class<?> getClass(String className, boolean printException, boolean initializeClass) {
+        return getClass(getDefaultClassLoader(), className, printException, initializeClass);
     }
 
     public static Class<?> getClass(ClassLoader loader, String className, boolean printException) {
+        return getClass(loader, className, printException, true);
+    }
+
+    public static Class<?> getClass(ClassLoader loader, String className, boolean printException, boolean initializeClass) {
         try {
-            if (className == null || className.length() == 0) {
+            if (className == null || className.isEmpty()) {
                 return null;
             }
-            return Class.forName(className, true, loader);
+            return Class.forName(className, initializeClass, loader);
         } catch (Throwable e) {
             if (printException) {
-                e.printStackTrace();
+                FastChar.getLogger().error(FastClassUtils.class, e);
             } else if (e instanceof UnsupportedClassVersionError) {
-                e.printStackTrace();
+                FastChar.getLogger().error(FastClassUtils.class, new RuntimeException("The class [ " + className + " ] get failed ! ", e));
             }
         }
         return findClass(loader, className, printException);
@@ -52,7 +106,7 @@ public class FastClassUtils {
 
     public static Class<?> findClass(ClassLoader loader, String className, boolean printException) {
         try {
-            if (className == null || className.length() == 0) {
+            if (className == null || className.isEmpty()) {
                 return null;
             }
             Method findClass = ClassLoader.class.getDeclaredMethod("findClass", String.class);
@@ -64,9 +118,9 @@ public class FastClassUtils {
             }
         } catch (Throwable e) {
             if (printException) {
-                e.printStackTrace();
+                FastChar.getLogger().error(FastClassUtils.class, e);
             } else if (e instanceof UnsupportedClassVersionError) {
-                e.printStackTrace();
+                FastChar.getLogger().error(FastClassUtils.class, new RuntimeException("The class [ " + className + " ] find failed ! ", e));
             }
         }
         return null;
@@ -107,7 +161,7 @@ public class FastClassUtils {
         try {
             if (targetClass != null) {
                 for (Constructor<?> declaredConstructor : targetClass.getDeclaredConstructors()) {
-                    if (declaredConstructor != null && declaredConstructor.getTypeParameters().length == 0) {
+                    if (declaredConstructor != null && declaredConstructor.getParameterTypes().length == 0) {
                         declaredConstructor.setAccessible(true);
                         Object newInstance = declaredConstructor.newInstance();
                         declaredConstructor.setAccessible(false);
@@ -163,11 +217,19 @@ public class FastClassUtils {
                     if (length == constructorParams.length) {
                         boolean matchParam = true;
                         for (int i = 0; i < length; i++) {
+                            Class<?> parameterType = declaredConstructor.getParameterTypes()[i];
                             if (constructorParams[i] == null) {
                                 continue;
                             }
-                            Class<?> parameterType = declaredConstructor.getParameterTypes()[i];
-                            if (!parameterType.isAssignableFrom(constructorParams[i].getClass())) {
+                            Class<?> constructorClass = constructorParams[i].getClass();
+
+                            if (parameterType.isPrimitive()) {
+                                parameterType = primitiveToWrapper(parameterType);
+                            }
+                            if (constructorClass.isPrimitive()) {
+                                constructorClass = primitiveToWrapper(constructorClass);
+                            }
+                            if (!parameterType.isAssignableFrom(constructorClass)) {
                                 matchParam = false;
                                 break;
                             }
@@ -204,7 +266,7 @@ public class FastClassUtils {
         try {
             return invokeMethod(object, declaredMethod, params);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastClassUtils.class, e);
             return null;
         }
     }
@@ -214,7 +276,7 @@ public class FastClassUtils {
         for (Object param : params) {
             paramsClass.add(param.getClass());
         }
-        Method declaredMethod = target.getClass().getDeclaredMethod(name, paramsClass.toArray(new Class[]{}));
+        Method declaredMethod = target.getClass().getMethod(name, paramsClass.toArray(new Class[]{}));
         declaredMethod.setAccessible(true);
         return declaredMethod.invoke(target, params);
     }
@@ -223,7 +285,7 @@ public class FastClassUtils {
         try {
             return invokeMethod(target, name, params);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastClassUtils.class, e);
             return null;
         }
     }
@@ -247,14 +309,20 @@ public class FastClassUtils {
 
     public static ClassLoader getDefaultClassLoader() {
         ClassLoader cl = null;
+
         try {
             cl = Thread.currentThread().getContextClassLoader();
-        } catch (Throwable ex) {
-            // Cannot access thread context ClassLoader - falling back to system class loader...
+        } catch (Throwable ignored) {
         }
+
         if (cl == null) {
-            // No thread context class loader -> use class loader of this class.
             cl = FastClassUtils.class.getClassLoader();
+            if (cl == null) {
+                try {
+                    cl = ClassLoader.getSystemClassLoader();
+                } catch (Throwable ignored) {
+                }
+            }
         }
         return cl;
     }
@@ -300,7 +368,7 @@ public class FastClassUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastClassUtils.class, e);
         }
     }
 
@@ -361,7 +429,7 @@ public class FastClassUtils {
                 return content;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastClassUtils.class, e);
         }
         return null;
     }
@@ -389,7 +457,7 @@ public class FastClassUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(FastClassUtils.class, e);
         }
         return null;
     }

@@ -1,9 +1,7 @@
 package com.fastchar.system;
 
 import com.fastchar.core.FastChar;
-import com.fastchar.core.FastRequestLog;
 import com.fastchar.interfaces.IFastException;
-import com.fastchar.utils.FastClassUtils;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -181,11 +179,6 @@ public class FastErrorPrintStream extends PrintStream {
             }
         }
         super.println(x);
-    }
-
-    @Override
-    public void print(String s) {
-        super.print(FastChar.getLog().errorStyle(s));
     }
 
     public boolean isFireListener() {

@@ -1,11 +1,8 @@
 package com.fastchar.extend.jdbc;
 
-import com.fastchar.core.FastChar;
 import com.fastchar.interfaces.IFastConfig;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.apache.tomcat.jdbc.pool.Validator;
-
-import java.util.Properties;
 
 @SuppressWarnings("UnusedReturnValue")
 public class FastJdbcConfig implements IFastConfig {

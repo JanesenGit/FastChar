@@ -2,17 +2,17 @@ package com.fastchar.extend.fastjson;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.alibaba.fastjson.support.config.FastJsonConfig;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.interfaces.IFastJson;
 
 import java.lang.reflect.Type;
 
 /**
- * FastJson https://github.com/alibaba/fastjson
+ * FastJson <a href="https://github.com/alibaba/fastjson">FastJson</a>
  */
 @AFastClassFind("com.alibaba.fastjson.JSON")
 public class FastJsonProvider implements IFastJson {
+
     @Override
     public String toJson(Object value) {
         return JSON.toJSONString(value,

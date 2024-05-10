@@ -24,7 +24,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
     @Override
     public  DataSource getDataSource(FastDatabaseInfo databaseInfo) {
         if (datasource == null) {
-            synchronized (FastJdbcDataSourceProvider.class) {
+            synchronized (this) {
                 if (datasource == null) {
                     datasource = new DataSource();
                     PoolProperties poolProperties = new PoolProperties();
@@ -36,7 +36,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
                     poolProperties.setUsername(databaseInfo.getUser());
                     poolProperties.setPassword(databaseInfo.getPassword());
                     try {
-                        FastJdbcConfig jdbc = FastChar.getConfigs().getJdbcConfig();
+                        FastJdbcConfig jdbc = FastChar.getConfig(FastJdbcConfig.class);
                         for (Field field : FastJdbcConfig.class.getDeclaredFields()) {
                             field.setAccessible(true);
                             Object o = field.get(jdbc);
@@ -49,14 +49,14 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
                             }
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        FastChar.getLogger().error(this.getClass(), e);
                     }
                     datasource.setPoolProperties(poolProperties);
                     this.databaseInfo = databaseInfo;
 
                     String poolInfo = "Tomcat jdbc pool of " + databaseInfo.toSimpleInfo();
                     if (FastChar.getConstant().isDebug()) {
-                        FastChar.getLog().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
+                        FastChar.getLogger().info(this.getClass(),FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO1, poolInfo));
                     }
                     FastChar.getValues().put("jdbcPool", "Tomcat jdbc pool");
                 }
@@ -83,7 +83,7 @@ public class FastJdbcDataSourceProvider implements IFastDataSource {
             if (datasource != null) {
                 datasource.close();
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Tomcat jdbc pool of " + databaseInfo.toSimpleInfo()));
+                    FastChar.getLogger().info(this.getClass(), FastChar.getLocal().getInfo(FastCharLocal.DATASOURCE_INFO2, "Tomcat jdbc pool of " + databaseInfo.toSimpleInfo()));
                 }
             }
         } finally {

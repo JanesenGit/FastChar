@@ -1,5 +1,7 @@
 package com.fastchar.database;
 
+import com.fastchar.core.FastChar;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -54,15 +56,14 @@ public class FastDatabaseTransaction {
         return this;
     }
 
-    public FastDatabaseTransaction registerConnection(Connection connection) throws SQLException {
+    public void registerConnection(Connection connection) throws SQLException {
         if (connections.contains(connection)) {
-            return this;
+            return;
         }
         if (connection.getAutoCommit()) {
             connection.setAutoCommit(false);
         }
         connections.add(connection);
-        return this;
     }
 
 
@@ -80,6 +81,7 @@ public class FastDatabaseTransaction {
         for (Connection value : connections) {
             try {
                 if (isolation != -1) {
+                    //noinspection MagicConstant
                     value.setTransactionIsolation(isolation);
                 }
                 value.commit();
@@ -95,7 +97,7 @@ public class FastDatabaseTransaction {
             try {
                 value.rollback();
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         }
         rollback = true;

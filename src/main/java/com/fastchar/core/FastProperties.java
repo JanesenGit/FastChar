@@ -7,14 +7,15 @@ import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @SuppressWarnings("IOStreamConstructor")
 public class FastProperties extends FastMapWrap {
 
-    private String filePath;
+    private FastResource fastResource;
     //是否开启自动更新文件，当properties文件更新后将自动更新加载
     private boolean autoReload;
 
@@ -24,16 +25,12 @@ public class FastProperties extends FastMapWrap {
     }
 
     public String getFilePath() {
-        return filePath;
+        return fastResource.getFile().getPath();
     }
 
-    FastProperties setFilePath(String filePath) {
-        this.filePath = filePath;
-        return this;
-    }
 
-    FastProperties setFile(File file) {
-        this.filePath = file.getAbsolutePath();
+    FastProperties setFile(FastResource file) {
+        this.fastResource = file;
         return this;
     }
 
@@ -47,18 +44,26 @@ public class FastProperties extends FastMapWrap {
     }
 
 
+    private boolean isNeedInitMap() {
+        return map == null || (autoReload && fastResource.lastModified() > lastModified);
+    }
+
     @Override
     public Map<?, ?> getMap() {
         try {
-            if (map == null || (autoReload && new File(filePath).exists() && new File(filePath).lastModified() > lastModified)) {
-                Properties properties = new Properties();
-                //去除windows下的bom头
-                properties.load(new UnicodeReader(new FileInputStream(filePath), StandardCharsets.UTF_8.name()));
-                setMap(properties);
-                lastModified = new File(filePath).lastModified();
+            if (isNeedInitMap()) {
+                synchronized (this) {
+                    if (isNeedInitMap()) {
+                        Properties properties = new Properties();
+                        //去除windows下的bom头
+                        properties.load(new UnicodeReader(fastResource.getInputStream(), StandardCharsets.UTF_8.name()));
+                        setMap(properties);
+                        lastModified = fastResource.lastModified();
+                    }
+                }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         return map;
     }
@@ -69,9 +74,19 @@ public class FastProperties extends FastMapWrap {
         return properties;
     }
 
+    public FastProperties put(Object attr, Object value) {
+        super.put(attr, value);
+        return this;
+    }
+
     public void save() {
         try {
-            File proFile = new File(filePath);
+            if (!fastResource.isFileProtocol()) {
+                FastChar.getLogger().error(this.getClass(), "resource is not file ! ");
+                return;
+            }
+
+            File proFile = fastResource.getFile();
             if (!proFile.exists()) {
                 if (!proFile.createNewFile()) {
                     throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR1, "'" + proFile.getAbsolutePath() + "'"));
@@ -109,7 +124,7 @@ public class FastProperties extends FastMapWrap {
             }
             FastFileUtils.writeStringToFile(proFile, FastStringUtils.join(newStrings, "\n"));
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
     }
 

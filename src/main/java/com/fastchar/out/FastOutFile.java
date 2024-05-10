@@ -2,6 +2,7 @@ package com.fastchar.out;
 
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastResource;
 import com.fastchar.exception.FastFileException;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.servlet.http.FastHttpServletRequest;
@@ -10,7 +11,7 @@ import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.*;
-import java.net.URLEncoder;
+import java.net.*;
 
 /**
  * 响应文件流，下载文件
@@ -65,41 +66,53 @@ public class FastOutFile extends FastOut<FastOutFile> {
 
     @Override
     public void response(FastAction action) throws Exception {
-        File file;
-        if (data instanceof File) {
-            file = (File) data;
-        } else {
-            file = new File(String.valueOf(data));
-        }
-        if (!file.exists()) {
-            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, "'" + file.getAbsolutePath() + "'"));
+        FastResource resource = parseResource();
+        if (resource == null) {
+            throw new NullPointerException("resource data is null");
         }
 
-        if (!file.isFile()) {
-            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR8, "'" + file.getAbsolutePath() + "'"));
+        if (resource.isFileProtocol() && !resource.getFile().exists()) {
+            throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR7, "'" + resource.getFile().getAbsolutePath() + "'"));
         }
 
-        this.setDescription("response file '" + file.getAbsolutePath() + "' ");
+        this.setDescription("response file '" + resource.getURL().toString() + "' ");
         FastHttpServletResponse response = action.getResponse();
         response.setHeader("Accept-Ranges", "bytes");
         if (FastStringUtils.isEmpty(fileName)) {
-            fileName = file.getName();
+            fileName = resource.getName();
         }
         if (disposition) {
             response.setHeader("Content-disposition", "attachment; " + encodeFileName(action.getRequest(), fileName));
         }
-        this.contentType = action.getServletContext().getMimeType(file.getName());
+        this.contentType = action.getServletContext().getMimeType(resource.getName());
         if (FastStringUtils.isEmpty(this.contentType)) {
             this.contentType = "application/octet-stream";
         }
         response.setContentType(this.contentType);
         response.setBufferSize(outputSize);
+        URLConnection urlConnection = resource.getURL().openConnection();
         if (FastStringUtils.isEmpty(action.getRequest().getHeader("Range"))) {
-            responseAllFile(response, file);
+            responseAllFile(response, urlConnection);
         } else {
-            responseRangFile(action.getRequest(), response, file);
+            responseRangFile(action.getRequest(), response, urlConnection);
         }
 
+    }
+
+    private FastResource parseResource() throws MalformedURLException {
+        FastResource resource = null;
+        if (data instanceof File) {
+            resource = new FastResource((File) data);
+        } else if (data instanceof String) {
+            resource = new FastResource((String) data);
+        } else if (data instanceof URL) {
+            resource = new FastResource((URL) data);
+        } else if (data instanceof URI) {
+            resource = new FastResource(((URI) data).toURL());
+        } else if (data instanceof FastResource) {
+            resource = ((FastResource) data);
+        }
+        return resource;
     }
 
 
@@ -121,14 +134,14 @@ public class FastOutFile extends FastOut<FastOutFile> {
     }
 
     @SuppressWarnings("IOStreamConstructor")
-    private void responseAllFile(FastHttpServletResponse response, File file) {
-        response.setContentLength((int) file.length());
+    private void responseAllFile(FastHttpServletResponse response, URLConnection urlConnection) {
+        response.setContentLength(urlConnection.getContentLength());
         InputStream inputStream = null;
         try {
-            inputStream = new BufferedInputStream(new FileInputStream(file));
+            inputStream = new BufferedInputStream(urlConnection.getInputStream());
             write(response, inputStream, inputSize);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         } finally {
             FastFileUtils.closeQuietly(inputStream);
         }
@@ -136,23 +149,23 @@ public class FastOutFile extends FastOut<FastOutFile> {
 
 
     @SuppressWarnings("IOStreamConstructor")
-    private void responseRangFile(FastHttpServletRequest request, FastHttpServletResponse response, File file) {
+    private void responseRangFile(FastHttpServletRequest request, FastHttpServletResponse response, URLConnection urlConnection) {
         Long[] range = {null, null};
-        processRange(request, file, range);
+        processRange(request, urlConnection, range);
         response.setContentLength((int) (range[1] - range[0] + 1));
         response.setStatus(FastHttpServletResponse.SC_PARTIAL_CONTENT);
-        response.setHeader("Content-Range", "bytes " + range[0] + "-" + range[1] + "/" + file.length());
+        response.setHeader("Content-Range", "bytes " + range[0] + "-" + range[1] + "/" + urlConnection.getContentLength());
         try {
             long start = range[0];
             long end = range[1];
-            InputStream inputStream = new BufferedInputStream(new FileInputStream(file));
+            InputStream inputStream = new BufferedInputStream(urlConnection.getInputStream());
             write(response, inputStream, inputSize, start, end);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
     }
 
-    private void processRange(FastHttpServletRequest request, File file, Long[] range) {
+    private void processRange(FastHttpServletRequest request, URLConnection urlConnection, Long[] range) {
         String rangeStr = request.getHeader("Range");
         int index = rangeStr.indexOf(',');
         if (index != -1) {
@@ -165,7 +178,7 @@ public class FastOutFile extends FastOut<FastOutFile> {
             throw new RuntimeException("Range error");
         }
 
-        long fileLength = file.length();
+        long fileLength = urlConnection.getContentLength();
         for (int i = 0; i < range.length; i++) {
             if (FastStringUtils.isNotBlank(arr[i])) {
                 range[i] = Long.parseLong(arr[i].trim());

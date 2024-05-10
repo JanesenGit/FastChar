@@ -22,10 +22,12 @@ public class FastMapWrap {
     protected transient Map<String, Object> ignoreMap = new HashMap<>(16);
     protected boolean ignoreCase;
 
+    //强制使用${}格式获取属性值
+    protected boolean forceAttr;
+
     protected FastMapWrap() {
 
     }
-
 
 
     public Map<?, ?> getMap() {
@@ -33,6 +35,17 @@ public class FastMapWrap {
             map = new HashMap<>(16);
         }
         return map;
+    }
+
+    private String convertAttr(String attr) {
+        attr = FastStringUtils.strip(attr);
+        if (forceAttr) {
+            if (attr.startsWith("${") && attr.endsWith("}")) {
+                return attr;
+            }
+            return "${" + attr + "}";
+        }
+        return attr;
     }
 
     public FastMapWrap setMap(Map<?, ?> map) {
@@ -110,6 +123,7 @@ public class FastMapWrap {
      * @return Object对象
      */
     public Object get(String attr) {
+        attr = convertAttr(attr);
         //尽量不使用正则表达式
         if (attr.startsWith("${") && attr.endsWith("}")) {
             return new FastObjectExecute(getMap()).execute(attr);
@@ -125,6 +139,9 @@ public class FastMapWrap {
      * @return 布尔值
      */
     public boolean isEmpty(String attr) {
+        if (isNull(attr)) {
+            return true;
+        }
         Object value = get(attr);
         if (value == null) {
             return true;
@@ -140,11 +157,7 @@ public class FastMapWrap {
      * @return 布尔值
      */
     public boolean isNotEmpty(String attr) {
-        Object value = get(attr);
-        if (value == null) {
-            return false;
-        }
-        return FastStringUtils.isNotEmpty(String.valueOf(value));
+        return !isEmpty(attr);
     }
 
 
@@ -169,11 +182,7 @@ public class FastMapWrap {
      * @return 布尔值
      */
     public boolean isNotBlank(String attr) {
-        Object value = get(attr);
-        if (value == null) {
-            return true;
-        }
-        return FastStringUtils.isNotBlank(String.valueOf(value));
+        return !isBlank(attr);
     }
 
     /**
@@ -231,6 +240,25 @@ public class FastMapWrap {
     public <E> E getObject(String attr) {
         return (E) get(attr);
     }
+
+
+    /**
+     * 获取任意对象值
+     *
+     * @param attr 属性名称
+     * @param <E>  任意类
+     * @return 任意类
+     */
+    public <E> E getObject(String attr,Class<E> targetClass) {
+        Object value = get(attr);
+        if (value == null) {
+            return null;
+        }
+        return FastChar.getJson().fromJson(FastChar.getJson().toJson(value), targetClass);
+    }
+
+
+
 
     /**
      * 获取字符串类值
@@ -660,11 +688,12 @@ public class FastMapWrap {
     }
 
 
-    public void put(Object attr, Object value) {
+    public FastMapWrap put(Object attr, Object value) {
         Map map = getMap();
         if (map != null) {
             map.put(attr, value);
         }
+        return this;
     }
 
 }

@@ -6,6 +6,7 @@ import com.fastchar.exception.FastFileException;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.servlet.http.FastHttpServletRequest;
 import com.fastchar.servlet.http.FastPart;
+import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
@@ -34,7 +35,7 @@ public class FastHttpServletRequestWrapper extends FastHttpServletRequest {
                 for (FastPart part : getParts()) {
                     String fileName = part.getSubmittedFileName();
                     if (FastStringUtils.isNotEmpty(fileName)) {
-                        File saveFile = new File(FastChar.getConstant().getAttachDirectory(), fileName);
+                        File saveFile = new File(FastChar.getConstant().getAttachDirectory(), FastChar.getConstant().isAttachNameMD5() ? FastChar.getSecurity().MD5_Encrypt(fileName) + "." + FastFileUtils.getExtension(fileName) : fileName);
                         if (!saveFile.getParentFile().exists()) {
                             if (!saveFile.getParentFile().mkdirs()) {
                                 throw new FastFileException(FastChar.getLocal().getInfo(FastCharLocal.FILE_ERROR1));
@@ -42,7 +43,7 @@ public class FastHttpServletRequestWrapper extends FastHttpServletRequest {
                         }
 
                         if (saveFile.exists()) {
-                            saveFile = FastChar.getFileRename().rename(saveFile, FastChar.getConstant().isAttachNameMD5());
+                            saveFile = FastChar.getFileRename().rename(saveFile, false);
                         }
                         part.write(saveFile.getAbsolutePath());
 
@@ -54,7 +55,7 @@ public class FastHttpServletRequestWrapper extends FastHttpServletRequest {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                FastChar.getLogger().error(this.getClass(), e);
             }
         }
         return files;

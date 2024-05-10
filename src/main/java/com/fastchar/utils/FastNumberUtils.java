@@ -14,15 +14,27 @@ public class FastNumberUtils {
 
 
     public static boolean isNumber(Object value) {
-        return toPlainText(value).matches("[-\\+]?\\d+[\\.]?\\d*");
+        String plainText = toPlainText(value);
+        if (FastStringUtils.isEmpty(plainText)) {
+            return false;
+        }
+        return plainText.matches("[-+]?\\d+[.]?\\d*");
     }
 
     public static boolean isDecimalNumber(Object value) {
-        return toPlainText(value).matches("[-\\+]?\\d+\\.\\d*");
+        String plainText = toPlainText(value);
+        if (FastStringUtils.isEmpty(plainText)) {
+            return false;
+        }
+        return plainText.matches("[-+]?\\d+\\.\\d*");
     }
 
     public static boolean isIntegralNumber(Object value) {
-        return toPlainText(value).matches("[-\\+]?\\d+");
+        String plainText = toPlainText(value);
+        if (FastStringUtils.isEmpty(plainText)) {
+            return false;
+        }
+        return plainText.matches("[-+]?\\d+");
     }
 
     /**
@@ -44,7 +56,7 @@ public class FastNumberUtils {
      */
     public static Number formatToNumber(final Object value, final Number defaultValue) {
         try {
-            if (value == null || value.toString().trim().length() == 0) {
+            if (value == null || value.toString().trim().isEmpty()) {
                 return defaultValue;
             }
             return new FastNumber().setValue(value).setDefaultValue(defaultValue);
@@ -167,13 +179,12 @@ public class FastNumberUtils {
         List<String> numbers = new ArrayList<String>();
         String replaceAll = content.replaceAll("[^0-9]", ",");
         for (String n : FastStringUtils.splitByWholeSeparator(replaceAll,",")) {
-            if (n.length() > 0) {
+            if (!n.isEmpty()) {
                 numbers.add(n);
             }
         }
         return FastStringUtils.join(numbers, "");
     }
-
 
     /**
      * 数字格式化
@@ -282,8 +293,7 @@ public class FastNumberUtils {
             return null;
         }
         try {
-            BigDecimal bd = new BigDecimal(number.toString())
-                    .setScale(digit, BigDecimal.ROUND_HALF_UP);
+            BigDecimal bd = new BigDecimal(number.toString()).setScale(digit, RoundingMode.HALF_UP);
             return bd.toPlainString();
         } catch (Exception ignored) { }
         return String.valueOf(number);

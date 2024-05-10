@@ -56,7 +56,7 @@ public class FastMySql extends FastSql {
             }
         }
 
-        if (values.size() == 0) {
+        if (values.isEmpty()) {
             return null;
         }
 

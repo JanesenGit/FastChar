@@ -38,7 +38,7 @@ public class FastMethodRead implements IFastMethodRead {
             numbers.clear();
         }
         ClassReader reader = new ClassReader(resourceAsStream);
-        reader.accept(new ClassVisitor(FastOpcodesHelper.getLastASM()) {
+        reader.accept(new ClassVisitor(FastAsmInfo.getLastASM()) {
 
             @Override
             public MethodVisitor visitMethod(final int access, final String name, final String desc,
@@ -50,7 +50,8 @@ public class FastMethodRead implements IFastMethodRead {
                     if (numbers != null) {
                         numbers.add(methodLine);
                     }
-                    return new MethodVisitor(FastOpcodesHelper.getLastASM(), superMethodVisitor) {
+                    return new MethodVisitor(FastAsmInfo.getLastASM(), superMethodVisitor) {
+
                         @Override
                         public void visitLocalVariable(String name1, String desc1, String signature1, Label start, Label end, int index) {
                             super.visitLocalVariable(name1, desc1, signature1, start, end, index);
@@ -83,7 +84,7 @@ public class FastMethodRead implements IFastMethodRead {
                 return superMethodVisitor;
             }
         }, 0);
-        if (numbers != null && numbers.size() == 0) {
+        if (numbers != null && numbers.isEmpty()) {
             numbers.add(new MethodLine().setFirstLine(1).setLastLine(1));
         }
         return parameters;
@@ -101,7 +102,7 @@ public class FastMethodRead implements IFastMethodRead {
             return numbers;
         }
         ClassReader reader = new ClassReader(resourceAsStream);
-        reader.accept(new ClassVisitor(FastOpcodesHelper.getLastASM()) {
+        reader.accept(new ClassVisitor(FastAsmInfo.getLastASM()) {
 
             @Override
             public MethodVisitor visitMethod(final int access, final String name, final String desc,
@@ -110,7 +111,7 @@ public class FastMethodRead implements IFastMethodRead {
                 if (name.equals(methodName)) {
                     final MethodLine methodLine = new MethodLine();
                     numbers.add(methodLine);
-                    return new MethodVisitor(FastOpcodesHelper.getLastASM()) {
+                    return new MethodVisitor(FastAsmInfo.getLastASM()) {
                         @Override
                         public void visitLineNumber(int line, Label start) {
                             super.visitLineNumber(line, start);
@@ -122,7 +123,7 @@ public class FastMethodRead implements IFastMethodRead {
                 return superMethodVisitor;
             }
         }, 0);
-        if (numbers.size() == 0) {
+        if (numbers.isEmpty()) {
             numbers.add(new MethodLine().setFirstLine(1).setLastLine(1));
         }
         return numbers;

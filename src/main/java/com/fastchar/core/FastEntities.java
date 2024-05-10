@@ -118,7 +118,7 @@ public final class FastEntities {
             if (FastClassUtils.isRelease(entityInfo.getTargetClass())) {
                 waitRemove.add(entityInfo);
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastEntities.class,
+                    FastChar.getLogger().warn(FastEntities.class,
                             FastChar.getLocal().getInfo(FastCharLocal.ENTITY_ERROR5, entityInfo.getTargetClass()));
                 }
             }

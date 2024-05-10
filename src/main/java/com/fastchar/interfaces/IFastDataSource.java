@@ -7,7 +7,7 @@ import javax.sql.DataSource;
 /**
  * 数据源接口
  */
-public interface IFastDataSource {
+public interface IFastDataSource  {
 
     /**
      * 获取数据源

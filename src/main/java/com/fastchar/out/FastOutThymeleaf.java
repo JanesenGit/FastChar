@@ -3,12 +3,18 @@ package com.fastchar.out;
 import com.fastchar.annotation.AFastClassFind;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastResource;
+import com.fastchar.local.FastCharLocal;
 import com.fastchar.servlet.http.FastHttpServletRequest;
 import com.fastchar.servlet.http.FastHttpServletResponse;
+import com.fastchar.utils.FastFileUtils;
+import com.fastchar.utils.FastStringUtils;
 import org.thymeleaf.context.Context;
 
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,6 +39,11 @@ public class FastOutThymeleaf extends FastOut<FastOutThymeleaf> {
         response.setContentType(toContentType(action, false));
         response.setCharacterEncoding(getCharset());
 
+        FastResource webResource = FastChar.getWebResources().getResource(String.valueOf(data));
+        if (webResource == null) {
+            action.response502(FastChar.getLocal().getInfo(FastCharLocal.VELOCITY_ERROR1, data));
+            return;
+        }
 
         Context context = new Context();
 
@@ -51,9 +62,11 @@ public class FastOutThymeleaf extends FastOut<FastOutThymeleaf> {
             context.setVariable(attrName, request.getSession().getAttribute(attrName));
         }
 
+        List<String> tempContent = FastFileUtils.readLines(webResource.getInputStream(), Charset.forName( FastChar.getConstant().getCharset()));
         try (PrintWriter writer = getWriter(response)) {
-            FastChar.getTemplates().getThymeleaf().process(String.valueOf(data),
+            FastChar.getTemplates().getThymeleaf().process(FastStringUtils.join(tempContent, "\n"),
                     context, writer);
+
             writer.flush();
         }
     }

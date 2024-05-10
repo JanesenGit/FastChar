@@ -1,5 +1,6 @@
 package com.fastchar.core;
 
+import com.fastchar.annotation.AFastPriority;
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastRootInterceptor;
 import com.fastchar.local.FastCharLocal;
@@ -7,7 +8,6 @@ import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -27,7 +27,12 @@ public final class FastInterceptors {
 
     public FastInterceptors addRoot(Class<? extends IFastRootInterceptor> interceptor,
                                     String... urlPattern) {
-        return addRoot(interceptor, 0, urlPattern);
+        int priority = 0;
+        if (interceptor.isAnnotationPresent(AFastPriority.class)) {
+            AFastPriority annotation = interceptor.getAnnotation(AFastPriority.class);
+            priority = annotation.value();
+        }
+        return addRoot(interceptor, priority, urlPattern);
     }
 
     public FastInterceptors addRoot(Class<? extends IFastRootInterceptor> interceptor,
@@ -67,7 +72,12 @@ public final class FastInterceptors {
 
     public FastInterceptors addBefore(Class<? extends IFastInterceptor> interceptor,
                                       String... urlPattern) {
-        return addBefore(interceptor, 0, urlPattern);
+        int priority = 0;
+        if (interceptor.isAnnotationPresent(AFastPriority.class)) {
+            AFastPriority annotation = interceptor.getAnnotation(AFastPriority.class);
+            priority = annotation.value();
+        }
+        return addBefore(interceptor, priority, urlPattern);
     }
 
     public FastInterceptors addBefore(Class<? extends IFastInterceptor> interceptor,
@@ -89,7 +99,12 @@ public final class FastInterceptors {
 
     public FastInterceptors addAfter(Class<? extends IFastInterceptor> interceptor,
                                      String... urlPattern) {
-        return addAfter(interceptor, 0, urlPattern);
+        int priority = 0;
+        if (interceptor.isAnnotationPresent(AFastPriority.class)) {
+            AFastPriority annotation = interceptor.getAnnotation(AFastPriority.class);
+            priority = annotation.value();
+        }
+        return addAfter(interceptor, priority, urlPattern);
     }
 
     public FastInterceptors addAfter(Class<? extends IFastInterceptor> interceptor,
@@ -109,13 +124,8 @@ public final class FastInterceptors {
     }
 
     void sortRootInterceptor() {
-        Comparator<FastInterceptorInfo<?>> comparator = new Comparator<FastInterceptorInfo<?>>() {
-            @Override
-            public int compare(FastInterceptorInfo o1, FastInterceptorInfo o2) {
-                return Integer.compare(o2.priority, o1.priority);
-            }
-        };
-        Collections.sort(rootInterceptors, comparator);
+        Comparator<FastInterceptorInfo<?>> comparator = (o1, o2) -> Integer.compare(o2.priority, o1.priority);
+        rootInterceptors.sort(comparator);
     }
 
 
@@ -157,7 +167,7 @@ public final class FastInterceptors {
                 waitRemoveA.add(rootInterceptor);
 
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastInterceptors.class,
+                    FastChar.getLogger().warn(FastInterceptors.class,
                             FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3, rootInterceptor.interceptor));
                 }
             }
@@ -169,7 +179,7 @@ public final class FastInterceptors {
                 waitRemoveB.add(rootInterceptor);
 
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastInterceptors.class,
+                    FastChar.getLogger().warn(FastInterceptors.class,
                             FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3, rootInterceptor.interceptor));
                 }
             }
@@ -179,7 +189,7 @@ public final class FastInterceptors {
                 waitRemoveB.add(rootInterceptor);
 
                 if (FastChar.getConstant().isDebug()) {
-                    FastChar.getLog().warn(FastInterceptors.class,
+                    FastChar.getLogger().warn(FastInterceptors.class,
                             FastChar.getLocal().getInfo(FastCharLocal.INTERCEPTOR_ERROR3, rootInterceptor.interceptor));
                 }
             }

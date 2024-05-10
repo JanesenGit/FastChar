@@ -1036,7 +1036,7 @@ final class SymbolTable {
    * @return a new or already existing Symbol with the given value.
    */
   Symbol addBootstrapMethod(
-      final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
+          final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
     ByteVector bootstrapMethodsAttribute = bootstrapMethods;
     if (bootstrapMethodsAttribute == null) {
       bootstrapMethodsAttribute = bootstrapMethods = new ByteVector();
